@@ -7,9 +7,9 @@ if /I "%VCVER%" == "vc14" (
     rem set environment variables used by OCCT
     set CSF_FPE=0
 
-    set "TCL_DIR=%THIRDPARTY_DIR%/tcl8.6.11/build/bin"
-    set "TK_DIR=%THIRDPARTY_DIR%/tcl8.6.11/build/bin"
-    set "FREETYPE_DIR=%THIRDPARTY_DIR%/freetype-2.10.4/bin"
+    set "TCL_DIR="
+    set "TK_DIR="
+    set "FREETYPE_DIR="
     set "FREEIMAGE_DIR="
     set "EGL_DIR="
     set "GLES2_DIR="
@@ -21,8 +21,8 @@ if /I "%VCVER%" == "vc14" (
     if not "" == "" (
       set "QTDIR="
     )
-    set "TCL_VERSION_WITH_DOT=8.6"
-    set "TK_VERSION_WITH_DOT=8.6"
+    set "TCL_VERSION_WITH_DOT="
+    set "TK_VERSION_WITH_DOT="
 
     set "CSF_OCCTBinPath=%CASROOT%/win64/vc14/bin%3"
     set "CSF_OCCTLibPath=%CASROOT%/win64/vc14/lib%3"

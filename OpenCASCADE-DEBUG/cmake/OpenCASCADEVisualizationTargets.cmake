@@ -9,27 +9,6 @@ cmake_policy(VERSION 2.6...3.18)
 # Generated CMake target import file.
 #----------------------------------------------------------------
 
-set (TCL_FREETYPE_EXT ".lib")
-set(FREETYPE_PATH_TMP ${FREETYPE_PATH})
-set(TCL_PATH_TMP ${TCL_PATH})
-
-#FREETYPE_PATH not set, old GeomAlgo version
-if ("${FREETYPE_PATH}" STREQUAL "")
-	message ("FREETYPE_PATH not set, setting up.")
-	# Set third party variables, needed for newest Salome-Geom thing, used in OCCT cmake`s.
-	set(FREETYPE_PATH_TMP "../../../third-party/freetype-DEBUG")
-    set(TCL_FREETYPE_EXT "")
-endif()
-
-
-#TCL_PATH not set, old GeomAlgo version
-if ("${TCL_PATH}" STREQUAL "")
-	message ("TCL_PATH not set, setting up.")
-	# Set third party variables, needed for newest Salome-Geom thing, used in OCCT cmake`s.
-	set(TCL_PATH_TMP "../../../third-party/tcl8.6.11-DEBUG")
-    set(TCL_FREETYPE_EXT "")
-endif()
-
 # Commands may need to know the format version.
 set(CMAKE_IMPORT_FILE_VERSION 1)
 
@@ -37,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget TKService TKV3d TKOpenGl TKMeshVS TKIVtk)
+foreach(_expectedTarget TKService TKV3d TKMeshVS TKIVtk)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -73,21 +52,14 @@ endif()
 add_library(TKService SHARED IMPORTED)
 
 set_target_properties(TKService PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKernel;TKMath;user32.lib;advapi32.lib;advapi32.lib;user32.lib;windowscodecs;${FREETYPE_PATH_TMP}/lib/freetype${TCL_FREETYPE_EXT};winmm.lib"
+  INTERFACE_LINK_LIBRARIES "TKernel;TKMath;user32.lib;advapi32.lib;advapi32.lib;user32.lib;windowscodecs;winmm.lib"
 )
 
 # Create imported target TKV3d
 add_library(TKV3d SHARED IMPORTED)
 
 set_target_properties(TKV3d PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKService;TKShHealing;TKTopAlgo;TKG2d;TKG3d;TKGeomBase;TKMesh;TKGeomAlgo;TKHLR;user32.lib;gdi32.lib;opengl32.lib;${FREETYPE_PATH_TMP}/lib/freetype${TCL_FREETYPE_EXT}"
-)
-
-# Create imported target TKOpenGl
-add_library(TKOpenGl SHARED IMPORTED)
-
-set_target_properties(TKOpenGl PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKernel;TKService;TKMath;opengl32.lib;user32.lib;gdi32.lib"
+  INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKService;TKShHealing;TKTopAlgo;TKG2d;TKG3d;TKGeomBase;TKMesh;TKGeomAlgo;TKHLR;user32.lib;gdi32.lib;opengl32.lib"
 )
 
 # Create imported target TKMeshVS

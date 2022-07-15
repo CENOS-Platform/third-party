@@ -40,11 +40,11 @@ public:
     table2.oneblock = nullptr;
   }
 
-  BASE_TABLE (int size);
+  DLL_HEADER BASE_TABLE (int size);
   ///
-  BASE_TABLE (const NgFlatArray<int> & entrysizes, int elemsize);
+  DLL_HEADER BASE_TABLE (const NgFlatArray<int> & entrysizes, int elemsize);
   ///
-  ~BASE_TABLE ();
+  DLL_HEADER ~BASE_TABLE ();
 
   BASE_TABLE & operator= (BASE_TABLE && table2)
   {
@@ -201,6 +201,8 @@ public:
   inline const T & Get (int i, int nr) const
     { return ((T*)data.Get(i).col)[nr-1]; }
 
+  inline T & Get (int i, int nr)
+    { return ((T*)data.Get(i).col)[nr-1]; }
 
   /** Returns pointer to the first element in row i. */
   inline const T * GetLine (int i) const
@@ -230,7 +232,7 @@ public:
   inline void PrintMemInfo (ostream & ost) const
   {
     int els = AllocatedElements(); 
-    ost << "table: allocaed " << els 
+    ost << "table: allocated " << els 
 	<< " a " << sizeof(T) << " Byts = " 
 	<< els * sizeof(T) 
 	<< " bytes in " << Size() << " bags."

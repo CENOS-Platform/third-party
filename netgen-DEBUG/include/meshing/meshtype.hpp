@@ -126,7 +126,7 @@ namespace netgen
 
   public:
     EdgePointGeomInfo ()
-      : edgenr(0), body(0), dist(0.0), u(0.0), v(0.0) { ; }
+      : edgenr(-1), body(0), dist(0.0), u(0.0), v(0.0) { ; }
 
 
     EdgePointGeomInfo & operator= (const EdgePointGeomInfo & gi2)
@@ -615,13 +615,13 @@ namespace netgen
 			    class DenseMatrix & trans) const;
 
     void GetShape (const Point<2> & p, class Vector & shape) const;
-    void GetShapeNew (const Point<2> & p, class FlatVector & shape) const;
+    DLL_HEADER void GetShapeNew (const Point<2> & p, class FlatVector & shape) const;
     template <typename T>
-    void GetShapeNew (const Point<2,T> & p, TFlatVector<T> shape) const;    
+    DLL_HEADER void GetShapeNew (const Point<2,T> & p, TFlatVector<T> shape) const;
     /// matrix 2 * np
-    void GetDShape (const Point<2> & p, class DenseMatrix & dshape) const;
+    DLL_HEADER void GetDShape (const Point<2> & p, class DenseMatrix & dshape) const;
     template <typename T>
-    void GetDShapeNew (const Point<2,T> & p, class MatrixFixWidth<2,T> & dshape) const;
+    DLL_HEADER void GetDShapeNew (const Point<2,T> & p, class MatrixFixWidth<2,T> & dshape) const;
     
     /// matrix 2 * np
     void GetPointMatrix (const NgArray<Point<2>> & points,
@@ -760,14 +760,14 @@ namespace netgen
     ///
     DLL_HEADER Element (int anp);
     ///
-    Element (ELEMENT_TYPE type);
+    DLL_HEADER Element (ELEMENT_TYPE type);
     ///
     // Element & operator= (const Element & el2);
   
     ///
-    void SetNP (int anp);
+    DLL_HEADER void SetNP (int anp);
     ///
-    void SetType (ELEMENT_TYPE atyp);
+    DLL_HEADER void SetType (ELEMENT_TYPE atyp);
     ///
     int GetNP () const { return np; }
     ///
@@ -798,7 +798,7 @@ namespace netgen
         }
     }
 
-    bool operator==(const Element & el2) const;
+    DLL_HEADER bool operator==(const Element & el2) const;
 
     // old style:
     int NP () const { return np; }
@@ -905,7 +905,7 @@ namespace netgen
     ///
     inline void GetFace (int i, Element2d & face) const;
     ///
-    void GetFace2 (int i, Element2d & face) const;
+    DLL_HEADER void GetFace2 (int i, Element2d & face) const;
     ///
     DLL_HEADER void Invert ();
 
@@ -918,7 +918,7 @@ namespace netgen
     void GetNodesLocalNew (NgArray<Point<3> > & points) const;
 
     /// split surface into 3 node trigs
-    void GetSurfaceTriangles (NgArray<Element2d> & surftrigs) const;
+    DLL_HEADER void GetSurfaceTriangles (NgArray<Element2d> & surftrigs) const;
 
 
     /// get number of 'integration points'
@@ -933,7 +933,7 @@ namespace netgen
     void GetShape (const Point<3> & p, class Vector & shape) const;
     // void GetShapeNew (const Point<3> & p, class FlatVector & shape) const;
     template <typename T>
-    void GetShapeNew (const Point<3,T> & p, TFlatVector<T> shape) const;    
+    DLL_HEADER void GetShapeNew (const Point<3,T> & p, TFlatVector<T> shape) const;
     /// matrix 2 * np
     void GetDShape (const Point<3> & p, class DenseMatrix & dshape) const;
     template <typename T>
@@ -1030,7 +1030,7 @@ namespace netgen
 
     /// surface decoding index
     int si;
-    /// co dim 2 deconding index
+    /// co dim 2 decoding index
     int cd2i;
     /// domain number inner side
     int domin;
@@ -1172,7 +1172,7 @@ namespace netgen
     void SetDomainIn (int di) { domin = di; }
     void SetDomainOut (int dom) { domout = dom; }
     void SetBCProperty (int bc) { bcprop = bc; }
-    void SetBCName (string * bcn); //  { bcname = bcn; }
+    DLL_HEADER void SetBCName (string * bcn); //  { bcname = bcn; }
     void SetBCName (const string & bcn) { bcname = bcn; }    
     // Philippose - 06/07/2009
     // Set the surface colour
@@ -1190,6 +1190,7 @@ namespace netgen
 
   ostream & operator<< (ostream  & s, const FaceDescriptor & fd);
 
+  
  
   class EdgeDescriptor
   {
@@ -1295,6 +1296,9 @@ namespace netgen
     int giveuptol2d = 200;
     /// give up quality class, 3d meshing
     int giveuptol = 10;
+    /// give up quality class for closing open quads, > 100 for
+    /// free pyramids
+    int giveuptolopenquads = 15;
     /// maximal outer steps
     int maxoutersteps = 10;
     /// class starting star-shape filling
@@ -1347,6 +1351,7 @@ namespace netgen
     public:
       Point<3> pnt;
       double h;
+      int layer = 1;
       MeshSizePoint (Point<3> _pnt, double _h) : pnt(_pnt), h(_h) { ; }
       MeshSizePoint () = default;
       MeshSizePoint (const MeshSizePoint &) = default;
@@ -1562,7 +1567,7 @@ namespace netgen
     }
     
     ///
-    void GetPairs (int identnr, NgArray<INDEX_2> & identpairs) const;
+    DLL_HEADER void GetPairs (int identnr, NgArray<INDEX_2> & identpairs) const;
     ///
     int GetMaxNr () const { return maxidentnr; }  
 

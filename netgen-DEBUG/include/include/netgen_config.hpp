@@ -3,7 +3,7 @@
 
 #define NETGEN_USE_NATIVE_ARCH          0
 #define NETGEN_USE_GUI                  1
-#define NETGEN_USE_PYTHON               0
+#define NETGEN_USE_PYTHON               1
 #define NETGEN_USE_MPI                  1
 #define NETGEN_USE_MPI4PY               1
 #define NETGEN_USE_OCC                  1
@@ -20,7 +20,7 @@
 #define NETGEN_USE_SPDLOG               0
 #define NETGEN_DEBUG_LOG                0
 #define NETGEN_USE_CHECK_RANGE          0
-#define NETGEN_BUILD_STUB_FILES         1
+#define NETGEN_BUILD_STUB_FILES         0
 #define NETGEN_BUILD_FOR_CONDA          0
 
 #endif // NETGEN_CONFIG_HPP_INCLUDED___

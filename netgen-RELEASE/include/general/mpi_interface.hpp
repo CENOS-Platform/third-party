@@ -2,7 +2,6 @@
 #define FILE_PARALLEL
 
 
-
 #ifdef VTRACE
 #include "vt_user.h"
 #else
@@ -39,11 +38,11 @@ namespace netgen
 #endif
 
   
-#ifdef PARALLEL
   enum { MPI_TAG_CMD = 110 };
   enum { MPI_TAG_MESH = 210 };
   enum { MPI_TAG_VIS = 310 };
 
+#ifdef PARALLEL
 
   [[deprecated("mympi_send int, use comm.Send instead")]]            
   inline void MyMPI_Send (int i, int dest, int tag, MPI_Comm comm)
@@ -94,6 +93,7 @@ namespace netgen
   }
 
   template <class T, int BASE>
+  [[deprecated("use ngcore - Array insterad")]]                  
   inline void MyMPI_Recv ( NgArray <T, BASE> & s, int src, int tag, MPI_Comm comm)
   {
     MPI_Status status;
@@ -106,6 +106,7 @@ namespace netgen
   }
 
   template <class T, int BASE>
+  [[deprecated("use ngcore - Array insterad")]]                    
   inline int MyMPI_Recv ( NgArray <T, BASE> & s, int tag, MPI_Comm comm)
   {
     MPI_Status status;
@@ -139,7 +140,8 @@ namespace netgen
   */
 
   template <class T, int BASE>
-  [[deprecated("mympi_isend ngflatarray, use comm.send instead")]]                
+  [[deprecated("mympi_isend ngflatarray, use comm.send instead")]]
+  [[deprecated("use ngcore - Array insterad")]]                    
   inline MPI_Request MyMPI_ISend (NgFlatArray<T, BASE> s, int dest, int tag, MPI_Comm comm)
   {
     MPI_Request request;
@@ -183,6 +185,7 @@ namespace netgen
    */
 
   template <typename T>
+  [[deprecated("do we need that ? ")]]       
   inline void MyMPI_ExchangeTable (TABLE<T> & send_data, 
 				   TABLE<T> & recv_data, int tag,
 				   const NgMPI_Comm & comm)
@@ -213,27 +216,68 @@ namespace netgen
   }
 
 
-  extern void MyMPI_SendCmd (const char * cmd);
+  template <typename T>
+  [[deprecated("do we need that ? ")]]       
+  inline void MyMPI_ExchangeTable (DynamicTable<T> & send_data, 
+				   DynamicTable<T> & recv_data, int tag,
+				   const NgMPI_Comm & comm)
+  {
+    int rank = comm.Rank();
+    int ntasks = comm.Size();
+    
+    Array<int> send_sizes(ntasks);
+    Array<int> recv_sizes(ntasks);
+    for (int i = 0; i < ntasks; i++)
+      send_sizes[i] = send_data[i].Size();
+
+    comm.AllToAll (send_sizes, recv_sizes);
+    
+    // for (int i = 0; i < ntasks; i++)
+    // recv_data.SetEntrySize (i, recv_sizes[i], sizeof(T));
+    recv_data = DynamicTable<T> (recv_sizes, true);
+    
+    Array<MPI_Request> requests;
+    for (int dest = 0; dest < ntasks; dest++)
+      if (dest != rank && send_data[dest].Size())
+        requests.Append (comm.ISend (FlatArray<T>(send_data[dest]), dest, tag));
+
+    for (int dest = 0; dest < ntasks; dest++)
+      if (dest != rank && recv_data[dest].Size())
+        requests.Append (comm.IRecv (FlatArray<T>(recv_data[dest]), dest, tag));
+
+    MyMPI_WaitAll (requests);
+  }
+
+
+
+  
+  [[deprecated("do we still send commands?")]]                      
+  DLL_HEADER void MyMPI_SendCmd (const char * cmd);
+  [[deprecated("do we still send commands?")]]                        
   extern string MyMPI_RecvCmd ();
 
 
   template <class T>
+  [[deprecated("use comm.BCast instead")]]                      
   inline void MyMPI_Bcast (T & s, MPI_Comm comm)
   {
     MPI_Bcast (&s, 1, GetMPIType<T>(), 0, comm);
   }
 
   template <class T>
+  [[deprecated("use comm.BCast instead")]]                        
   inline void MyMPI_Bcast (NgArray<T, 0> & s, NgMPI_Comm comm)
   {
     int size = s.Size();
-    MyMPI_Bcast (size, comm);
+    // MyMPI_Bcast (size, comm);
+    comm.Bcast(size);
     // if (MyMPI_GetId(comm) != 0) s.SetSize (size);
     if (comm.Rank() != 0) s.SetSize (size);
     MPI_Bcast (&s[0], size, GetMPIType<T>(), 0, comm);
   }
 
   template <class T>
+  [[deprecated("use comm.BCast instead")]]                        
   inline void MyMPI_Bcast (NgArray<T, 0> & s, int root, MPI_Comm comm)
   {
     int id;
@@ -261,6 +305,22 @@ namespace netgen
   }
 
 
+#else
+  template <typename T>
+  [[deprecated("do we need that ? ")]]       
+  inline void MyMPI_ExchangeTable (TABLE<T> & send_data, 
+				   TABLE<T> & recv_data, int tag,
+				   const NgMPI_Comm & comm)
+  {
+    ;
+  }
+
+  template <typename T>
+  [[deprecated("do we need that ? ")]]       
+  inline void MyMPI_ExchangeTable (DynamicTable<T> & send_data, 
+				   DynamicTable<T> & recv_data, int tag,
+				   const NgMPI_Comm & comm)
+  { ; } 
 #endif // PARALLEL
 
 }

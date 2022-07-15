@@ -119,7 +119,7 @@ rem ----- For compatibility with external application using CASROOT -----
 if ["%CASROOT%"] == [""] set "CASROOT=%SCRIPTROOT%"
 
 rem ----- Define path to 3rdparty products -----
-if ["%THIRDPARTY_DIR%"] == [""] set "THIRDPARTY_DIR=D:/SOURCE/occt-7.6.0"
+if ["%THIRDPARTY_DIR%"] == [""] set "THIRDPARTY_DIR=D:/SOURCE"
 
 if ["%ARCH%"] == ["32"] set VCARCH=x86
 if ["%ARCH%"] == ["64"] set VCARCH=amd64

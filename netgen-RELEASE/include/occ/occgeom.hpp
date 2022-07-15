@@ -91,6 +91,7 @@ namespace netgen
   {
   public:
     Point<3> p0, p1;
+    int layer = 1;
     double Dist (Line l);
     double Length () { return (p1-p0).Length(); }
   };
@@ -115,10 +116,11 @@ namespace netgen
     // int resthcloseedgeenable = true;
 
     /// Minimum edge length to be used for dividing edges to mesh points
-    double resthminedgelen = 0.001;
+    // double resthminedgelen = 0.001;
+    double resthminedgelen = 1e-4;
 
     /// Enable / Disable use of the minimum edge length (by default use 1e-4)
-    int resthminedgelenenable = true;
+    int resthminedgelenenable = false;
 
     /*!
       Dump all the OpenCascade specific meshing parameters 
@@ -195,7 +197,7 @@ namespace netgen
                      int nr, FlatArray<int, PointIndex> glob2loc) const override;
     // void OptimizeSurface(Mesh& mesh, const MeshingParameters& mparam) const override {}
  
-    void Save (string filename) const override;
+    void Save (const filesystem::path & filename) const override;
     void SaveToMeshFile (ostream & /* ost */) const override;
      
     void DoArchive(Archive& ar) override;
@@ -244,6 +246,8 @@ namespace netgen
     void SewFaces();
 
     void MakeSolid();
+
+    Array<GeometryVertex*> GetFaceVertices(const GeometryFace& face) const override;
 
     void HealGeometry();
     void GlueGeometry();
@@ -349,15 +353,15 @@ namespace netgen
     //bool FastProject (int surfi, Point<3> & ap, double& u, double& v) const;
   };
 
-  void Identify(const ListOfShapes & me, const ListOfShapes & you, string name, Identifications::ID_TYPE type, gp_Trsf occ_trafo);
-  void Identify(const TopoDS_Shape & me, const TopoDS_Shape & you, string name, Identifications::ID_TYPE type, std::optional<gp_Trsf> opt_trafo);
+  void Identify(const ListOfShapes & me, const ListOfShapes & you, string name, Identifications::ID_TYPE type, Transformation<3> trafo);
+  void Identify(const TopoDS_Shape & me, const TopoDS_Shape & you, string name, Identifications::ID_TYPE type, std::optional<std::variant<gp_Trsf, gp_GTrsf>> opt_trafo);
    
 
   void PrintContents (OCCGeometry * geom);
 
-  DLL_HEADER OCCGeometry * LoadOCC_IGES (const char * filename);
-  DLL_HEADER OCCGeometry * LoadOCC_STEP (const char * filename);
-  DLL_HEADER OCCGeometry * LoadOCC_BREP (const char * filename);
+  DLL_HEADER OCCGeometry * LoadOCC_IGES (const filesystem::path & filename);
+  DLL_HEADER OCCGeometry * LoadOCC_STEP (const filesystem::path & filename);
+  DLL_HEADER OCCGeometry * LoadOCC_BREP (const filesystem::path & filename);
 
   // Philippose - 31.09.2009
   // External access to the mesh generation functions within the OCC
@@ -534,9 +538,9 @@ namespace netgen
                           const Handle(TDocStd_Document) step_doc);
       void WriteProperties(const Handle(Interface_InterfaceModel) model, const Handle(Transfer_FinderProcess) finder, const TopoDS_Shape & shape);
 
-      void WriteSTEP(const TopoDS_Shape & shape, string filename);
+      void WriteSTEP(const TopoDS_Shape & shape, const filesystem::path & filename);
 
-      inline void WriteSTEP(const OCCGeometry & geo, string filename)
+      inline void WriteSTEP(const OCCGeometry & geo, const filesystem::path & filename)
       {
           WriteSTEP(geo.GetShape(), filename);
       }

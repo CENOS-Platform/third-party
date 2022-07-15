@@ -14,9 +14,10 @@ namespace ngcore
       mask[1] = i > 1 ? -1 : 0;
     }
 
-    SIMD (bool i0, bool i1) { mask[0] = i0 ? -1:0; mask[1] = i1 ? -1 : 0; }
+    SIMD (bool i0, bool i1) { mask[0] = i0 ? -1 : 0; mask[1] = i1 ? -1 : 0; }
     SIMD (SIMD<mask64,1> i0, SIMD<mask64,1> i1) { mask[0] = i0[0]; mask[1] = i1[0]; }
-    SIMD (float64x2_t _data) : mask{_data} { }
+    // SIMD (float64x2_t _data) : mask{_data} { }
+    SIMD (int64x2_t _data) : mask{_data} { }
     auto Data() const { return mask; }
     static constexpr int Size() { return 2; }
     // static NETGEN_INLINE SIMD<mask64, 2> GetMaskFromBits (unsigned int i);
@@ -41,6 +42,7 @@ namespace ngcore
     SIMD (const SIMD &) = default;
     // SIMD (double v0, double v1) : data{v0,v1} { }
     SIMD (double v0, double v1) : data{vcombine_f64(float64x1_t{v0}, float64x1_t{v1})} { }
+    SIMD (SIMD<double,1> v0, SIMD<double,1> v1) : data{vcombine_f64(float64x1_t{v0.Data()}, float64x1_t{v1.Data()})} { }
     SIMD (std::array<double, 2> arr) : data{arr[0], arr[1]} { } 
 
     SIMD & operator= (const SIMD &) = default;
@@ -117,8 +119,14 @@ namespace ngcore
   {
     // return SIMD<double,2> (a[0]+a[1], b[0]+b[1]);
     return vpaddq_f64(a.Data(), b.Data());
-    
   }
+
+  NETGEN_INLINE SIMD<double,4> HSum(SIMD<double,2> a, SIMD<double,2> b, SIMD<double,2> c, SIMD<double,2> d)
+  {
+    return SIMD<double,4> (HSum(a,b), HSum(c,d));
+  }
+
+  
 
   // a*b+c
   NETGEN_INLINE SIMD<double,2> FMA (SIMD<double,2> a, SIMD<double,2> b, SIMD<double,2> c)
@@ -159,7 +167,8 @@ namespace ngcore
   NETGEN_INLINE SIMD<double,2> If (SIMD<mask64,2> a, SIMD<double,2> b, SIMD<double,2> c)
   {
     // return { a[0] ? b[0] : c[0], a[1] ? b[1] : c[1] };
-    return vbslq_f64(a.Data(), b.Data(), c.Data());
+    uint64x2_t mask = vreinterpretq_u64_s64(a.Data());
+    return vbslq_f64(mask, b.Data(), c.Data());
   }
   NETGEN_INLINE SIMD<int64_t,2> If (SIMD<mask64,2> a, SIMD<int64_t,2> b, SIMD<int64_t,2> c)
   {
@@ -168,7 +177,10 @@ namespace ngcore
 
   NETGEN_INLINE SIMD<mask64,2> operator&& (SIMD<mask64,2> a, SIMD<mask64,2> b)
   {
-    return vandq_u64 (a.Data(), b.Data());
+    uint64x2_t m1 = vreinterpretq_u64_s64(a.Data());
+    uint64x2_t m2 = vreinterpretq_u64_s64(b.Data());
+    uint64x2_t res = vandq_u64 (m1, m2);
+    return vreinterpretq_s64_u64(res);
   }
   
 }

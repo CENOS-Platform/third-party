@@ -131,7 +131,7 @@ namespace netgen
     public:
       UserPoint() = default;
       UserPoint (Point<3> p, int _index) : Point<3>(p), index(_index) { ; }
-      UserPoint (Point<3> p, const string & _name) : Point<3>(p), name(_name), index(-1) { ; } 
+      UserPoint (Point<3> p, const string & _name) : Point<3>(p), index(-1), name(_name) { ; } 
       int GetIndex() const { return index; }
       const string & GetName() const { return name; } 
       void DoArchive(Archive& archive)
@@ -182,7 +182,7 @@ namespace netgen
 
     void Clean ();
 
-    virtual void Save (string filename) const override;
+    virtual void Save (const filesystem::path & filename) const override;
     void Save (ostream & ost) const;
     void Load (istream & ist);
 

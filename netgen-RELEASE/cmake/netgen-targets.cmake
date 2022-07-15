@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget netgen_mpi netgen_metis ngcore visual nglib)
+foreach(_expectedTarget netgen_mpi netgen_metis ngcore netgen nggui togl nglib netgen_cgns)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -58,18 +58,28 @@ add_library(netgen_metis INTERFACE IMPORTED)
 add_library(ngcore SHARED IMPORTED)
 
 set_target_properties(ngcore PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "_WIN32_WINNT=0x1000;WNT;WNT_WINDOW;NOMINMAX;MSVC_EXPRESS;_CRT_SECURE_NO_WARNINGS;HAVE_STRUCT_TIMESPEC;WIN32"
+  INTERFACE_COMPILE_DEFINITIONS "NETGEN_PYTHON;NG_PYTHON;_WIN32_WINNT=0x1000;WNT;WNT_WINDOW;NOMINMAX;MSVC_EXPRESS;_CRT_SECURE_NO_WARNINGS;HAVE_STRUCT_TIMESPEC;WIN32"
   INTERFACE_COMPILE_OPTIONS "/bigobj;/MP;/W1;/wd4068"
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include;${_IMPORT_PREFIX}/include/include"
   INTERFACE_LINK_LIBRARIES "netgen_mpi"
   INTERFACE_LINK_OPTIONS "/ignore:4273;/ignore:4217;/ignore:4049"
 )
 
-# Create imported target visual
-add_library(visual INTERFACE IMPORTED)
+# Create imported target netgen
+add_executable(netgen IMPORTED)
 
-set_target_properties(visual PROPERTIES
-  INTERFACE_LINK_LIBRARIES "ngcore;\$<LINK_ONLY:>"
+# Create imported target nggui
+add_library(nggui SHARED IMPORTED)
+
+set_target_properties(nggui PROPERTIES
+  INTERFACE_LINK_LIBRARIES "nglib;togl;opengl32;glu32"
+)
+
+# Create imported target togl
+add_library(togl SHARED IMPORTED)
+
+set_target_properties(togl PROPERTIES
+  INTERFACE_LINK_LIBRARIES "opengl32;glu32"
 )
 
 # Create imported target nglib
@@ -78,6 +88,9 @@ add_library(nglib SHARED IMPORTED)
 set_target_properties(nglib PROPERTIES
   INTERFACE_LINK_LIBRARIES "ngcore"
 )
+
+# Create imported target netgen_cgns
+add_library(netgen_cgns INTERFACE IMPORTED)
 
 if(CMAKE_VERSION VERSION_LESS 3.0.0)
   message(FATAL_ERROR "This file relies on consumers using CMake 3.0.0 or greater.")

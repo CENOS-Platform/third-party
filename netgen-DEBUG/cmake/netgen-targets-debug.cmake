@@ -24,16 +24,16 @@ set_target_properties(netgen PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS netgen )
 list(APPEND _IMPORT_CHECK_FILES_FOR_netgen "${_IMPORT_PREFIX}/bin/netgen.exe" )
 
-# Import target "gui" for configuration "Debug"
-set_property(TARGET gui APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
-set_target_properties(gui PROPERTIES
-  IMPORTED_IMPLIB_DEBUG "${_IMPORT_PREFIX}/lib/libgui.lib"
-  IMPORTED_LINK_DEPENDENT_LIBRARIES_DEBUG "togl;TKBO;TKBRep;TKBool;TKCAF;TKCDF;TKFillet;TKG2d;TKG3d;TKGeomAlgo;TKGeomBase;TKHLR;TKIGES;TKLCAF;TKMath;TKMesh;TKOffset;TKPrim;TKSTEP;TKSTEP209;TKSTEPAttr;TKSTEPBase;TKSTL;TKService;TKShHealing;TKTopAlgo;TKV3d;TKVCAF;TKXCAF;TKXDEIGES;TKXDESTEP;TKXSBase;TKernel"
-  IMPORTED_LOCATION_DEBUG "${_IMPORT_PREFIX}/bin/libgui.dll"
+# Import target "nggui" for configuration "Debug"
+set_property(TARGET nggui APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+set_target_properties(nggui PROPERTIES
+  IMPORTED_IMPLIB_DEBUG "${_IMPORT_PREFIX}/lib/libnggui.lib"
+  IMPORTED_LINK_DEPENDENT_LIBRARIES_DEBUG "TKBO;TKBRep;TKBool;TKCAF;TKCDF;TKFillet;TKG2d;TKG3d;TKGeomAlgo;TKGeomBase;TKHLR;TKIGES;TKLCAF;TKMath;TKMesh;TKOffset;TKPrim;TKSTEP;TKSTEP209;TKSTEPAttr;TKSTEPBase;TKSTL;TKService;TKShHealing;TKTopAlgo;TKV3d;TKVCAF;TKXCAF;TKXDEIGES;TKXDESTEP;TKXSBase;TKernel"
+  IMPORTED_LOCATION_DEBUG "${_IMPORT_PREFIX}/bin/libnggui.dll"
   )
 
-list(APPEND _IMPORT_CHECK_TARGETS gui )
-list(APPEND _IMPORT_CHECK_FILES_FOR_gui "${_IMPORT_PREFIX}/lib/libgui.lib" "${_IMPORT_PREFIX}/bin/libgui.dll" )
+list(APPEND _IMPORT_CHECK_TARGETS nggui )
+list(APPEND _IMPORT_CHECK_FILES_FOR_nggui "${_IMPORT_PREFIX}/lib/libnggui.lib" "${_IMPORT_PREFIX}/bin/libnggui.dll" )
 
 # Import target "togl" for configuration "Debug"
 set_property(TARGET togl APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)

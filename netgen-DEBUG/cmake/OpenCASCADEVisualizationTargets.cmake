@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget TKService TKV3d TKOpenGl TKMeshVS TKIVtk)
+foreach(_expectedTarget TKService TKV3d TKMeshVS TKIVtk)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -52,21 +52,14 @@ endif()
 add_library(TKService SHARED IMPORTED)
 
 set_target_properties(TKService PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKernel;TKMath;user32.lib;advapi32.lib;advapi32.lib;user32.lib;windowscodecs;D:/SOURCE/cenos-backend/third-party/freetype-DEBUG/lib/freetype.lib;winmm.lib"
+  INTERFACE_LINK_LIBRARIES "TKernel;TKMath;user32.lib;advapi32.lib;advapi32.lib;user32.lib;windowscodecs;winmm.lib"
 )
 
 # Create imported target TKV3d
 add_library(TKV3d SHARED IMPORTED)
 
 set_target_properties(TKV3d PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKService;TKShHealing;TKTopAlgo;TKG2d;TKG3d;TKGeomBase;TKMesh;TKGeomAlgo;TKHLR;user32.lib;gdi32.lib;opengl32.lib;D:/SOURCE/cenos-backend/third-party/freetype-DEBUG/lib/freetype.lib"
-)
-
-# Create imported target TKOpenGl
-add_library(TKOpenGl SHARED IMPORTED)
-
-set_target_properties(TKOpenGl PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKernel;TKService;TKMath;opengl32.lib;user32.lib;gdi32.lib"
+  INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKService;TKShHealing;TKTopAlgo;TKG2d;TKG3d;TKGeomBase;TKMesh;TKGeomAlgo;TKHLR;user32.lib;gdi32.lib;opengl32.lib"
 )
 
 # Create imported target TKMeshVS

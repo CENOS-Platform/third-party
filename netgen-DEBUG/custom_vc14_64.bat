@@ -7,22 +7,22 @@ if /I "%VCVER%" == "vc14" (
     rem set environment variables used by OCCT
     set CSF_FPE=0
 
-    set "TCL_DIR=D:/SOURCE/cenos-backend/third-party/tcl8.6.11-DEBUG/bin"
-    set "TK_DIR=D:/SOURCE/cenos-backend/third-party/tcl8.6.11-DEBUG/bin"
-    set "FREETYPE_DIR=D:/SOURCE/cenos-backend/third-party/freetype-DEBUG/bin"
+    set "TCL_DIR="
+    set "TK_DIR="
+    set "FREETYPE_DIR="
     set "FREEIMAGE_DIR="
     set "EGL_DIR="
     set "GLES2_DIR="
     set "TBB_DIR="
-    set "VTK_DIR=D:/SOURCE/vtk-8.2.0/out/install/x64-Debug/bin"
+    set "VTK_DIR=%THIRDPARTY_DIR%/vtk-8.2.0/out/install/x64-Debug/bin"
     set "FFMPEG_DIR="
     set "OPENVR_DIR="
 
     if not "" == "" (
       set "QTDIR="
     )
-    set "TCL_VERSION_WITH_DOT=8.6"
-    set "TK_VERSION_WITH_DOT=8.6"
+    set "TCL_VERSION_WITH_DOT="
+    set "TK_VERSION_WITH_DOT="
 
     set "CSF_OCCTBinPath=%CASROOT%/win64/vc14/bin%3"
     set "CSF_OCCTLibPath=%CASROOT%/win64/vc14/lib%3"

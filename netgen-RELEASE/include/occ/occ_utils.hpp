@@ -1,6 +1,8 @@
 #ifndef FILE_OCC_UTILS_INCLUDED
 #define FILE_OCC_UTILS_INCLUDED
 
+#include <variant>
+
 #include <BRepGProp.hxx>
 #include <BRep_Tool.hxx>
 #include <GProp_GProps.hxx>
@@ -10,6 +12,7 @@
 #include <TopoDS.hxx>
 #include <TopoDS_Vertex.hxx>
 #include <gp_Trsf.hxx>
+#include <gp_GTrsf.hxx>
 
 #include "meshing.hpp"
 
@@ -49,6 +52,13 @@ namespace netgen
     }
 
     DLL_HEADER Transformation<3> occ2ng (const gp_Trsf & t);
+    DLL_HEADER Transformation<3> occ2ng (const gp_GTrsf & t);
+    inline Transformation<3> occ2ng (const variant<gp_Trsf, gp_GTrsf> & t)
+    {
+      if(auto t1 = get_if<gp_Trsf>(&t))
+        return occ2ng(*t1);
+      return occ2ng(get<gp_GTrsf>(t));
+    }
 
     inline gp_Pnt ng2occ (const Point<3> & p)
     {
@@ -220,13 +230,13 @@ namespace netgen
     bool openmin = false, openmax = false;
 
     DirectionalInterval (gp_Vec adir) : dir(adir) { ; }
-    DirectionalInterval (const DirectionalInterval & i2)
-      : dir(i2.dir), minval(i2.minval), maxval(i2.maxval) { ; }
+    DirectionalInterval (const DirectionalInterval & i2) = default;
 
     DirectionalInterval operator< (double val) const
     {
       DirectionalInterval i2 = *this;
       i2.maxval = val;
+      i2.openmax = true;
       return i2;
     }
 
@@ -234,9 +244,25 @@ namespace netgen
     {
       DirectionalInterval i2 = *this;
       i2.minval = val;
+      i2.openmin = true;
       return i2;
     }
 
+    DirectionalInterval operator<= (double val) const
+    {
+      DirectionalInterval i2 = *this;
+      i2.maxval = val;
+      i2.openmax = false;
+      return i2;
+    }
+
+    DirectionalInterval operator>= (double val) const
+    {
+      DirectionalInterval i2 = *this;
+      i2.minval = val;
+      i2.openmin = false;
+      return i2;
+    }
 
     DirectionalInterval Intersect (const DirectionalInterval & i2)
     {

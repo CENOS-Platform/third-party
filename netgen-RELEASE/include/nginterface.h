@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "mydefs.hpp"
+#include <meshing/visual_interface.hpp>
 
 /*
   Application program interface to Netgen
@@ -73,7 +74,7 @@ extern "C" {
   // number of surface triangles
   DLL_HEADER int Ng_GetNSE ();
   
-  // Get Point coordintes, index from 1 .. np
+  // Get Point coordinates, index from 1 .. np
   DLL_HEADER void Ng_GetPoint (int pi, double * p);
   
   // Get Element Points
@@ -219,11 +220,13 @@ extern "C" {
   DLL_HEADER int Ng_GetNEdges();
   DLL_HEADER int Ng_GetNFaces();
 
-  
+  [[deprecated("orientation is not supported anymore")]]                          
   DLL_HEADER int Ng_GetElement_Edges (int elnr, int * edges, int * orient = 0);
+  [[deprecated("orientation is not supported anymore")]]                            
   DLL_HEADER int Ng_GetElement_Faces (int elnr, int * faces, int * orient = 0);
-
+  [[deprecated("orientation is not supported anymore")]]                          
   DLL_HEADER int Ng_GetSurfaceElement_Edges (int selnr, int * edges, int * orient = 0);
+  [[deprecated("orientation is not supported anymore")]]                            
   DLL_HEADER int Ng_GetSurfaceElement_Face (int selnr, int * orient = 0);
 
   DLL_HEADER void Ng_GetSurfaceElementNeighbouringDomains(const int selnr, int & in, int & out);
@@ -279,7 +282,7 @@ extern "C" {
   int NgPar_GetDistantNodeNums ( int nodetype, int locnum, int * pnums );
   int NgPar_GetNDistantNodeNums ( int nodetype, int locnum );
   
-  int NgPar_GetGlobalNodeNum (int nodetype, int locnum);
+  DLL_HEADER int NgPar_GetGlobalNodeNum (int nodetype, int locnum);
 
 #endif
   
@@ -449,15 +452,6 @@ extern "C" {
     return value is number of nodes
    */
   DLL_HEADER int Ng_GetElementClosureNodes (int dim, int elementnr, int nodeset, int * nodes);
-
-
-  struct Ng_Tcl_Interp;
-  typedef int (Ng_Tcl_CmdProc) (Ng_Tcl_Interp *interp, int argc, const char *argv[]);
-
-  DLL_HEADER void Ng_Tcl_CreateCommand (Ng_Tcl_Interp * interp, 
-                                        const char * cmdName, Ng_Tcl_CmdProc * proc);
-
-  void Ng_Tcl_SetResult (Ng_Tcl_Interp * interp, const char * result);
 }
 
 

@@ -7,7 +7,6 @@
 /* Date:   23. Aug. 09                                                    */
 /**************************************************************************/
 
-
 struct Tcl_Interp;
 
 namespace netgen
@@ -18,12 +17,16 @@ namespace netgen
     optional<Vec<4>> col;
     double maxh = 1e99;
     double hpref = 0;  // number of hp refinement levels (will be multiplied by factor later)
+    int layer = 1;
+    optional<bool> quad_dominated;
     void Merge(const ShapeProperties & prop2)
     {
-      if (prop2.name) name = prop2.name;
-      if (prop2.col) col = prop2.col;
+      if (!name && prop2.name) name = prop2.name;
+      if (!col && prop2.col) col = prop2.col;
       maxh = min2(maxh, prop2.maxh);
       hpref = max2(hpref, prop2.hpref);
+      if(!quad_dominated.has_value()) quad_dominated = prop2.quad_dominated;
+      layer = max(layer, prop2.layer);
     }
 
     string GetName() const { return name ? *name : "default"; }
@@ -31,7 +34,7 @@ namespace netgen
 
     void DoArchive(Archive& ar)
     {
-        ar & name & col & maxh & hpref;
+        ar & name & col & maxh & hpref & layer;
     }
   };
 
@@ -50,6 +53,7 @@ namespace netgen
   {
   public:
     int nr = -1;
+    int layer = 1;
     ShapeProperties properties;
     Array<ShapeIdentification> identifications;
     GeometryShape * primary;
@@ -154,6 +158,7 @@ namespace netgen
     }
 
     virtual bool IsMappedShape( const GeometryShape & other, const Transformation<3> & trafo, double tolerance ) const override;
+    virtual bool IsConnectingCloseSurfaces() const;
 
   protected:
     void RestrictHTrig(Mesh& mesh,
@@ -196,7 +201,12 @@ namespace netgen
     size_t GetNFaces() const { return faces.Size(); }
 
     const GeometryFace & GetFace(int i) const { return *faces[i]; }
+    const GeometryEdge & GetEdge(int i) const { return *edges[i]; }
+    const GeometryVertex & GetVertex(int i) const { return *vertices[i]; }
 
+    virtual Array<GeometryVertex*> GetFaceVertices(const GeometryFace& face) const { return Array<GeometryVertex*>{}; }
+
+    void Clear();
 
     virtual int GenerateMesh (shared_ptr<Mesh> & mesh, MeshingParameters & mparam);
 
@@ -228,12 +238,15 @@ namespace netgen
 
     virtual PointGeomInfo ProjectPoint (int surfind, Point<3> & p) const
     {
-      return faces[surfind-1]->Project(p);
+      if(surfind <= faces.Size() && surfind > 0)
+        return faces[surfind-1]->Project(p);
+      return PointGeomInfo();
     }
 
   virtual void ProjectPointEdge (int surfind, int surfind2, Point<3> & p, EdgePointGeomInfo* gi = nullptr) const
   {
-    edges[gi->edgenr]->ProjectPoint(p, gi);
+    if(gi && gi->edgenr < edges.Size())
+      edges[gi->edgenr]->ProjectPoint(p, gi);
   }
 
     virtual bool CalcPointGeomInfo(int surfind, PointGeomInfo& gi, const Point<3> & p3) const
@@ -242,11 +255,18 @@ namespace netgen
     }
     virtual bool ProjectPointGI (int surfind, Point<3> & p, PointGeomInfo & gi) const
     {
-      return faces[surfind-1]->ProjectPointGI(p, gi);
+      if(surfind > 0 && surfind <= faces.Size())
+        return faces[surfind-1]->ProjectPointGI(p, gi);
+      return false;
     }
 
     virtual Vec<3> GetNormal(int surfind, const Point<3> & p, const PointGeomInfo* gi = nullptr) const
-    { return faces[surfind-1]->GetNormal(p, gi); }
+    {
+      if(surfind > 0 && surfind <= faces.Size())
+        return faces[surfind-1]->GetNormal(p, gi);
+      else
+        return {0., 0., 0.};
+    }
 
     virtual void PointBetween (const Point<3> & p1,
                                const Point<3> & p2, double secpoint,
@@ -256,7 +276,7 @@ namespace netgen
                                Point<3> & newp,
                                PointGeomInfo & newgi) const
     {
-      if(faces.Size())
+      if(faces.Size() >= surfi && surfi > 0)
         {
           faces[surfi-1]->PointBetween(p1, p2, secpoint, gi1, gi2, newp, newgi);
           return;
@@ -272,7 +292,7 @@ namespace netgen
                                   Point<3> & newp,
                                   EdgePointGeomInfo & newgi) const
     {
-      if(edges.Size())
+      if(ap1.edgenr < edges.Size() && ap1.edgenr >= 0)
         {
           edges[ap1.edgenr]->PointBetween(p1, p2, secpoint,
                                           ap1, ap2, newp, newgi);
@@ -295,7 +315,7 @@ namespace netgen
           return i;
       throw Exception("Couldn't find edge index");
     }
-    virtual void Save (string filename) const;
+    virtual void Save (const filesystem::path & filename) const;
     virtual void SaveToMeshFile (ostream & /* ost */) const { ; }
   };
 
@@ -307,7 +327,7 @@ namespace netgen
   {
   public:
     virtual ~GeometryRegister();
-    virtual NetgenGeometry * Load (string filename) const = 0;
+    virtual NetgenGeometry * Load (const filesystem::path & filename) const = 0;
     virtual NetgenGeometry * LoadFromMeshFile (istream & /* ist */, string) const { return NULL; }
     virtual class VisualScene * GetVisualScene (const NetgenGeometry * /* geom */) const
     { return NULL; }

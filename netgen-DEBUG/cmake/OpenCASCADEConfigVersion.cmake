@@ -16,12 +16,12 @@ if (PACKAGE_FIND_VERSION_RANGE)
     "with this request. Only the lower endpoint of the range will be used.")
 endif()
 
-set(PACKAGE_VERSION "7.6.0")
+set(PACKAGE_VERSION "7.6.2")
 
-if("7.6.0" MATCHES "^([0-9]+\\.[0-9]+\\.[0-9]+)\\.") # strip the tweak version
+if("7.6.2" MATCHES "^([0-9]+\\.[0-9]+\\.[0-9]+)\\.") # strip the tweak version
   set(CVF_VERSION_NO_TWEAK "${CMAKE_MATCH_1}")
 else()
-  set(CVF_VERSION_NO_TWEAK "7.6.0")
+  set(CVF_VERSION_NO_TWEAK "7.6.2")
 endif()
 
 if(PACKAGE_FIND_VERSION MATCHES "^([0-9]+\\.[0-9]+\\.[0-9]+)\\.") # strip the tweak version

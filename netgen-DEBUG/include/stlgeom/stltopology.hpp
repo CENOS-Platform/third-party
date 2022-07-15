@@ -316,9 +316,9 @@ public:
   static STLGeometry * Load (istream & ist);
   static STLGeometry * LoadBinary (istream & ist);
 
-  void Save (const char* filename) const;
-  void SaveBinary (const char* filename, const char* aname) const;
-  void SaveSTLE (const char * filename) const; // stores trigs and edges
+  void Save (const filesystem::path & filename) const;
+  void SaveBinary (const filesystem::path & filename, const char* aname) const;
+  void SaveSTLE (const filesystem::path & filename) const; // stores trigs and edges
 
   virtual void DoArchive(Archive& ar)
   {
@@ -364,7 +364,7 @@ public:
   int GetNTE() const { return topedges.Size(); }
   const STLTopEdge & GetTopEdge (int nr) const { return topedges.Get(nr); }
   STLTopEdge & GetTopEdge (int nr)  { return topedges.Elem(nr); }
-  int GetTopEdgeNum (int pi1, int pi2) const;
+  DLL_HEADER int GetTopEdgeNum (int pi1, int pi2) const;
 
 
   int NOTrigsPerPoint(int pn) { return trigsperpoint.EntrySize(pn); }
