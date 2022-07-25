@@ -1,0 +1,89 @@
+#----------------------------------------------------------------
+# Generated CMake target import file for configuration "RelWithDebInfo".
+#----------------------------------------------------------------
+
+# Commands may need to know the format version.
+set(CMAKE_IMPORT_FILE_VERSION 1)
+
+# Import target "TKCDF" for configuration "RelWithDebInfo"
+set_property(TARGET TKCDF APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
+set_target_properties(TKCDF PROPERTIES
+  IMPORTED_IMPLIB_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/libi/TKCDF.lib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/bini/TKCDF.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKCDF )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKCDF "${_IMPORT_PREFIX}/win64/vc14/libi/TKCDF.lib" "${_IMPORT_PREFIX}/win64/vc14/bini/TKCDF.dll" )
+
+# Import target "TKLCAF" for configuration "RelWithDebInfo"
+set_property(TARGET TKLCAF APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
+set_target_properties(TKLCAF PROPERTIES
+  IMPORTED_IMPLIB_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/libi/TKLCAF.lib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/bini/TKLCAF.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKLCAF )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKLCAF "${_IMPORT_PREFIX}/win64/vc14/libi/TKLCAF.lib" "${_IMPORT_PREFIX}/win64/vc14/bini/TKLCAF.dll" )
+
+# Import target "TKCAF" for configuration "RelWithDebInfo"
+set_property(TARGET TKCAF APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
+set_target_properties(TKCAF PROPERTIES
+  IMPORTED_IMPLIB_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/libi/TKCAF.lib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/bini/TKCAF.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKCAF )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKCAF "${_IMPORT_PREFIX}/win64/vc14/libi/TKCAF.lib" "${_IMPORT_PREFIX}/win64/vc14/bini/TKCAF.dll" )
+
+# Import target "TKVCAF" for configuration "RelWithDebInfo"
+set_property(TARGET TKVCAF APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
+set_target_properties(TKVCAF PROPERTIES
+  IMPORTED_IMPLIB_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/libi/TKVCAF.lib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/bini/TKVCAF.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKVCAF )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKVCAF "${_IMPORT_PREFIX}/win64/vc14/libi/TKVCAF.lib" "${_IMPORT_PREFIX}/win64/vc14/bini/TKVCAF.dll" )
+
+# Import target "TKXmlL" for configuration "RelWithDebInfo"
+set_property(TARGET TKXmlL APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
+set_target_properties(TKXmlL PROPERTIES
+  IMPORTED_IMPLIB_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/libi/TKXmlL.lib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/bini/TKXmlL.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKXmlL )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKXmlL "${_IMPORT_PREFIX}/win64/vc14/libi/TKXmlL.lib" "${_IMPORT_PREFIX}/win64/vc14/bini/TKXmlL.dll" )
+
+# Import target "TKXml" for configuration "RelWithDebInfo"
+set_property(TARGET TKXml APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
+set_target_properties(TKXml PROPERTIES
+  IMPORTED_IMPLIB_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/libi/TKXml.lib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/bini/TKXml.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKXml )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKXml "${_IMPORT_PREFIX}/win64/vc14/libi/TKXml.lib" "${_IMPORT_PREFIX}/win64/vc14/bini/TKXml.dll" )
+
+# Import target "TKBinL" for configuration "RelWithDebInfo"
+set_property(TARGET TKBinL APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
+set_target_properties(TKBinL PROPERTIES
+  IMPORTED_IMPLIB_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/libi/TKBinL.lib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/bini/TKBinL.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKBinL )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKBinL "${_IMPORT_PREFIX}/win64/vc14/libi/TKBinL.lib" "${_IMPORT_PREFIX}/win64/vc14/bini/TKBinL.dll" )
+
+# Import target "TKBin" for configuration "RelWithDebInfo"
+set_property(TARGET TKBin APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
+set_target_properties(TKBin PROPERTIES
+  IMPORTED_IMPLIB_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/libi/TKBin.lib"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${_IMPORT_PREFIX}/win64/vc14/bini/TKBin.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKBin )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKBin "${_IMPORT_PREFIX}/win64/vc14/libi/TKBin.lib" "${_IMPORT_PREFIX}/win64/vc14/bini/TKBin.dll" )
+
+# Commands beyond this point should not need to know the version.
+set(CMAKE_IMPORT_FILE_VERSION)
