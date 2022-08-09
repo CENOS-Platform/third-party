@@ -1,1 +1,3 @@
 .xxxremovelater
+ __pycache__/
+ *.pyc
