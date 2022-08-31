@@ -51,4 +51,7 @@ if exist "%~dp0custom_vc14_64.bat" (
 ) 
 if exist "%~dp0custom_vc14_64.bat" (
   call "%~dp0custom_vc14_64.bat" %1 %2 %3 
+) 
+if exist "%~dp0custom_vc14_64.bat" (
+  call "%~dp0custom_vc14_64.bat" %1 %2 %3 
 )

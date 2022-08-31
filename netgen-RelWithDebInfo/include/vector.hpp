@@ -234,7 +234,7 @@ namespace ngbla
       return SliceVector<T> (size/dist2, dist2, data+first);
     }
 
-    INLINE FlatMatrix<T> AsMatrix (size_t h, size_t w)
+    INLINE const FlatMatrix<T> AsMatrix (size_t h, size_t w) const
     {
       return FlatMatrix<T> (h,w, data);
     }
@@ -2018,6 +2018,29 @@ namespace ngbla
 
   template <int S, typename T>
   INLINE auto operator* (Complex a, FlatVec<S,T> vec) 
+    -> Vec<S, decltype(RemoveConst(a*vec(0)))>
+  {
+    typedef decltype(RemoveConst(a*vec(0))) TRES;
+    Vec<S, TRES> res;
+    for (int i = 0; i < S; i++)
+      res(i) = a * vec(i);
+    return res;
+  }
+
+  template <int S, int D, typename T>
+  INLINE auto operator* (double a, FlatSliceVec<S,D,T> vec) 
+    -> Vec<S, decltype(RemoveConst(a*vec(0)))>
+  {
+    typedef decltype(RemoveConst(a*vec(0))) TRES;
+    Vec<S, TRES> res;
+    for (int i = 0; i < S; i++)
+      res(i) = a * vec(i);
+    return res;
+  }
+
+
+  template <int S, int D, typename T>
+  INLINE auto operator* (Complex a, FlatSliceVec<S,D,T> vec) 
     -> Vec<S, decltype(RemoveConst(a*vec(0)))>
   {
     typedef decltype(RemoveConst(a*vec(0))) TRES;
