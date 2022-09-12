@@ -1,3 +1,4 @@
 .xxxremovelater
  __pycache__/
  *.pyc
+ /Scripts
