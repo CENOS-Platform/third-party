@@ -414,7 +414,7 @@ namespace netgen
       for (TopExp_Explorer e(shape, typ); e.More(); e.Next())
         {
           auto s = e.Current();
-            for (auto mods : builder.Modified(e.Current()))
+            for (auto mods : builder.Modified(s))
               mod_map[s].insert(mods);
         }
   
@@ -444,8 +444,8 @@ namespace netgen
               for(auto from_mapped : mod_map[from])
                   for(auto to_mapped : mod_map[to])
                   {
-                      if(from==from_mapped && to==to_mapped)
-                          continue;
+                      if(from.IsSame(from_mapped) && to.IsSame(to_mapped))
+                        continue;
   
                       Transformation<3> trafo_mapped = ident.trafo;
                       if(trafo)
@@ -462,7 +462,7 @@ namespace netgen
                       id_new.to = to_mapped;
                       id_new.from = from_mapped;
                       id_new.trafo = trafo_mapped;
-                      auto id_owner = from == s ? from_mapped : to_mapped;
+                      auto id_owner = from.IsSame(s) ? from_mapped : to_mapped;
                       OCCGeometry::identifications[id_owner].push_back(id_new);
                   }
           }
