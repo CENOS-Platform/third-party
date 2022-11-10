@@ -69,7 +69,8 @@ namespace netgen
     { backcolor = col; }
 
     NGGUI_API void CreateTexture (int ncols, int linear, double alpha, int typ);
-    NGGUI_API void DrawColorBar (double minval, double maxval, int logscale = 0, bool linear = 1);
+    NGGUI_API void DrawColorBar (double minval, double maxval, int logscale = 0, bool linear = 1, string format="%8.3e", string unit="");
+    NGGUI_API void DrawTitle (string title);
     NGGUI_API void DrawCoordinateCross ();
     NGGUI_API void DrawMarker();
     NGGUI_API void DrawNetgenLogo ();
@@ -84,7 +85,8 @@ namespace netgen
 
 
   NGGUI_API extern void MyOpenGLText (const char * text);
-  NGGUI_API extern void Set_OpenGLText_Callback ( void (*fun) (const char * text) );
+  NGGUI_API extern int MyOpenGLTextWidth ();
+  NGGUI_API extern void Set_OpenGLText_Callback ( void (*fun) (const char * text), int width );
   NGGUI_API extern VisualScene visual_scene_cross;
   NGGUI_API extern VisualScene *visual_scene;
 
