@@ -112,26 +112,26 @@ public:
   inline FlatArray<T_FACE> GetFaces (ElementIndex elnr) const;    
 
   
-  [[deprecated("use GetElementEdge instead")]]                        
+  // [[deprecated("use GetElementEdge instead")]]                        
   void GetElementEdgeOrientations (int elnr, NgArray<int> & eorient) const;
-  [[deprecated("use GetElementEdge instead")]]                        
+  // [[deprecated("use GetElementEdge instead")]]                        
   void GetElementFaceOrientations (int elnr, NgArray<int> & forient) const;
 
   [[deprecated("use GetEdges (ElementIndex) -> FlatArray")]]                            
   int GetElementEdges (int elnr, int * edges, int * orient) const;
 
-  [[deprecated("use GetFaces (ElementIndex) -> FlatArray")]]                              
+  // [[deprecated("use GetFaces (ElementIndex) -> FlatArray")]]                              
   int GetElementFaces (int elnr, int * faces, int * orient) const;
 
-  [[deprecated("use GetElementEdge instead")]]                      
+  // [[deprecated("use GetElementEdge instead")]]                      
   int GetElementEdgeOrientation (int elnr, int locedgenr) const; // old style
-  [[deprecated("use GetElementEdge instead")]]                        
+  // [[deprecated("use GetElementEdge instead")]]                        
   int GetElementFaceOrientation (int elnr, int locfacenr) const; // old style
-  [[deprecated("use GetElementEdge instead")]]                        
+  // [[deprecated("use GetElementEdge instead")]]                        
   int GetSurfaceElementEdgeOrientation (int elnr, int locedgenr) const; // old style
-  [[deprecated("use GetElementEdge instead")]]                        
+  // [[deprecated("use GetElementEdge instead")]]                        
   int GetSurfaceElementFaceOrientation2 (int elnr) const; // old style
-  [[deprecated("use GetElementEdge instead")]]                        
+  // [[deprecated("use GetElementEdge instead")]]                        
   int GetSegmentEdgeOrientation (int elnr) const; // old style
   
   
@@ -152,7 +152,7 @@ public:
   int GetSurfaceElementFace (int elnr) const;
   [[deprecated("orientation is outdated")]]                          
   void GetSurfaceElementEdgeOrientations (int elnr, NgArray<int> & eorient) const;
-  [[deprecated("orientation is outdated")]]                            
+  // [[deprecated("orientation is outdated")]]                            
   int GetSurfaceElementFaceOrientation (int elnr) const;
 
   [[deprecated("use GetEdge -> FlatArray instead")]]                        

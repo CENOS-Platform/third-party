@@ -151,8 +151,12 @@ namespace netgen
     {
       newp = p1 + secpoint * (p2-p1);
       newgi.trignum = gi1.trignum;
+      /*
       newgi.u = 0.5 * (gi1.u + gi1.u);
       newgi.v = 0.5 * (gi1.v + gi2.v);
+      */
+      newgi.u = gi1.u + secpoint*(gi2.u - gi1.u);
+      newgi.v = gi1.v + secpoint*(gi2.v - gi1.v);
       if(!ProjectPointGI(newp, newgi))
         newgi = Project(newp);
     }
@@ -184,10 +188,6 @@ namespace netgen
     Box<3> bounding_box;
     int dimension = 3;
 
-    std::map<size_t, GeometryVertex*> vertex_map;
-    std::map<size_t, GeometryEdge*> edge_map;
-    std::map<size_t, GeometryFace*> face_map;
-    std::map<size_t, GeometrySolid*> solid_map;
   public:
 
     NetgenGeometry()
@@ -204,7 +204,7 @@ namespace netgen
     const GeometryEdge & GetEdge(int i) const { return *edges[i]; }
     const GeometryVertex & GetVertex(int i) const { return *vertices[i]; }
 
-    virtual Array<GeometryVertex*> GetFaceVertices(const GeometryFace& face) const { return Array<GeometryVertex*>{}; }
+    virtual Array<const GeometryVertex*> GetFaceVertices(const GeometryFace& face) const { return Array<const GeometryVertex*>{}; }
 
     void Clear();
 
