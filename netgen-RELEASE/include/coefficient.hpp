@@ -1252,7 +1252,8 @@ public:
   
   virtual void GenerateCode(Code &code, FlatArray<int> inputs, int index) const override
   {
-    code.Declare (code.res_type, index, this->Dimensions());
+    //code.Declare (code.res_type, index, this->Dimensions());
+    code.Declare (index, this->Dimensions(), this->IsComplex());
     if (code_uses_tensors)
       {
         code.body += "for (size_t i = 0; i < "+ToString(this->Dimension())+"; i++)\n";
@@ -1491,7 +1492,8 @@ public:
   }
   virtual void GenerateCode(Code &code, FlatArray<int> inputs, int index) const override
   {
-    code.Declare (code.res_type, index, this->Dimensions());
+    // code.Declare (code.res_type, index, this->Dimensions());
+    code.Declare (index, this->Dimensions(), this->IsComplex());
 
     if (code_uses_tensors)
       {
@@ -1963,27 +1965,29 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
   CreateMinimizationCF(shared_ptr<CoefficientFunction> expression,
                        shared_ptr<CoefficientFunction> startingpoint,
                        std::optional<double> atol, std::optional<double> rtol,
-                       std::optional<int> maxiter);
+                       std::optional<int> maxiter, std::optional<bool> allow_fail);
 
   NGS_DLL_HEADER shared_ptr<CoefficientFunction>
   CreateMinimizationCF(shared_ptr<CoefficientFunction> expression,
                        const Array<shared_ptr<CoefficientFunction>> &startingpoints,
                        std::optional<double> tol, std::optional<double> rtol,
-                       std::optional<int> maxiter);
+                       std::optional<int> maxiter, std::optional<bool> allow_fail);
 
   NGS_DLL_HEADER shared_ptr<CoefficientFunction>
   CreateNewtonCF (shared_ptr<CoefficientFunction> expression,
                   shared_ptr<CoefficientFunction> startingpoint,
                   std::optional<double> atol,
                   std::optional<double> rtol,
-                  std::optional<int> maxiter);
+                  std::optional<int> maxiter,
+                  std::optional<bool> allow_fail);
 
   NGS_DLL_HEADER shared_ptr<CoefficientFunction>
   CreateNewtonCF (shared_ptr<CoefficientFunction> expression,
                   const Array<shared_ptr<CoefficientFunction>> &startingpoints,
                   std::optional<double> tol,
                   std::optional<double> rtol,
-                  std::optional<int> maxiter);
+                  std::optional<int> maxiter,
+                  std::optional<bool> allow_fail);
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> Compile (shared_ptr<CoefficientFunction> c, bool realcompile=false, int maxderiv=2, bool wait=false, bool keep_files=false);
