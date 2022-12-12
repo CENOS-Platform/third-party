@@ -4,7 +4,7 @@ if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" LESS 2.5)
    message(FATAL_ERROR "CMake >= 2.6.0 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 2.6...3.18)
+cmake_policy(VERSION 2.6...3.17)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget TKG2d TKG3d TKGeomBase TKBRep)
+foreach(_expectedTarget TKG3d TKG2d TKGeomBase TKBRep)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -48,18 +48,18 @@ if(_IMPORT_PREFIX STREQUAL "/")
   set(_IMPORT_PREFIX "")
 endif()
 
-# Create imported target TKG2d
-add_library(TKG2d SHARED IMPORTED)
-
-set_target_properties(TKG2d PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKernel;TKMath"
-)
-
 # Create imported target TKG3d
 add_library(TKG3d SHARED IMPORTED)
 
 set_target_properties(TKG3d PROPERTIES
   INTERFACE_LINK_LIBRARIES "TKMath;TKernel;TKG2d"
+)
+
+# Create imported target TKG2d
+add_library(TKG2d SHARED IMPORTED)
+
+set_target_properties(TKG2d PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKernel;TKMath"
 )
 
 # Create imported target TKGeomBase
@@ -112,7 +112,7 @@ unset(_IMPORT_CHECK_TARGETS)
 # Make sure the targets which have been exported in some other
 # export set exist.
 unset(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets)
-foreach(_target "TKernel" "TKMath" )
+foreach(_target "TKMath" "TKernel" )
   if(NOT TARGET "${_target}" )
     set(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets "${${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE_targets} ${_target}")
   endif()
