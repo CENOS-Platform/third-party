@@ -4,7 +4,7 @@ if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" LESS 2.5)
    message(FATAL_ERROR "CMake >= 2.6.0 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 2.6...3.17)
+cmake_policy(VERSION 2.6...3.18)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget TKService TKV3d)
+foreach(_expectedTarget TKService TKV3d TKMeshVS TKIVtk)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -52,18 +52,29 @@ endif()
 add_library(TKService SHARED IMPORTED)
 
 set_target_properties(TKService PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKernel;TKMath;user32.lib;advapi32.lib;opengl32.lib;advapi32.lib;user32.lib;windowscodecs;freetype;winmm.lib"
+  INTERFACE_LINK_LIBRARIES "TKernel;TKMath;user32.lib;advapi32.lib;advapi32.lib;user32.lib;windowscodecs;winmm.lib"
 )
 
 # Create imported target TKV3d
 add_library(TKV3d SHARED IMPORTED)
 
 set_target_properties(TKV3d PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKService;TKShHealing;TKTopAlgo;TKG2d;TKG3d;TKGeomBase;TKMesh;TKGeomAlgo;TKHLR;user32.lib;gdi32.lib;opengl32.lib;freetype"
+  INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKService;TKShHealing;TKTopAlgo;TKG2d;TKG3d;TKGeomBase;TKMesh;TKGeomAlgo;TKHLR;user32.lib;gdi32.lib;opengl32.lib"
 )
 
-# Create imported target freetype
-add_library(freetype SHARED IMPORTED)
+# Create imported target TKMeshVS
+add_library(TKMeshVS SHARED IMPORTED)
+
+set_target_properties(TKMeshVS PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKV3d;TKMath;TKService;TKernel;TKG3d;TKG2d"
+)
+
+# Create imported target TKIVtk
+add_library(TKIVtk SHARED IMPORTED)
+
+set_target_properties(TKIVtk PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKernel;TKBRep;TKG2d;TKG3d;TKGeomAlgo;TKGeomBase;TKMath;TKMesh;TKService;TKTopAlgo;TKV3d;vtkCommonCore;vtkRenderingCore;vtkRenderingFreeType;vtkFiltersGeneral;vtkInteractionStyle;vtkRenderingOpenGL2;vtkRenderingGL2PSOpenGL2"
+)
 
 if(CMAKE_VERSION VERSION_LESS 2.8.12)
   message(FATAL_ERROR "This file relies on consumers using CMake 2.8.12 or greater.")

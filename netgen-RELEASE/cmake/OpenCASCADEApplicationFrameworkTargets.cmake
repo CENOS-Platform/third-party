@@ -4,7 +4,7 @@ if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" LESS 2.5)
    message(FATAL_ERROR "CMake >= 2.6.0 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 2.6...3.17)
+cmake_policy(VERSION 2.6...3.18)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget TKCDF TKLCAF TKCAF TKVCAF TKXmlL TKXml TKBinL TKBin)
+foreach(_expectedTarget TKCDF TKLCAF TKCAF TKBinL TKXmlL TKBin TKXml TKStdL TKStd TKTObj TKBinTObj TKXmlTObj TKVCAF)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -69,11 +69,11 @@ set_target_properties(TKCAF PROPERTIES
   INTERFACE_LINK_LIBRARIES "TKernel;TKGeomBase;TKBRep;TKTopAlgo;TKMath;TKG2d;TKG3d;TKCDF;TKLCAF;TKBO"
 )
 
-# Create imported target TKVCAF
-add_library(TKVCAF SHARED IMPORTED)
+# Create imported target TKBinL
+add_library(TKBinL SHARED IMPORTED)
 
-set_target_properties(TKVCAF PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKernel;TKGeomBase;TKBRep;TKTopAlgo;TKMath;TKService;TKG2d;TKG3d;TKCDF;TKLCAF;TKBO;TKCAF;TKV3d"
+set_target_properties(TKBinL PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKLCAF"
 )
 
 # Create imported target TKXmlL
@@ -83,6 +83,13 @@ set_target_properties(TKXmlL PROPERTIES
   INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKMath;TKLCAF"
 )
 
+# Create imported target TKBin
+add_library(TKBin SHARED IMPORTED)
+
+set_target_properties(TKBin PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKG2d;TKG3d;TKCAF;TKCDF;TKLCAF;TKBinL"
+)
+
 # Create imported target TKXml
 add_library(TKXml SHARED IMPORTED)
 
@@ -90,18 +97,46 @@ set_target_properties(TKXml PROPERTIES
   INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKMath;TKBRep;TKG2d;TKGeomBase;TKG3d;TKLCAF;TKCAF;TKXmlL"
 )
 
-# Create imported target TKBinL
-add_library(TKBinL SHARED IMPORTED)
+# Create imported target TKStdL
+add_library(TKStdL SHARED IMPORTED)
 
-set_target_properties(TKBinL PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKLCAF"
+set_target_properties(TKStdL PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKernel;TKCDF;TKLCAF"
 )
 
-# Create imported target TKBin
-add_library(TKBin SHARED IMPORTED)
+# Create imported target TKStd
+add_library(TKStd SHARED IMPORTED)
 
-set_target_properties(TKBin PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKG2d;TKG3d;TKCAF;TKCDF;TKLCAF;TKBinL"
+set_target_properties(TKStd PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKernel;TKCDF;TKCAF;TKLCAF;TKBRep;TKMath;TKG2d;TKG3d;TKStdL"
+)
+
+# Create imported target TKTObj
+add_library(TKTObj SHARED IMPORTED)
+
+set_target_properties(TKTObj PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKMath;TKLCAF"
+)
+
+# Create imported target TKBinTObj
+add_library(TKBinTObj SHARED IMPORTED)
+
+set_target_properties(TKBinTObj PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKTObj;TKMath;TKLCAF;TKBinL"
+)
+
+# Create imported target TKXmlTObj
+add_library(TKXmlTObj SHARED IMPORTED)
+
+set_target_properties(TKXmlTObj PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKTObj;TKMath;TKLCAF;TKXmlL"
+)
+
+# Create imported target TKVCAF
+add_library(TKVCAF SHARED IMPORTED)
+
+set_target_properties(TKVCAF PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKernel;TKGeomBase;TKBRep;TKTopAlgo;TKMath;TKService;TKG2d;TKG3d;TKCDF;TKLCAF;TKBO;TKCAF;TKV3d"
 )
 
 if(CMAKE_VERSION VERSION_LESS 2.8.12)
