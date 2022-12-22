@@ -120,7 +120,6 @@ namespace ngcomp
     shared_ptr<FESpace> fes;
     Array<ProxyFunction*> trial_proxies, test_proxies;
     bool deformed;
-
   public:
     ContactIntegrator(shared_ptr<CoefficientFunction> _cf,
                       bool _deformed);
@@ -157,9 +156,10 @@ namespace ngcomp
     bool draw_pairs = false;
     Array<Vec<3>> primary_points;
     Array<Vec<3>> secondary_points;
+    bool volume;
   public:
     void Draw();
-    ContactBoundary(Region _master, Region _other, bool draw_pairs = false);
+    ContactBoundary(Region _master, Region _other, bool draw_pairs = false, bool _volume=false);
 
     ~ContactBoundary();
 

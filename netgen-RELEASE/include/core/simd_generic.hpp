@@ -15,17 +15,22 @@
 
 namespace ngcore
 {
+#if defined __AVX512F__
+    #define NETGEN_DEFAULT_SIMD_SIZE 8
+    #define NETGEN_NATIVE_SIMD_SIZE  8
+#elif defined __AVX__
+    #define NETGEN_DEFAULT_SIMD_SIZE 4
+    #define NETGEN_NATIVE_SIMD_SIZE  4
+#elif defined NETGEN_ARCH_AMD64
+    #define NETGEN_DEFAULT_SIMD_SIZE 2
+    #define NETGEN_NATIVE_SIMD_SIZE  2
+#else
+    #define NETGEN_DEFAULT_SIMD_SIZE 2
+    #define NETGEN_NATIVE_SIMD_SIZE  1
+#endif
 
   constexpr int GetDefaultSIMDSize() {
-#if defined __AVX512F__
-    return 8;
-#elif defined __AVX__
-    return 4;
-#elif defined NETGEN_ARCH_AMD64
-    return 2;
-#else
-    return 2;
-#endif
+      return NETGEN_DEFAULT_SIMD_SIZE;
   }
 
   constexpr bool IsNativeSIMDSize(int n) {
@@ -721,6 +726,57 @@ namespace ngcore
       }
   }
 
+  // TODO: specialize for AVX, ... 
+  template<int N>
+  NETGEN_INLINE auto SwapPairs (SIMD<double,N> a)
+  {
+    if constexpr(N==1) {
+        // static_assert(false);
+        return a;
+      }
+    else if constexpr(N==2) {
+        return SIMD<double,N> (a.Hi(), a.Lo());
+      }
+    else {
+      return SIMD<double,N> (SwapPairs(a.Lo()), SwapPairs(a.Hi()));
+    }
+  }
+
+
+  template<int N>
+  NETGEN_INLINE auto HSum128 (SIMD<double,N> a)
+  {
+    if constexpr(N==1) {
+        // static_assert(false);
+        return a;
+      }
+    else if constexpr(N==2) {
+        return a;
+      }
+    else {
+      return HSum128(a.Lo()) + HSum128(a.Hi());
+    }
+  }
+
+  
+  // TODO: specialize for AVX, ... 
+  // a*b+-c   (even: -, odd: +)
+  template<int N>
+  NETGEN_INLINE auto FMAddSub (SIMD<double,N> a, SIMD<double,N> b, SIMD<double,N> c)
+  {
+    if constexpr(N==1) {
+        // static_assert(false);
+        return a*b-c;
+      }
+    else if constexpr(N==2) {
+        return SIMD<double,N> (a.Lo()*b.Lo()-c.Lo(),
+                               a.Hi()*b.Hi()+c.Hi());
+      }
+    else {
+      return SIMD<double,N> (FMAddSub(a.Lo(), b.Lo(), c.Lo()),
+                             FMAddSub(a.Hi(), b.Hi(), c.Hi()));
+    }
+  }
 }
 
 

@@ -152,6 +152,16 @@ namespace ngla
     
     virtual BaseMatrix::OperatorInfo GetOperatorInfo () const;
     void PrintOperatorInfo (ostream & ost, int level = 0) const;
+
+    
+    virtual shared_ptr<BaseMatrix> CreateDeviceMatrix() const;
+    static std::map<type_index, function<shared_ptr<BaseMatrix>(const BaseMatrix&)>> devmatcreator;
+    static void RegisterDeviceMatrixCreator (type_index type,
+                                             function<shared_ptr<BaseMatrix>(const BaseMatrix&)> creator)
+    {
+      devmatcreator[type] = creator;
+    }
+    
   private:
     BaseMatrix & operator= (const BaseMatrix & m2) { return *this; }
 
@@ -507,6 +517,18 @@ namespace ngla
       bmb.MultTransAdd (s, tempvec, y);
     }  
 
+    virtual void MultAdd (FlatVector<double> alpha, const MultiVector & x, MultiVector & y) const override
+    {
+      static Timer t("ProductMatrix::MultAdd(mv)"); RegionTimer reg(t);
+      auto tempvec = shared_ptr<BaseVector>(bmb.CreateColVector())->CreateMultiVector(x.Size());
+      *tempvec = 0;
+      Vector ones(x.Size());
+      ones = 1.0;
+      bmb.MultAdd (ones, x, *tempvec);
+      bma.MultAdd (alpha, *tempvec, y);
+    }
+
+    
     virtual int VHeight() const override { return bma.VHeight(); }
     virtual int VWidth() const override { return bmb.VWidth(); }
 
@@ -626,6 +648,16 @@ namespace ngla
       bmb.MultTransAdd (b*s, x, y);
     }  
 
+    /// y += alpha M x
+    virtual void MultAdd (FlatVector<double> alpha, const MultiVector & x, MultiVector & y) const override
+    {
+      static Timer t("SumMatrix::MultAdd(mv)"); RegionTimer reg(t);
+      bma.MultAdd (Vector(a*alpha), x, y);
+      bmb.MultAdd (Vector(b*alpha), x, y);
+    }
+
+
+    
     virtual int VHeight() const override
     {
       try
@@ -659,6 +691,12 @@ namespace ngla
       bmb.Print(ost);
       return ost;
     }
+
+    virtual shared_ptr<BaseMatrix> CreateDeviceMatrix() const override
+    {
+      return make_shared<SumMatrix>(bma.CreateDeviceMatrix(), bmb.CreateDeviceMatrix(), a, b);
+    }
+
   };
 
 
@@ -702,6 +740,20 @@ namespace ngla
       bm.MultTransAdd (s*scale, x, y);
     }  
 
+    virtual void MultAdd (FlatVector<double> alpha, const MultiVector & x, MultiVector & y) const override
+    {
+      static Timer t("ScaleMatrix::MultAdd(mv)"); RegionTimer reg(t);
+      if constexpr (is_same<TSCAL, double>())
+                     {
+                       bm.MultAdd (Vector(scale*alpha), x, y);
+                     }
+      else
+        BaseMatrix::MultAdd(alpha, x, y);
+    }
+
+
+
+    
     virtual int VHeight() const override { return bm.VHeight(); }
     virtual int VWidth() const override { return bm.VWidth(); }
     virtual AutoVector CreateRowVector () const override { return bm.CreateRowVector(); }

@@ -85,6 +85,7 @@
 #include <exception>
 #include <complex>
 #include <string>
+#include <typeindex>
 #include <typeinfo>
 #include <memory>
 #include <initializer_list>
@@ -136,7 +137,14 @@
 #endif
 #endif
 
-
+// from https://stackoverflow.com/questions/60802864/emulating-gccs-builtin-unreachable-in-visual-studio
+#ifdef __GNUC__ // GCC 4.8+, Clang, Intel and other compilers compatible with GCC (-std=c++0x or above)
+[[noreturn]] inline __attribute__((always_inline)) void unreachable() {__builtin_unreachable();}
+#elif defined(_MSC_VER) // MSVC
+[[noreturn]] __forceinline void unreachable() {__assume(false);}
+#else // ???
+inline void unreachable() {}
+#endif
 
 
 #ifndef __assume
@@ -150,7 +158,6 @@
 #define __assume(cond)
 #endif
 #endif
-
 
 //#define INLINE __attribute__ ((__always_inline__)) inline
 //#define INLINE inline

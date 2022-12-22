@@ -72,7 +72,7 @@ add_executable(netgen IMPORTED)
 add_library(nggui SHARED IMPORTED)
 
 set_target_properties(nggui PROPERTIES
-  INTERFACE_LINK_LIBRARIES "nglib;togl;opengl32;glu32"
+  INTERFACE_LINK_LIBRARIES "nglib;togl;opengl32;glu32;nglib"
 )
 
 # Create imported target togl

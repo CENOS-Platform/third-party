@@ -135,6 +135,9 @@ namespace ngcore
     NETGEN_INLINE __m512d Data() const { return data; }
     NETGEN_INLINE __m512d & Data() { return data; }
 
+    SIMD<double,4> Lo() const { return _mm512_extractf64x4_pd(data, 0); }
+    SIMD<double,4> Hi() const { return _mm512_extractf64x4_pd(data, 1); }
+
     template <int I>
     double Get() const
     {
@@ -256,6 +259,16 @@ namespace ngcore
     return _mm512_fnmadd_pd (_mm512_set1_pd(a), b.Data(), c.Data());
   }
 
+  NETGEN_INLINE SIMD<double,8> FMAddSub (SIMD<double,8> a, SIMD<double,8> b, SIMD<double,8> c)
+  {
+    return _mm512_fmaddsub_pd(a.Data(), b.Data(), c.Data());
+  }
+
+  NETGEN_INLINE SIMD<double,8> SwapPairs (SIMD<double,8> a)
+  {
+    return _mm512_shuffle_pd (a.Data(), a.Data(), 0b01010101);
+  }
+  
 }
 
 #endif // NETGEN_CORE_SIMD_AVX512_HPP
