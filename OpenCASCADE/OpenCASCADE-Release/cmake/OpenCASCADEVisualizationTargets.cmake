@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget TKService TKV3d)
+foreach(_expectedTarget TKService TKV3d TKMeshVS TKIVtk)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -60,6 +60,20 @@ add_library(TKV3d SHARED IMPORTED)
 
 set_target_properties(TKV3d PROPERTIES
   INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKService;TKShHealing;TKTopAlgo;TKG2d;TKG3d;TKGeomBase;TKMesh;TKGeomAlgo;TKHLR;user32.lib;gdi32.lib;opengl32.lib"
+)
+
+# Create imported target TKMeshVS
+add_library(TKMeshVS SHARED IMPORTED)
+
+set_target_properties(TKMeshVS PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKV3d;TKMath;TKService;TKernel;TKG3d;TKG2d"
+)
+
+# Create imported target TKIVtk
+add_library(TKIVtk SHARED IMPORTED)
+
+set_target_properties(TKIVtk PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKernel;TKBRep;TKG2d;TKG3d;TKGeomAlgo;TKGeomBase;TKMath;TKMesh;TKService;TKTopAlgo;TKV3d;VTK::CommonCore;VTK::RenderingCore;VTK::RenderingFreeType;VTK::FiltersGeneral;VTK::InteractionStyle;VTK::RenderingOpenGL2;VTK::RenderingGL2PSOpenGL2"
 )
 
 if(CMAKE_VERSION VERSION_LESS 2.8.12)

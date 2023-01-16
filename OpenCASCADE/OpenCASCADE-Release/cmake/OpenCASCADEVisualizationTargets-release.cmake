@@ -25,5 +25,25 @@ set_target_properties(TKV3d PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS TKV3d )
 list(APPEND _IMPORT_CHECK_FILES_FOR_TKV3d "${_IMPORT_PREFIX}/win64/vc14/lib/TKV3d.lib" "${_IMPORT_PREFIX}/win64/vc14/bin/TKV3d.dll" )
 
+# Import target "TKMeshVS" for configuration "Release"
+set_property(TARGET TKMeshVS APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(TKMeshVS PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/win64/vc14/lib/TKMeshVS.lib"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/win64/vc14/bin/TKMeshVS.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKMeshVS )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKMeshVS "${_IMPORT_PREFIX}/win64/vc14/lib/TKMeshVS.lib" "${_IMPORT_PREFIX}/win64/vc14/bin/TKMeshVS.dll" )
+
+# Import target "TKIVtk" for configuration "Release"
+set_property(TARGET TKIVtk APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(TKIVtk PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/win64/vc14/lib/TKIVtk.lib"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/win64/vc14/bin/TKIVtk.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKIVtk )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKIVtk "${_IMPORT_PREFIX}/win64/vc14/lib/TKIVtk.lib" "${_IMPORT_PREFIX}/win64/vc14/bin/TKIVtk.dll" )
+
 # Commands beyond this point should not need to know the version.
 set(CMAKE_IMPORT_FILE_VERSION)
