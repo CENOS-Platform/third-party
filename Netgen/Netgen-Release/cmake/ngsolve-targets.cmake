@@ -52,8 +52,7 @@ endif()
 add_library(ngs_lapack INTERFACE IMPORTED)
 
 set_target_properties(ngs_lapack PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "E:/source/cenos/backend/third-party/python/Library/include"
-  INTERFACE_LINK_LIBRARIES "E:/source/cenos/backend/third-party/python/Library/lib/mkl_rt.lib"
+  INTERFACE_LINK_LIBRARIES "E:/source/third-party-auto/Netgen-Release/lib/BLAS.lib"
 )
 
 # Create imported target netgen_python
@@ -68,7 +67,7 @@ set_target_properties(netgen_python PROPERTIES
 add_library(ngstd INTERFACE IMPORTED)
 
 set_target_properties(ngstd PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "HAVE_NETGEN_SOURCES;USE_TIMEOFDAY;TCL;USE_PARDISO;LAPACK;NGS_PYTHON;USE_UMFPACK"
+  INTERFACE_COMPILE_DEFINITIONS "HAVE_NETGEN_SOURCES;USE_TIMEOFDAY;TCL;LAPACK;NGS_PYTHON;USE_UMFPACK"
   INTERFACE_COMPILE_OPTIONS "/std:c++17;-DMAX_SYS_DIM=3"
   INTERFACE_LINK_LIBRARIES "ngcore;nglib;\$<LINK_ONLY:>"
 )
