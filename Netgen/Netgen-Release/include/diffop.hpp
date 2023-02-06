@@ -157,7 +157,10 @@ namespace ngfem
       throw ExceptionNOSIMD (string("AddTrans simdir not implemented for diffop ") + typeid(DOP).name());
     }
 
-
+    static int DimRef()
+    {
+      throw Exception (string("DIFFOP::DimRef should not be here, diffop = ")+typeid(DOP).name());
+    }
 
     template <typename FEL, typename IP, typename MAT>
     static void GenerateMatrixRef (const FEL & fel, const IP & ip,
@@ -417,6 +420,10 @@ namespace ngfem
 
 
     /// calculates matrix on reference element
+    
+    // dimension on refelement (e.g. 2 for surface gradient)
+    virtual int DimRef() const; 
+    
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
                 const IntegrationPoint & ip,
@@ -687,6 +694,20 @@ namespace ngfem
     CalcMatrix (const FiniteElement & fel,
 		const SIMD_BaseMappedIntegrationRule & mir,
 		BareSliceMatrix<SIMD<double>> mat) const override;
+
+
+    NGS_DLL_HEADER virtual int DimRef() const override;    
+    
+    NGS_DLL_HEADER virtual void
+    CalcMatrix (const FiniteElement & fel,
+                const IntegrationPoint & ip,
+                SliceMatrix<double,ColMajor> mat,
+                LocalHeap & lh) const override;
+    
+    NGS_DLL_HEADER virtual void
+    CalcTransformationMatrix (const BaseMappedIntegrationPoint & mip,
+                              SliceMatrix<double> trans,
+                              LocalHeap & lh) const override;
     
     NGS_DLL_HEADER virtual void
     Apply (const FiniteElement & fel,
@@ -1067,6 +1088,9 @@ namespace ngfem
 
 
     /// calculates matrix on reference element
+
+    virtual int DimRef() const override;
+    
     virtual void
     CalcMatrix (const FiniteElement & fel,
                 const IntegrationPoint & ip,

@@ -73,6 +73,7 @@ namespace ngla
     int VWidth() const override { return diag->Size(); }
 
     BaseVector & AsVector() override { return *diag; }
+    const BaseVector & AsVector() const override { return *diag; }
     ostream & Print (ostream & ost) const override;
     
     AutoVector CreateRowVector () const override;
@@ -88,19 +89,12 @@ namespace ngla
 
   class BlockDiagonalMatrix : public BaseMatrix
   {
-    mutable Tensor<3> blockdiag;  // some const are missing for tensor
+    Tensor<3> blockdiag;  
     int blocks, dimy, dimx;
   public:
     typedef double TSCAL;
     
-    BlockDiagonalMatrix(Tensor<3> _blockdiag)
-      : blockdiag(std::move(_blockdiag))
-    {
-      blocks = blockdiag.GetSize();
-      dimy = blockdiag.GetSubTensor().GetSize();
-      dimx = blockdiag.GetSubTensor().GetSubTensor().GetSize();
-    }
-    
+    BlockDiagonalMatrix(Tensor<3> _blockdiag);
     bool IsComplex() const override { return false; } 
 
     int VHeight() const override { return blocks*dimy; }
@@ -111,12 +105,66 @@ namespace ngla
     AutoVector CreateRowVector () const override;
     AutoVector CreateColVector () const override;
 
+    void Mult (const BaseVector & x, BaseVector & y) const override;    
     void MultAdd (double s, const BaseVector & x, BaseVector & y) const override;    
     void MultTransAdd (double s, const BaseVector & x, BaseVector & y) const override;
 
     shared_ptr<BaseMatrix> InverseMatrix (shared_ptr<BitArray> subset = nullptr) const override;
   };
 
+  // blocks is inner-most dimension of tensor and vectors
+  class BlockDiagonalMatrixSoA : public BaseMatrix
+  {
+    Tensor<3> blockdiag;  
+    int blocks, dimy, dimx;
+    Matrix<double> nonzero;
+  public:
+    typedef double TSCAL;
+    
+    BlockDiagonalMatrixSoA(Tensor<3> _blockdiag);
+    bool IsComplex() const override { return false; } 
+
+    int VHeight() const override { return blocks*dimy; }
+    int VWidth() const override { return blocks*dimx; }
+
+    ostream & Print (ostream & ost) const override;
+    virtual BaseMatrix::OperatorInfo GetOperatorInfo () const override;
+    
+    AutoVector CreateRowVector () const override;
+    AutoVector CreateColVector () const override;
+
+    void MultAdd (double s, const BaseVector & x, BaseVector & y) const override;    
+    void MultTransAdd (double s, const BaseVector & x, BaseVector & y) const override;
+    // shared_ptr<BaseMatrix> InverseMatrix (shared_ptr<BitArray> subset = nullptr) const override;
+
+    FlatTensor<3> GetBlockDiag () const { return blockdiag; }
+    FlatMatrix<double> GetNonZeroPattern() const { return nonzero; }
+  };
+
+
+  
+
+  // Convert RowMajor to ColMajor matrix (stored as vector)
+  class TransposeVector : public BaseMatrix
+  {
+    int h, w; // result matrix
+  public:
+    typedef double TSCAL;
+    
+    TransposeVector (int ah, int aw);
+    bool IsComplex() const override { return false; } 
+
+    int VHeight() const override { return h*w; }
+    int VWidth() const override { return h*w; }
+
+    ostream & Print (ostream & ost) const override;
+    
+    AutoVector CreateRowVector () const override;
+    AutoVector CreateColVector () const override;
+
+    void Mult (const BaseVector & x, BaseVector & y) const override;    
+    void MultTrans (const BaseVector & x, BaseVector & y) const override;    
+  };
 
   
   
@@ -217,6 +265,14 @@ namespace ngla
 
     virtual void MultAdd (double s, const BaseVector & x, BaseVector & y) const override;
     virtual void MultTransAdd (double s, const BaseVector & x, BaseVector & y) const override;
+
+    shared_ptr<BaseMatrix> GetMatrix() const { return mat; }
+    IntRange GetRange() const { return range; }
+
+    virtual shared_ptr<BaseMatrix> CreateDeviceMatrix() const override
+    {
+      return make_shared<EmbeddedMatrix>(height, range, mat->CreateDeviceMatrix());
+    }
   };
 
 
@@ -285,6 +341,14 @@ namespace ngla
 
     virtual void MultAdd (double s, const BaseVector & x, BaseVector & y) const override;
     virtual void MultTransAdd (double s, const BaseVector & x, BaseVector & y) const override;
+
+    shared_ptr<BaseMatrix> GetMatrix() const { return mat; }
+    IntRange GetRange() const { return range; }
+
+    virtual shared_ptr<BaseMatrix> CreateDeviceMatrix() const override
+    {
+      return make_shared<EmbeddedTransposeMatrix>(width, range, mat->CreateDeviceMatrix());
+    }
   };
 
 

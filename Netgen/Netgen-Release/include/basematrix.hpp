@@ -365,6 +365,7 @@ namespace ngla
     virtual int VHeight() const override { return bm.VWidth(); }
     virtual int VWidth() const override { return bm.VHeight(); }
 
+    auto SPtrMat() const { return spbm; }
 
     virtual ostream & Print (ostream & ost) const override
     {
@@ -372,6 +373,12 @@ namespace ngla
       bm.Print(ost);
       return ost;
     }
+
+    virtual shared_ptr<BaseMatrix> CreateDeviceMatrix() const override
+    {
+      return make_shared<Transpose>(bm.CreateDeviceMatrix());
+    }
+
   };
 
 
@@ -543,6 +550,12 @@ namespace ngla
       bmb.Print(ost);
       return ost;
     }
+
+    virtual shared_ptr<BaseMatrix> CreateDeviceMatrix() const override
+    {
+      return make_shared<ProductMatrix>(bma.CreateDeviceMatrix(), bmb.CreateDeviceMatrix());
+    }
+
   };
 
 
@@ -768,7 +781,23 @@ namespace ngla
       bm.Print(ost);
       return ost;
     }
+
+    auto SPtrMat() const { return spbm; }
     
+    virtual BaseMatrix::OperatorInfo GetOperatorInfo () const override
+    {
+      OperatorInfo info;
+      info.name = "ScaleMatrix, scale = "+ToString(scale);
+      info.height = Height();
+      info.width = Width();
+      info.childs += &bm;
+      return info;
+    }
+    
+    virtual shared_ptr<BaseMatrix> CreateDeviceMatrix() const override
+    {
+      return make_shared<VScaleMatrix<TSCAL>>(bm.CreateDeviceMatrix(), scale);
+    }
   };
   
   inline VScaleMatrix<double> operator* (double d, const BaseMatrix & m)
@@ -870,11 +899,23 @@ namespace ngla
   // ....
   shared_ptr<BaseMatrix> ComposeOperators (shared_ptr<BaseMatrix> a,
                                            shared_ptr<BaseMatrix> b);
-  
   shared_ptr<BaseMatrix> AddOperators (shared_ptr<BaseMatrix> a,
                                        shared_ptr<BaseMatrix> b,
                                        double faca, double facb);
 
+  inline shared_ptr<BaseMatrix> operator* (shared_ptr<BaseMatrix> a,
+                                           shared_ptr<BaseMatrix> b)
+  {
+    return ComposeOperators(a,b);
+  }
+
+  inline shared_ptr<BaseMatrix> operator+ (shared_ptr<BaseMatrix> a,
+                                           shared_ptr<BaseMatrix> b)
+  {
+    return AddOperators(a,b,1,1);
+  }
+
+  
   shared_ptr<BaseMatrix> TransposeOperator (shared_ptr<BaseMatrix> mat);
   
   /// output operator for matrices

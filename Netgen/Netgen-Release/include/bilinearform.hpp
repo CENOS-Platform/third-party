@@ -31,11 +31,13 @@ namespace ngcomp
     /// don't assemble matrix
     bool nonassemble;
     /// store only diagonal of matrix
-    bool diagonal;
+    bool diagonal = false;
     /// element-matrix for ref-elements
-    bool geom_free;
+    bool geom_free = false;
     /// stores geom-free B factors, and D factors in integration points
-    bool matrix_free_bdb;
+    bool matrix_free_bdb = false;
+    /// stores geom-free B factors, and D factors in integration points, and compiled CF
+    bool nonlinear_matrix_free_bdb = false;
     /// store matrices on mesh hierarchy
     bool multilevel;
     /// galerkin projection of coarse grid matrices
@@ -423,7 +425,7 @@ namespace ngcomp
     /// assemble matrix
     virtual void DoAssemble (LocalHeap & lh) = 0;
     void AssembleGF (LocalHeap & lh);
-    void AssembleBDB (LocalHeap & lh);
+    void AssembleBDB (LocalHeap & lh, bool linear);
 
     /// allocates (sparse) matrix data-structure
     virtual void AllocateMatrix () = 0;
@@ -1032,6 +1034,44 @@ namespace ngcomp
     virtual void MultAdd (Complex val, const BaseVector & v, BaseVector & prod) const override;
   };
 
+
+
+  class ApplyIntegrationPoints : public BaseMatrix
+  {
+    Array<shared_ptr<CoefficientFunction>> coefs;
+    Array<ProxyFunction*> trialproxies;
+    
+    typedef void (*lib_function)(size_t nip, double * input, size_t dist_input,
+                                 double * output, size_t dist_output);
+
+    unique_ptr<SharedLibrary> library;
+    lib_function compiled_function = nullptr;
+    
+    size_t dimx, dimy;
+    size_t nip;
+    
+  public:
+    ApplyIntegrationPoints (Array<shared_ptr<CoefficientFunction>> acoefs,
+                            const Array<ProxyFunction*> & atrialproxies,
+                            size_t adimx, size_t adimy, size_t anip);
+    
+    AutoVector CreateColVector() const override;
+    AutoVector CreateRowVector() const override;
+    
+    virtual int VHeight() const override { return nip*dimy; }
+    virtual int VWidth() const override { return nip*dimx; }
+    
+    virtual void Mult (const BaseVector & x, BaseVector & y) const override;
+
+    const Array<shared_ptr<CoefficientFunction>> & GetCFs() const { return coefs; } 
+    const Array<ProxyFunction*> & GetTrialProxies() const { return trialproxies; }
+    size_t GetDimX() const { return dimx; }
+    size_t GetDimY() const { return dimy; }
+    size_t GetNIP() const { return nip; }
+  };  
+  
+
+  
 
   /**
      This bilinearform stores the element-matrices

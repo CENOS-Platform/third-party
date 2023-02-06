@@ -1989,8 +1989,19 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
                   std::optional<int> maxiter,
                   std::optional<bool> allow_fail);
 
-  NGS_DLL_HEADER
-  shared_ptr<CoefficientFunction> Compile (shared_ptr<CoefficientFunction> c, bool realcompile=false, int maxderiv=2, bool wait=false, bool keep_files=false);
+
+class CompiledCoefficientFunctionInterface : public CoefficientFunction
+{
+protected:
+  Array<CoefficientFunction*> steps;
+public:
+  using CoefficientFunction::CoefficientFunction;
+  virtual Code GenerateProgram (int deriv, bool simd) const = 0;
+  const Array<CoefficientFunction*> & Steps() const { return steps; }
+};
+
+NGS_DLL_HEADER
+shared_ptr<CompiledCoefficientFunctionInterface> Compile (shared_ptr<CoefficientFunction> c, bool realcompile=false, int maxderiv=2, bool wait=false, bool keep_files=false);
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> LoggingCF (shared_ptr<CoefficientFunction> func, string logfile="stdout");
