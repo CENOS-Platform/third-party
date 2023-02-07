@@ -248,7 +248,7 @@ public:
         return false;
     }
     static handle cast(T, return_value_policy /* policy */, handle /* parent */) {
-        return none().inc_ref();
+        return none().release();
     }
     PYBIND11_TYPE_CASTER(T, const_name("None"));
 };
@@ -291,7 +291,7 @@ public:
         if (ptr) {
             return capsule(ptr).release();
         }
-        return none().inc_ref();
+        return none().release();
     }
 
     template <typename T>
@@ -537,7 +537,7 @@ public:
 
     static handle cast(const CharT *src, return_value_policy policy, handle parent) {
         if (src == nullptr) {
-            return pybind11::none().inc_ref();
+            return pybind11::none().release();
         }
         return StringCaster::cast(StringType(src), policy, parent);
     }
@@ -846,7 +846,7 @@ struct always_construct_holder {
 
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
 #define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                      \
-    namespace pybind11 {                                                                          \
+    PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)                                                  \
     namespace detail {                                                                            \
     template <typename type>                                                                      \
     struct always_construct_holder<holder_type> : always_construct_holder<void, ##__VA_ARGS__> {  \
@@ -855,7 +855,7 @@ struct always_construct_holder {
     class type_caster<holder_type, enable_if_t<!is_shared_ptr<holder_type>::value>>               \
         : public type_caster_holder<type, holder_type> {};                                        \
     }                                                                                             \
-    }
+    PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 // PYBIND11_DECLARE_HOLDER_TYPE holder types:
 template <typename base, typename holder>
@@ -908,6 +908,14 @@ struct handle_type_name<kwargs> {
 
 template <typename type>
 struct pyobject_caster {
+    template <typename T = type, enable_if_t<std::is_same<T, handle>::value, int> = 0>
+    pyobject_caster() : value() {}
+
+    // `type` may not be default constructible (e.g. frozenset, anyset).  Initializing `value`
+    // to a nil handle is safe since it will only be accessed if `load` succeeds.
+    template <typename T = type, enable_if_t<std::is_base_of<object, T>::value, int> = 0>
+    pyobject_caster() : value(reinterpret_steal<type>(handle())) {}
+
     template <typename T = type, enable_if_t<std::is_same<T, handle>::value, int> = 0>
     bool load(handle src, bool /* convert */) {
         value = src;
@@ -1001,6 +1009,8 @@ struct return_value_policy_override<
 // Basic python -> C++ casting; throws if casting fails
 template <typename T, typename SFINAE>
 type_caster<T, SFINAE> &load_type(type_caster<T, SFINAE> &conv, const handle &handle) {
+    static_assert(!detail::is_pyobject<T>::value,
+                  "Internal error: type_caster should only be used for C++ types");
     if (!conv.load(handle, true)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         throw cast_error("Unable to cast Python instance to C++ type (#define "
@@ -1091,19 +1101,28 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
 // - If both movable and copyable, check ref count: if 1, move; otherwise copy
 // - Otherwise (not movable), copy.
 template <typename T>
-detail::enable_if_t<detail::move_always<T>::value, T> cast(object &&object) {
+detail::enable_if_t<!detail::is_pyobject<T>::value && detail::move_always<T>::value, T>
+cast(object &&object) {
     return move<T>(std::move(object));
 }
 template <typename T>
-detail::enable_if_t<detail::move_if_unreferenced<T>::value, T> cast(object &&object) {
+detail::enable_if_t<!detail::is_pyobject<T>::value && detail::move_if_unreferenced<T>::value, T>
+cast(object &&object) {
     if (object.ref_count() > 1) {
         return cast<T>(object);
     }
     return move<T>(std::move(object));
 }
 template <typename T>
-detail::enable_if_t<detail::move_never<T>::value, T> cast(object &&object) {
+detail::enable_if_t<!detail::is_pyobject<T>::value && detail::move_never<T>::value, T>
+cast(object &&object) {
     return cast<T>(object);
+}
+
+// pytype rvalue -> pytype (calls converting constructor)
+template <typename T>
+detail::enable_if_t<detail::is_pyobject<T>::value, T> cast(object &&object) {
+    return T(std::move(object));
 }
 
 template <typename T>
@@ -1160,11 +1179,9 @@ enable_if_t<cast_is_temporary_value_reference<T>::value, T> cast_safe(object &&)
     pybind11_fail("Internal error: cast_safe fallback invoked");
 }
 template <typename T>
-enable_if_t<std::is_same<void, intrinsic_t<T>>::value, void> cast_safe(object &&) {}
+enable_if_t<std::is_void<T>::value, void> cast_safe(object &&) {}
 template <typename T>
-enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>,
-                            std::is_same<void, intrinsic_t<T>>>::value,
-            T>
+enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>, std::is_void<T>>::value, T>
 cast_safe(object &&o) {
     return pybind11::cast<T>(std::move(o));
 }
@@ -1526,7 +1543,7 @@ private:
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #endif
         }
-        m_kwargs[a.name] = a.value;
+        m_kwargs[a.name] = std::move(a.value);
     }
 
     void process(list & /*args_list*/, detail::kwargs_proxy kp) {
@@ -1606,7 +1623,7 @@ unpacking_collector<policy> collect_arguments(Args &&...args) {
 template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object object_api<Derived>::operator()(Args &&...args) const {
-#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#ifndef NDEBUG
     if (!PyGILState_Check()) {
         pybind11_fail("pybind11::object_api<>::operator() PyGILState_Check() failure.");
     }
@@ -1631,12 +1648,12 @@ handle type::handle_of() {
 }
 
 #define PYBIND11_MAKE_OPAQUE(...)                                                                 \
-    namespace pybind11 {                                                                          \
+    PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)                                                  \
     namespace detail {                                                                            \
     template <>                                                                                   \
     class type_caster<__VA_ARGS__> : public type_caster_base<__VA_ARGS__> {};                     \
     }                                                                                             \
-    }
+    PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 /// Lets you pass a type containing a `,` through a macro parameter without needing a separate
 /// typedef, e.g.:

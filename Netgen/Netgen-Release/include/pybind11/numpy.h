@@ -537,7 +537,7 @@ PYBIND11_NAMESPACE_END(detail)
 
 class dtype : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_);
+    PYBIND11_OBJECT_DEFAULT(dtype, object, detail::npy_api::get().PyArrayDescr_Check_)
 
     explicit dtype(const buffer_info &info) {
         dtype descr(_dtype_from_pep3118()(pybind11::str(info.format)));
@@ -604,7 +604,7 @@ public:
     }
 
     /// type number of dtype.
-    ssize_t num() const {
+    int num() const {
         // Note: The signature, `dtype::num` follows the naming of NumPy's public
         // Python API (i.e., ``dtype.num``), rather than its internal
         // C API (``PyArray_Descr::type_num``).
@@ -641,10 +641,14 @@ private:
             pybind11::str name;
             object format;
             pybind11::int_ offset;
+            field_descr(pybind11::str &&name, object &&format, pybind11::int_ &&offset)
+                : name{std::move(name)}, format{std::move(format)}, offset{std::move(offset)} {};
         };
+        auto field_dict = attr("fields").cast<dict>();
         std::vector<field_descr> field_descriptors;
+        field_descriptors.reserve(field_dict.size());
 
-        for (auto field : attr("fields").attr("items")()) {
+        for (auto field : field_dict.attr("items")()) {
             auto spec = field.cast<tuple>();
             auto name = spec[0].cast<pybind11::str>();
             auto spec_fo = spec[1].cast<tuple>();
@@ -653,8 +657,8 @@ private:
             if ((len(name) == 0u) && format.kind() == 'V') {
                 continue;
             }
-            field_descriptors.push_back(
-                {(pybind11::str) name, format.strip_padding(format.itemsize()), offset});
+            field_descriptors.emplace_back(
+                std::move(name), format.strip_padding(format.itemsize()), std::move(offset));
         }
 
         std::sort(field_descriptors.begin(),
@@ -1397,7 +1401,7 @@ PYBIND11_NOINLINE void register_structured_dtype(any_container<field_descriptor>
     oss << '}';
     auto format_str = oss.str();
 
-    // Sanity check: verify that NumPy properly parses our buffer format string
+    // Smoke test: verify that NumPy properly parses our buffer format string
     auto &api = npy_api::get();
     auto arr = array(buffer_info(nullptr, itemsize, format_str, 1));
     if (!api.PyArray_EquivTypes_(dtype_ptr, arr.dtype().ptr())) {
@@ -1405,7 +1409,7 @@ PYBIND11_NOINLINE void register_structured_dtype(any_container<field_descriptor>
     }
 
     auto tindex = std::type_index(tinfo);
-    numpy_internals.registered_dtypes[tindex] = {dtype_ptr, format_str};
+    numpy_internals.registered_dtypes[tindex] = {dtype_ptr, std::move(format_str)};
     get_internals().direct_conversions[tindex].push_back(direct_converter);
 }
 
@@ -1861,9 +1865,13 @@ private:
         }
 
         auto result = returned_array::create(trivial, shape);
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wreturn-std-move"
+#endif
 
         if (size == 0) {
-            return std::move(result);
+            return result;
         }
 
         /* Call the function */
@@ -1874,7 +1882,10 @@ private:
             apply_trivial(buffers, params, mutable_data, size, i_seq, vi_seq, bi_seq);
         }
 
-        return std::move(result);
+        return result;
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+#    pragma clang diagnostic pop
+#endif
     }
 
     template <size_t... Index, size_t... VIndex, size_t... BIndex>

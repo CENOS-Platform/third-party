@@ -1173,9 +1173,16 @@ public:
             py::module_ m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
     \endrst */
     module_ def_submodule(const char *name, const char *doc = nullptr) {
-        std::string full_name
-            = std::string(PyModule_GetName(m_ptr)) + std::string(".") + std::string(name);
-        auto result = reinterpret_borrow<module_>(PyImport_AddModule(full_name.c_str()));
+        const char *this_name = PyModule_GetName(m_ptr);
+        if (this_name == nullptr) {
+            throw error_already_set();
+        }
+        std::string full_name = std::string(this_name) + '.' + name;
+        handle submodule = PyImport_AddModule(full_name.c_str());
+        if (!submodule) {
+            throw error_already_set();
+        }
+        auto result = reinterpret_borrow<module_>(submodule);
         if (doc && options::show_user_defined_docstrings()) {
             result.attr("__doc__") = pybind11::str(doc);
         }
@@ -1566,18 +1573,19 @@ public:
                         scope(*this),
                         sibling(getattr(*this, name_, none())),
                         extra...);
-        attr(cf.name()) = staticmethod(cf);
+        auto cf_name = cf.name();
+        attr(std::move(cf_name)) = staticmethod(std::move(cf));
         return *this;
     }
 
-    template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
-    class_ &def(const detail::op_<id, ot, L, R> &op, const Extra &...extra) {
+    template <typename T, typename... Extra, detail::enable_if_t<T::op_enable_if_hook, int> = 0>
+    class_ &def(const T &op, const Extra &...extra) {
         op.execute(*this, extra...);
         return *this;
     }
 
-    template <detail::op_id id, detail::op_type ot, typename L, typename R, typename... Extra>
-    class_ &def_cast(const detail::op_<id, ot, L, R> &op, const Extra &...extra) {
+    template <typename T, typename... Extra, detail::enable_if_t<T::op_enable_if_hook, int> = 0>
+    class_ &def_cast(const T &op, const Extra &...extra) {
         op.execute_cast(*this, extra...);
         return *this;
     }
@@ -1620,7 +1628,7 @@ public:
                 if (!caster.load(obj, false)) {
                     return nullptr;
                 }
-                return new buffer_info(((capture *) ptr)->func(caster));
+                return new buffer_info(((capture *) ptr)->func(std::move(caster)));
             },
             ptr);
         weakref(m_ptr, cpp_function([ptr](handle wr) {
@@ -1926,7 +1934,8 @@ struct enum_base {
             [](const object &arg) -> str {
                 handle type = type::handle_of(arg);
                 object type_name = type.attr("__name__");
-                return pybind11::str("<{}.{}: {}>").format(type_name, enum_name(arg), int_(arg));
+                return pybind11::str("<{}.{}: {}>")
+                    .format(std::move(type_name), enum_name(arg), int_(arg));
             },
             name("__repr__"),
             is_method(m_base));
@@ -1936,7 +1945,7 @@ struct enum_base {
         m_base.attr("__str__") = cpp_function(
             [](handle arg) -> str {
                 object type_name = type::handle_of(arg).attr("__name__");
-                return pybind11::str("{}.{}").format(type_name, enum_name(arg));
+                return pybind11::str("{}.{}").format(std::move(type_name), enum_name(arg));
             },
             name("name"),
             is_method(m_base));
@@ -2060,12 +2069,12 @@ struct enum_base {
         str name(name_);
         if (entries.contains(name)) {
             std::string type_name = (std::string) str(m_base.attr("__name__"));
-            throw value_error(type_name + ": element \"" + std::string(name_)
+            throw value_error(std::move(type_name) + ": element \"" + std::string(name_)
                               + "\" already exists!");
         }
 
-        entries[name] = std::make_pair(value, doc);
-        m_base.attr(name) = value;
+        entries[name] = pybind11::make_tuple(value, doc);
+        m_base.attr(std::move(name)) = std::move(value);
     }
 
     PYBIND11_NOINLINE void export_values() {
@@ -2458,7 +2467,7 @@ void implicitly_convertible() {
     };
 
     if (auto *tinfo = detail::get_type_info(typeid(OutputType))) {
-        tinfo->implicit_conversions.push_back(implicit_caster);
+        tinfo->implicit_conversions.emplace_back(std::move(implicit_caster));
     } else {
         pybind11_fail("implicitly_convertible: Unable to find type " + type_id<OutputType>());
     }
@@ -2576,8 +2585,8 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     for (size_t i = 0; i < args.size(); ++i) {
         strings[i] = str(args[i]);
     }
-    auto sep = kwargs.contains("sep") ? kwargs["sep"] : cast(" ");
-    auto line = sep.attr("join")(strings);
+    auto sep = kwargs.contains("sep") ? kwargs["sep"] : str(" ");
+    auto line = sep.attr("join")(std::move(strings));
 
     object file;
     if (kwargs.contains("file")) {
@@ -2595,8 +2604,8 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     }
 
     auto write = file.attr("write");
-    write(line);
-    write(kwargs.contains("end") ? kwargs["end"] : cast("\n"));
+    write(std::move(line));
+    write(kwargs.contains("end") ? kwargs["end"] : str("\n"));
 
     if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
         file.attr("flush")();
@@ -2610,17 +2619,21 @@ void print(Args &&...args) {
     detail::print(c.args(), c.kwargs());
 }
 
-error_already_set::~error_already_set() {
-    if (m_type) {
-        gil_scoped_acquire gil;
-        error_scope scope;
-        m_type.release().dec_ref();
-        m_value.release().dec_ref();
-        m_trace.release().dec_ref();
-    }
+inline void
+error_already_set::m_fetched_error_deleter(detail::error_fetch_and_normalize *raw_ptr) {
+    gil_scoped_acquire gil;
+    error_scope scope;
+    delete raw_ptr;
+}
+
+inline const char *error_already_set::what() const noexcept {
+    gil_scoped_acquire gil;
+    error_scope scope;
+    return m_fetched_error->error_string().c_str();
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
 inline function
 get_type_override(const void *this_ptr, const type_info *this_type, const char *name) {
     handle self = get_object_handle(this_ptr, this_type);
@@ -2639,7 +2652,7 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
 
     function override = getattr(self, name, function());
     if (override.is_cpp_function()) {
-        cache.insert(key);
+        cache.insert(std::move(key));
         return function();
     }
 
