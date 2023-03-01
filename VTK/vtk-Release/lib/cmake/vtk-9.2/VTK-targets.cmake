@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget VTK::vtkbuild VTK::WrappingTools VTK::WrapHierarchy VTK::WrapPython VTK::WrapPythonInit VTK::ParseJava VTK::WrapJava VTK::kwiml VTK::vtksys VTK::utf8 VTK::loguru VTK::CommonCore VTK::CommonCore-private-kit-links VTK::kissfft VTK::CommonMath VTK::CommonTransforms VTK::exprtk VTK::CommonMisc VTK::CommonSystem VTK::CommonSystem-private-kit-links VTK::pugixml VTK::CommonDataModel VTK::CommonExecutionModel VTK::FiltersCore VTK::CommonColor VTK::CommonComputationalGeometry VTK::fmt VTK::FiltersGeneral VTK::FiltersGeometry VTK::FiltersSources VTK::RenderingCore VTK::eigen VTK::FiltersStatistics VTK::doubleconversion VTK::lz4 VTK::lzma VTK::zlib VTK::IOCore VTK::IOLegacy VTK::ParallelCore VTK::diy2 VTK::expat VTK::IOXMLParser VTK::IOXML VTK::ParallelDIY VTK::FiltersExtraction VTK::InteractionStyle VTK::freetype VTK::RenderingFreeType VTK::RenderingContext2D VTK::ImagingCore VTK::ImagingSources VTK::FiltersHybrid VTK::FiltersModeling VTK::FiltersTexture VTK::ImagingColor VTK::ImagingGeneral VTK::DICOMParser VTK::jpeg VTK::metaio VTK::png VTK::tiff VTK::IOImage VTK::ImagingHybrid VTK::RenderingAnnotation VTK::RenderingVolume VTK::InteractionWidgets VTK::opengl VTK::RenderingUI VTK::ViewsCore VTK::InfovisCore VTK::ChartsCore VTK::FiltersImaging VTK::InfovisLayout VTK::octree VTK::RenderingLabel VTK::ViewsInfovis VTK::ViewsContext2D VTK::TestingCore VTK::TestingRendering VTK::ImagingMath VTK::FiltersHyperTree VTK::RenderingHyperTreeGrid VTK::glew VTK::vtkTestOpenGLVersion VTK::RenderingOpenGL2 VTK::vtkProbeOpenGLVersion VTK::RenderingVolumeOpenGL2 VTK::RenderingLOD VTK::RenderingLICOpenGL2 VTK::RenderingImage VTK::RenderingContextOpenGL2 VTK::vtkhdf5_src VTK::vtkhdf5_hl_src VTK::hdf5 VTK::IOVeraOut VTK::IOTecplotTable VTK::IOSegY VTK::IOParallelXML VTK::nlohmannjson VTK::IOGeometry VTK::jsoncpp VTK::FiltersParallel VTK::IOParallel VTK::IOPLY VTK::IOMovie VTK::ogg VTK::theora VTK::IOOggTheora VTK::netcdf VTK::sqlite VTK::libproj VTK::IONetCDF VTK::pegtl VTK::IOMotionFX VTK::IOMINC VTK::IOLSDyna VTK::libxml2 VTK::IOInfovis VTK::IOImport VTK::cgns VTK::exodusII VTK::ioss VTK::IOIOSS VTK::IOVideo VTK::RenderingSceneGraph VTK::RenderingVtkJS VTK::DomainsChemistry VTK::libharu VTK::IOExport VTK::IOExportPDF VTK::gl2ps VTK::RenderingGL2PSOpenGL2 VTK::IOExportGL2PS VTK::IOExodus VTK::IOEnSight VTK::IOCityGML VTK::IOChemistry VTK::IOCesium3DTiles VTK::IOHDF VTK::IOCONVERGECFD VTK::IOCGNSReader VTK::IOAsynchronous VTK::FiltersAMR VTK::IOAMR VTK::InteractionImage VTK::ImagingStencil VTK::ImagingStatistics VTK::ImagingMorphological VTK::ImagingFourier VTK::IOSQL VTK::GeovisCore VTK::FiltersTopology VTK::FiltersSelection VTK::FiltersSMP VTK::FiltersProgrammable VTK::FiltersPoints VTK::verdict VTK::FiltersVerdict VTK::FiltersParallelImaging VTK::FiltersGeneric VTK::FiltersFlowPaths VTK::DomainsChemistryOpenGL2)
+foreach(_expectedTarget VTK::vtkbuild VTK::WrappingTools VTK::WrapHierarchy VTK::WrapPython VTK::WrapPythonInit VTK::ParseJava VTK::WrapJava VTK::kwiml VTK::vtksys VTK::utf8 VTK::loguru VTK::CommonCore VTK::CommonCore-private-kit-links VTK::kissfft VTK::CommonMath VTK::CommonTransforms VTK::exprtk VTK::CommonMisc VTK::CommonSystem VTK::CommonSystem-private-kit-links VTK::pugixml VTK::CommonDataModel VTK::CommonExecutionModel VTK::FiltersCore VTK::CommonColor VTK::CommonComputationalGeometry VTK::fmt VTK::FiltersGeneral VTK::FiltersGeometry VTK::FiltersSources VTK::RenderingCore VTK::eigen VTK::FiltersStatistics VTK::doubleconversion VTK::lz4 VTK::lzma VTK::zlib VTK::IOCore VTK::IOLegacy VTK::ParallelCore VTK::diy2 VTK::expat VTK::IOXMLParser VTK::IOXML VTK::ParallelDIY VTK::FiltersExtraction VTK::InteractionStyle VTK::freetype VTK::RenderingFreeType VTK::RenderingContext2D VTK::ImagingCore VTK::ImagingSources VTK::FiltersHybrid VTK::FiltersModeling VTK::FiltersTexture VTK::ImagingColor VTK::ImagingGeneral VTK::DICOMParser VTK::jpeg VTK::metaio VTK::png VTK::tiff VTK::IOImage VTK::ImagingHybrid VTK::RenderingAnnotation VTK::RenderingVolume VTK::InteractionWidgets VTK::opengl VTK::RenderingUI VTK::ViewsCore VTK::InfovisCore VTK::ChartsCore VTK::FiltersImaging VTK::InfovisLayout VTK::octree VTK::RenderingLabel VTK::ViewsInfovis VTK::ViewsContext2D VTK::TestingCore VTK::TestingRendering VTK::Python VTK::PythonUsed VTK::WrappingPythonCore VTK::PythonContext2D VTK::ImagingMath VTK::FiltersHyperTree VTK::RenderingHyperTreeGrid VTK::glew VTK::vtkTestOpenGLVersion VTK::RenderingOpenGL2 VTK::vtkProbeOpenGLVersion VTK::RenderingVolumeOpenGL2 VTK::PythonInterpreter VTK::RenderingLOD VTK::RenderingLICOpenGL2 VTK::RenderingImage VTK::RenderingContextOpenGL2 VTK::vtkhdf5_src VTK::vtkhdf5_hl_src VTK::hdf5 VTK::IOVeraOut VTK::IOTecplotTable VTK::IOSegY VTK::IOParallelXML VTK::nlohmannjson VTK::IOGeometry VTK::jsoncpp VTK::FiltersParallel VTK::IOParallel VTK::IOPLY VTK::IOMovie VTK::ogg VTK::theora VTK::IOOggTheora VTK::netcdf VTK::sqlite VTK::libproj VTK::IONetCDF VTK::pegtl VTK::IOMotionFX VTK::IOMINC VTK::IOLSDyna VTK::libxml2 VTK::IOInfovis VTK::IOImport VTK::cgns VTK::exodusII VTK::ioss VTK::IOIOSS VTK::IOVideo VTK::RenderingSceneGraph VTK::RenderingVtkJS VTK::DomainsChemistry VTK::libharu VTK::IOExport VTK::IOExportPDF VTK::gl2ps VTK::RenderingGL2PSOpenGL2 VTK::IOExportGL2PS VTK::IOExodus VTK::IOEnSight VTK::IOCityGML VTK::IOChemistry VTK::IOCesium3DTiles VTK::IOHDF VTK::IOCONVERGECFD VTK::IOCGNSReader VTK::IOAsynchronous VTK::FiltersAMR VTK::IOAMR VTK::InteractionImage VTK::ImagingStencil VTK::ImagingStatistics VTK::ImagingMorphological VTK::ImagingFourier VTK::IOSQL VTK::GeovisCore VTK::FiltersTopology VTK::FiltersSelection VTK::FiltersSMP VTK::FiltersPython VTK::FiltersProgrammable VTK::FiltersPoints VTK::verdict VTK::FiltersVerdict VTK::FiltersParallelImaging VTK::FiltersGeneric VTK::FiltersFlowPaths VTK::DomainsChemistryOpenGL2 VTK::CommonPython)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -665,6 +665,33 @@ set_target_properties(VTK::TestingRendering PROPERTIES
   INTERFACE_LINK_LIBRARIES "VTK::CommonCore;VTK::RenderingCore;VTK::TestingCore"
 )
 
+# Create imported target VTK::Python
+add_library(VTK::Python INTERFACE IMPORTED)
+
+set_target_properties(VTK::Python PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/vtk-9.2"
+  INTERFACE_LINK_LIBRARIES "VTK::CommonCore;Python3::Python"
+)
+
+# Create imported target VTK::PythonUsed
+add_library(VTK::PythonUsed INTERFACE IMPORTED)
+
+# Create imported target VTK::WrappingPythonCore
+add_library(VTK::WrappingPythonCore SHARED IMPORTED)
+
+set_target_properties(VTK::WrappingPythonCore PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/vtk-9.2"
+  INTERFACE_LINK_LIBRARIES "VTK::CommonCore;VTK::CommonDataModel;VTK::Python;VTK::vtksys"
+)
+
+# Create imported target VTK::PythonContext2D
+add_library(VTK::PythonContext2D SHARED IMPORTED)
+
+set_target_properties(VTK::PythonContext2D PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/vtk-9.2"
+  INTERFACE_LINK_LIBRARIES "VTK::RenderingContext2D"
+)
+
 # Create imported target VTK::ImagingMath
 add_library(VTK::ImagingMath SHARED IMPORTED)
 
@@ -718,6 +745,14 @@ add_library(VTK::RenderingVolumeOpenGL2 SHARED IMPORTED)
 set_target_properties(VTK::RenderingVolumeOpenGL2 PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/vtk-9.2"
   INTERFACE_LINK_LIBRARIES "VTK::CommonCore;VTK::CommonDataModel;VTK::ImagingCore;VTK::ImagingMath;VTK::RenderingCore;VTK::RenderingOpenGL2;VTK::RenderingVolume"
+)
+
+# Create imported target VTK::PythonInterpreter
+add_library(VTK::PythonInterpreter SHARED IMPORTED)
+
+set_target_properties(VTK::PythonInterpreter PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/vtk-9.2"
+  INTERFACE_LINK_LIBRARIES "VTK::CommonCore;VTK::Python;VTK::vtksys"
 )
 
 # Create imported target VTK::RenderingLOD
@@ -1267,6 +1302,14 @@ set_target_properties(VTK::FiltersSMP PROPERTIES
   INTERFACE_LINK_LIBRARIES "VTK::CommonCore;VTK::CommonDataModel;VTK::CommonExecutionModel;VTK::CommonMisc;VTK::CommonTransforms;VTK::FiltersCore;VTK::FiltersGeneral"
 )
 
+# Create imported target VTK::FiltersPython
+add_library(VTK::FiltersPython SHARED IMPORTED)
+
+set_target_properties(VTK::FiltersPython PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/vtk-9.2"
+  INTERFACE_LINK_LIBRARIES "VTK::CommonExecutionModel"
+)
+
 # Create imported target VTK::FiltersProgrammable
 add_library(VTK::FiltersProgrammable SHARED IMPORTED)
 
@@ -1329,6 +1372,14 @@ add_library(VTK::DomainsChemistryOpenGL2 SHARED IMPORTED)
 set_target_properties(VTK::DomainsChemistryOpenGL2 PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/vtk-9.2"
   INTERFACE_LINK_LIBRARIES "VTK::CommonCore;VTK::DomainsChemistry;VTK::RenderingOpenGL2"
+)
+
+# Create imported target VTK::CommonPython
+add_library(VTK::CommonPython SHARED IMPORTED)
+
+set_target_properties(VTK::CommonPython PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/vtk-9.2"
+  INTERFACE_LINK_LIBRARIES "VTK::CommonCore"
 )
 
 if(CMAKE_VERSION VERSION_LESS 3.0.0)

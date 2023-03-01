@@ -736,6 +736,27 @@ set_target_properties(VTK::TestingRendering PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS VTK::TestingRendering )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::TestingRendering "${_IMPORT_PREFIX}/lib/vtkTestingRendering-9.2.lib" "${_IMPORT_PREFIX}/bin/vtkTestingRendering-9.2.dll" )
 
+# Import target "VTK::WrappingPythonCore" for configuration "Release"
+set_property(TARGET VTK::WrappingPythonCore APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::WrappingPythonCore PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/lib/vtkWrappingPythonCore3.10-9.2.lib"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/vtkWrappingPythonCore3.10-9.2.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::WrappingPythonCore )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::WrappingPythonCore "${_IMPORT_PREFIX}/lib/vtkWrappingPythonCore3.10-9.2.lib" "${_IMPORT_PREFIX}/bin/vtkWrappingPythonCore3.10-9.2.dll" )
+
+# Import target "VTK::PythonContext2D" for configuration "Release"
+set_property(TARGET VTK::PythonContext2D APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::PythonContext2D PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/lib/vtkPythonContext2D-9.2.lib"
+  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELEASE "VTK::CommonCore;VTK::WrappingPythonCore"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/vtkPythonContext2D-9.2.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::PythonContext2D )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::PythonContext2D "${_IMPORT_PREFIX}/lib/vtkPythonContext2D-9.2.lib" "${_IMPORT_PREFIX}/bin/vtkPythonContext2D-9.2.dll" )
+
 # Import target "VTK::ImagingMath" for configuration "Release"
 set_property(TARGET VTK::ImagingMath APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::ImagingMath PROPERTIES
@@ -818,6 +839,17 @@ set_target_properties(VTK::RenderingVolumeOpenGL2 PROPERTIES
 
 list(APPEND _IMPORT_CHECK_TARGETS VTK::RenderingVolumeOpenGL2 )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::RenderingVolumeOpenGL2 "${_IMPORT_PREFIX}/lib/vtkRenderingVolumeOpenGL2-9.2.lib" "${_IMPORT_PREFIX}/bin/vtkRenderingVolumeOpenGL2-9.2.dll" )
+
+# Import target "VTK::PythonInterpreter" for configuration "Release"
+set_property(TARGET VTK::PythonInterpreter APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::PythonInterpreter PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/lib/vtkPythonInterpreter-9.2.lib"
+  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELEASE "VTK::CommonMisc;VTK::WrappingPythonCore"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/vtkPythonInterpreter-9.2.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::PythonInterpreter )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::PythonInterpreter "${_IMPORT_PREFIX}/lib/vtkPythonInterpreter-9.2.lib" "${_IMPORT_PREFIX}/bin/vtkPythonInterpreter-9.2.dll" )
 
 # Import target "VTK::RenderingLOD" for configuration "Release"
 set_property(TARGET VTK::RenderingLOD APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
@@ -1514,6 +1546,17 @@ set_target_properties(VTK::FiltersSMP PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS VTK::FiltersSMP )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::FiltersSMP "${_IMPORT_PREFIX}/lib/vtkFiltersSMP-9.2.lib" "${_IMPORT_PREFIX}/bin/vtkFiltersSMP-9.2.dll" )
 
+# Import target "VTK::FiltersPython" for configuration "Release"
+set_property(TARGET VTK::FiltersPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::FiltersPython PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/lib/vtkFiltersPython-9.2.lib"
+  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELEASE "VTK::CommonCore;VTK::WrappingPythonCore"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/vtkFiltersPython-9.2.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::FiltersPython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::FiltersPython "${_IMPORT_PREFIX}/lib/vtkFiltersPython-9.2.lib" "${_IMPORT_PREFIX}/bin/vtkFiltersPython-9.2.dll" )
+
 # Import target "VTK::FiltersProgrammable" for configuration "Release"
 set_property(TARGET VTK::FiltersProgrammable APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::FiltersProgrammable PROPERTIES
@@ -1599,6 +1642,17 @@ set_target_properties(VTK::DomainsChemistryOpenGL2 PROPERTIES
 
 list(APPEND _IMPORT_CHECK_TARGETS VTK::DomainsChemistryOpenGL2 )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::DomainsChemistryOpenGL2 "${_IMPORT_PREFIX}/lib/vtkDomainsChemistryOpenGL2-9.2.lib" "${_IMPORT_PREFIX}/bin/vtkDomainsChemistryOpenGL2-9.2.dll" )
+
+# Import target "VTK::CommonPython" for configuration "Release"
+set_property(TARGET VTK::CommonPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::CommonPython PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/lib/vtkCommonPython-9.2.lib"
+  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELEASE "VTK::WrappingPythonCore"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/vtkCommonPython-9.2.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::CommonPython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::CommonPython "${_IMPORT_PREFIX}/lib/vtkCommonPython-9.2.lib" "${_IMPORT_PREFIX}/bin/vtkCommonPython-9.2.dll" )
 
 # Commands beyond this point should not need to know the version.
 set(CMAKE_IMPORT_FILE_VERSION)
