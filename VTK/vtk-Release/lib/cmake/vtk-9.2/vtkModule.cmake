@@ -2236,7 +2236,7 @@ function (_vtk_module_export_properties)
       PROPERTY  "INTERFACE_vtk_${_vtk_export_properties_type}_${_vtk_export_properties_split}")
     set(_vtk_export_properties_set_property
       "set_property(TARGET \"${_vtk_export_properties_name}\" PROPERTY \"INTERFACE_vtk_module_${_vtk_export_properties_split}\" \"${_vtk_export_properties_value}\")\n")
-    file(APPEND "${_vtk_export_properties_BUILD_FILE}"
+	file(APPEND "${_vtk_export_properties_BUILD_FILE}"
       "${_vtk_export_properties_set_property}")
 
     get_property(_vtk_export_properties_value
