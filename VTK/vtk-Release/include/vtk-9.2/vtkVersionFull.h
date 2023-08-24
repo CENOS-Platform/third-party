@@ -17,6 +17,6 @@
 
 /* This is in its own header to reduce build dependencies */
 
-#define VTK_VERSION_FULL "9.2.2"
+#define VTK_VERSION_FULL "9.2.6"
 
 #endif
