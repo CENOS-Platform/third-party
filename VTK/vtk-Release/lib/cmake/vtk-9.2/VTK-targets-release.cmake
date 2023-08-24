@@ -734,7 +734,7 @@ list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::FiltersExtraction "${_IMPORT_PREFIX}/li
 set_property(TARGET VTK::InteractionStyle APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::InteractionStyle PROPERTIES
   IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/lib/vtkInteractionStyle-9.2.lib"
-  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELEASE "VTK::CommonCore;VTK::CommonMath;VTK::CommonTransforms;VTK::FiltersExtraction;VTK::FiltersSources"
+  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELEASE "VTK::CommonCore;VTK::CommonMath;VTK::CommonTransforms;VTK::FiltersCore;VTK::FiltersExtraction;VTK::FiltersSources"
   IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/vtkInteractionStyle-9.2.dll"
   )
 

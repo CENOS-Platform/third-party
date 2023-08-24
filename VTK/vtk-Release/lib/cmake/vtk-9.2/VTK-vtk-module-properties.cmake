@@ -758,7 +758,7 @@ set_property(TARGET "VTK::ImagingColor" PROPERTY "INTERFACE_vtk_module_headers" 
 set_property(TARGET "VTK::ImagingColor" PROPERTY "INTERFACE_vtk_module_hierarchy" "${_vtk_module_import_prefix}/lib/vtk-9.2/hierarchy/VTK/vtkImagingColor-hierarchy.txt")
 set_property(TARGET "VTK::InteractionStyle" PROPERTY "INTERFACE_vtk_module_exclude_wrap" "FALSE")
 set_property(TARGET "VTK::InteractionStyle" PROPERTY "INTERFACE_vtk_module_depends" "VTK::CommonDataModel;VTK::RenderingCore")
-set_property(TARGET "VTK::InteractionStyle" PROPERTY "INTERFACE_vtk_module_private_depends" "VTK::CommonCore;VTK::CommonMath;VTK::CommonTransforms;VTK::FiltersExtraction;VTK::FiltersSources")
+set_property(TARGET "VTK::InteractionStyle" PROPERTY "INTERFACE_vtk_module_private_depends" "VTK::CommonCore;VTK::CommonMath;VTK::CommonTransforms;VTK::FiltersCore;VTK::FiltersExtraction;VTK::FiltersSources")
 set_property(TARGET "VTK::InteractionStyle" PROPERTY "INTERFACE_vtk_module_optional_depends" "")
 set_property(TARGET "VTK::InteractionStyle" PROPERTY "INTERFACE_vtk_module_implements" "VTK::RenderingCore")
 set_property(TARGET "VTK::InteractionStyle" PROPERTY "INTERFACE_vtk_module_implementable" "FALSE")
