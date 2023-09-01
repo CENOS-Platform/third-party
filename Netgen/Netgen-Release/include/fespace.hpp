@@ -7,6 +7,8 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
+#include <core/register_archive.hpp>
+
 namespace ngcomp
 {
 
@@ -154,35 +156,6 @@ ANY                  1 1 1 1 | 15
     Array<bool> dirichlet_edge;
     Array<bool> dirichlet_face;
     
-    /*
-    /// Reference - element (low order only)
-    FiniteElement * tet;  // = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * prism; // = NULL;
-    /// Reference - element (low order only) 
-    FiniteElement * pyramid;  // = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * hex; //  = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * trig; // = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * quad;// = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * segm;// = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * point;// = NULL;
-    */
-    
-    /*
-    FiniteElement * dummy_tet; // = new <DummyFE<ET_TET>();
-    FiniteElement * dummy_pyramid; // = new DummyFE<ET_PYRAMID>();
-    FiniteElement * dummy_prism; // = new DummyFE<ET_PRISM>();
-    FiniteElement * dummy_hex; //  = new DummyFE<ET_HEX>();
-    FiniteElement * dummy_trig; // = new DummyFE<ET_TRIG>();
-    FiniteElement * dummy_quad; // = new DummyFE<ET_QUAD>();
-    FiniteElement * dummy_segm; // = new DummyFE<ET_SEGM>();
-    FiniteElement * dummy_point; // = new DummyFE<ET_POINT>();
-    */
     
     /// Evaluator for visualization (new style)
     shared_ptr<DifferentialOperator> evaluator[4];
@@ -252,6 +225,7 @@ ANY                  1 1 1 1 | 15
     */
     FESpace (shared_ptr<MeshAccess> ama, const Flags & flags, 
              bool checkflags = false);
+    FESpace (const FESpace &) = delete;
     /// cleanup
     virtual ~FESpace ();
 
@@ -279,6 +253,7 @@ ANY                  1 1 1 1 | 15
 
     /// Dump/restore fespace
     virtual void DoArchive (Archive & archive);
+    std::tuple<Shallow<shared_ptr<MeshAccess>>, Flags> GetCArgs();
 
     Array<MemoryUsage> GetMemoryUsage () const override;
     
@@ -500,6 +475,8 @@ ANY                  1 1 1 1 | 15
     virtual bool UsesDGCoupling () const throw() { return dgjumps; };
 
     bool DoesAutoUpdate () const { return autoupdate; };
+    void ConnectAutoUpdate();
+    
 
     auto & DefinedOn(VorB vb) const { return definedon[vb]; }
     
@@ -627,20 +604,6 @@ ANY                  1 1 1 1 | 15
         VTransformVC (ei, vec, type);
     }
 
-    /*
-    template < int S, class T >
-    [[deprecated("Use TransformVec with element-id instead of elnr!")]]        
-    void TransformVec (int elnr, VorB vb,
-		       const FlatVector< Vec<S,T> >& vec, TRANSFORM_TYPE type) const;
-
-    template < class T >
-    void TransformVec (ElementId ei,
-		       const T & vec, TRANSFORM_TYPE type) const
-    {
-      TransformVec (ei, vec, type);
-    }
-    */
-
     virtual void VTransformMR (ElementId ei,
 			       const SliceMatrix<double> mat, TRANSFORM_TYPE type) const
     { ; }
@@ -700,6 +663,12 @@ ANY                  1 1 1 1 | 15
     virtual shared_ptr<BaseMatrix> GetMassOperator (shared_ptr<CoefficientFunction> rho,
                                                     shared_ptr<Region> defon,
                                                     LocalHeap & lh) const;
+
+    
+    virtual shared_ptr<BaseMatrix> CreateMassOperator (shared_ptr<CoefficientFunction> rho,
+                                                       shared_ptr<Region> defon,
+                                                       bool inverse,
+                                                       LocalHeap & lh) const;
     
     virtual void SolveM(CoefficientFunction * rho, BaseVector & vec, Region * definedon,
                         LocalHeap & lh) const;
@@ -872,30 +841,6 @@ ANY                  1 1 1 1 | 15
     {
       return integrator[vb];
     }
-    
-  protected:
-      /*
-    template <template <ELEMENT_TYPE ET> class FE>
-    void SetDummyFE ()
-    {
-      delete dummy_tet;
-      delete dummy_pyramid;
-      delete dummy_prism;
-      delete dummy_hex;
-      delete dummy_trig;
-      delete dummy_quad;
-      delete dummy_segm;
-      delete dummy_point;
-      dummy_tet = new FE<ET_TET>();
-      dummy_pyramid = new FE<ET_PYRAMID>();
-      dummy_prism = new FE<ET_PRISM>();
-      dummy_hex = new FE<ET_HEX>();
-      dummy_trig = new FE<ET_TRIG>();
-      dummy_quad = new FE<ET_QUAD>();
-      dummy_segm = new FE<ET_SEGM>();
-      dummy_point = new FE<ET_POINT>();
-    }
-    */
   };
 
 
@@ -1237,10 +1182,6 @@ ANY                  1 1 1 1 | 15
     void UpdateCouplingDofArray() override;
     
     void SetDefinedOn (VorB vb, const BitArray& defon) override;
-    /// 
-    // virtual size_t GetNDof () const throw() { return cummulative_nd.Last(); } 
-    ///
-    // virtual size_t GetNDofLevel (int level) const { return ndlevel[level]; }
 
     DofRange GetRange (int spacenr) const
     {
@@ -1326,6 +1267,7 @@ ANY                  1 1 1 1 | 15
   {
     bool symmetric;
     bool deviatoric;
+    bool skewsymmetric;
     int vdim;
   public:
     MatrixFESpace (shared_ptr<FESpace> space, int avdim, const Flags & flags,
@@ -1412,6 +1354,12 @@ ANY                  1 1 1 1 | 15
     {
       return fes->IsComplex();
     }
+
+    shared_ptr<BaseMatrix> CreateDeviceMatrix() const override
+    {
+      return fes->CreateMassOperator(rho, definedon, inverse, lh)->CreateDeviceMatrix();
+    }
+    
     
     virtual void Mult (const BaseVector & v, BaseVector & prod) const override;
     virtual void MultAdd (double val, const BaseVector & v, BaseVector & prod) const override;
@@ -1526,6 +1474,7 @@ ANY                  1 1 1 1 | 15
   class RegisterFESpace
   {
   public:
+    RegisterClassForArchive<FES, FESpace> regclass;
     /// constructor registers fespace
     RegisterFESpace (string label)
     {

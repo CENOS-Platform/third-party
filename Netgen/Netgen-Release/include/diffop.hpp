@@ -27,7 +27,7 @@ namespace ngfem
     static constexpr bool SUPPORT_PML = false;
     // static Array<int> GetDimensions() { return Array<int> ( { DOP::DIM_DMAT } ); };
     static INT<1> GetDimensions() { return { DOP::DIM_DMAT }; };
-    static bool SupportsVB (VorB checkvb) { return DOP::DIM_SPACE-DOP::DIM_ELEMENT == int(checkvb); }
+    static bool SupportsVB (VorB checkvb) { return int(DOP::DIM_SPACE)-int(DOP::DIM_ELEMENT) == int(checkvb); }
 
 
     typedef void DIFFOP_TRACE;  // 
@@ -44,7 +44,7 @@ namespace ngfem
     static void GenerateMatrix (const FEL & fel, const MIP & mip,
 				MAT & mat, LocalHeap & lh)
     { 
-      cout << "DIFFOP::GenerateMatrix should not be here, diffop = " << typeid(DOP).name() << endl;
+      throw Exception(string("DIFFOP::GenerateMatrix should not be here, diffop = ")+typeid(DOP).name());
     }
 
     /// tbd
@@ -53,7 +53,10 @@ namespace ngfem
                                   MAT & mat, LocalHeap & lh)
     {
       for (size_t i = 0; i < mir.Size(); i++)
-        DOP::GenerateMatrix (fel, mir[i], mat.Rows(i*DOP::DIM_DMAT, (i+1)*DOP::DIM_DMAT), lh);
+        {
+          auto submat = mat.Rows(i*DOP::DIM_DMAT, (i+1)*DOP::DIM_DMAT);
+          DOP::GenerateMatrix (fel, mir[i], submat, lh);
+        }
     }
 
     template <typename FEL, typename MIR>
@@ -67,7 +70,7 @@ namespace ngfem
     */
     template <typename FEL, typename MIP, class TVX, class TVY>
     static void Apply (const FEL & fel, const MIP & mip,
-		       const TVX & x, TVY & y,
+		       const TVX & x, TVY && y,
 		       LocalHeap & lh)
     {
       // typedef typename TVY::TSCAL TSCAL;
@@ -76,7 +79,7 @@ namespace ngfem
 
       FlatMatrixFixHeight<DOP::DIM_DMAT, TSCAL> mat(DOP::DIM*fel.GetNDof(), lh);
       DOP::GenerateMatrix (fel, mip, mat, lh);
-      y = mat * x;
+      y = mat * x.Range(DOP::DIM*fel.GetNDof());
     }
 
     /// Computes B-matrix times element vector in many points
@@ -88,7 +91,8 @@ namespace ngfem
       for (size_t i = 0; i < mir.Size(); i++)
         {
           HeapReset hr(lh);
-          DOP::Apply (fel, mir[i], x, y.Row(i), lh);
+          auto yrow = y.Row(i);
+          DOP::Apply (fel, mir[i], x, yrow, lh);
         }
     }
 
@@ -235,6 +239,9 @@ namespace ngfem
     }
     /// destructor
     NGS_DLL_HEADER virtual ~DifferentialOperator ();
+
+    virtual void DoArchive(Archive & ar) { ; }
+
     void SetDimensions (const Array<int> & adims) { dimensions = adims; }
     void SetVectorSpaceEmbedding (Matrix <> emb)
     { vsembedding = emb; vsdim = emb.Width(); }
@@ -761,17 +768,7 @@ namespace ngfem
     int vdim;
   public:
     MatrixDifferentialOperator (shared_ptr<DifferentialOperator> adiffop, 
-                                int avdim)
-      : DifferentialOperator(sqr(avdim)*adiffop->Dim(), adiffop->BlockDim(),
-                             adiffop->VB(), adiffop->DiffOrder()),
-        diffop(adiffop), vdim(avdim)
-    {
-      if (adiffop->Dimensions().Size() == 0)
-        // dimensions = Array<int> ( { avdim, avdim });
-        SetDimensions ( { avdim, avdim } );
-      else
-        throw Exception("no matrix-valued of vector-valued possible");
-    }
+                                int avdim);
 
     NGS_DLL_HEADER virtual ~MatrixDifferentialOperator ();
     
@@ -940,6 +937,62 @@ namespace ngfem
               BareSliceMatrix<SIMD<double>> flux,
               BareSliceVector<double> x) const override;
     */
+  };
+
+  class SkewMatrixDifferentialOperator : public DifferentialOperator
+  {
+  protected:
+    shared_ptr<DifferentialOperator> diffop;
+    int vdim;
+  public:
+    NGS_DLL_HEADER SkewMatrixDifferentialOperator (shared_ptr<DifferentialOperator> adiffop, 
+                                                  int avdim);
+
+    NGS_DLL_HEADER virtual ~SkewMatrixDifferentialOperator ();
+    
+    virtual string Name() const override { return diffop->Name(); }
+    shared_ptr<DifferentialOperator> BaseDiffOp() const { return diffop; }
+    virtual bool SupportsVB (VorB checkvb) const override { return diffop->SupportsVB(checkvb); }
+    
+    virtual IntRange UsedDofs(const FiniteElement & fel) const override
+    { return IntRange(0, fel.GetNDof()); }
+
+    shared_ptr<DifferentialOperator> GetTrace() const override
+    {
+      if (auto diffoptrace = diffop->GetTrace())      
+        return make_shared<SkewMatrixDifferentialOperator> (diffoptrace, vdim);
+      else
+        return nullptr;
+    }
+    
+    NGS_DLL_HEADER virtual void
+    CalcMatrix (const FiniteElement & fel,
+		const BaseMappedIntegrationPoint & mip,
+		SliceMatrix<double,ColMajor> mat, 
+		LocalHeap & lh) const override;    
+
+    NGS_DLL_HEADER virtual void
+    CalcMatrixVS (const FiniteElement & fel,
+                  const BaseMappedIntegrationPoint & mip,
+                  SliceMatrix<double,ColMajor> mat, 
+                  LocalHeap & lh) const override;
+
+    NGS_DLL_HEADER virtual void 
+    CalcMatrix (const FiniteElement & bfel,
+                const SIMD_BaseMappedIntegrationRule & mir,
+                BareSliceMatrix<SIMD<double>> bmat) const override;
+
+    NGS_DLL_HEADER virtual void
+    Apply (const FiniteElement & bfel,
+	   const SIMD_BaseMappedIntegrationRule & bmir,
+	   BareSliceVector<double> x, 
+	   BareSliceMatrix<SIMD<double>> flux) const override;
+
+    NGS_DLL_HEADER virtual void
+    AddTrans (const FiniteElement & bfel,
+              const SIMD_BaseMappedIntegrationRule & bmir,
+              BareSliceMatrix<SIMD<double>> flux,
+              BareSliceVector<double> x) const override;
   };
 
   

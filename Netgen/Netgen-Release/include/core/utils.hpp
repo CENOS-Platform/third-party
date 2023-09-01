@@ -71,6 +71,8 @@ namespace ngcore
     unsigned long long tics;
     __asm __volatile("mrs %0, CNTVCT_EL0" : "=&r" (tics));
     return tics;
+#elif defined(__EMSCRIPTEN__)
+    return std::chrono::high_resolution_clock::now().time_since_epoch().count();
 #else
 #warning "Unsupported CPU architecture"
     return 0;
@@ -101,6 +103,26 @@ namespace ngcore
     return ToLower(p.string());
   }
 
+
+
+  template <class T>
+  void SaveBin (std::ostream & ost, const T & val)
+  {
+    const char * cp = reinterpret_cast<const char*> (&val);
+    for (unsigned j = 0; j < sizeof(T); j++)
+      ost.put(cp[j]);
+  }
+  
+  
+  template <class T>
+  void LoadBin (std::istream & ist, T & val)
+  {
+    char * cp = reinterpret_cast<char*> (&val);
+    for (unsigned j = 0; j < sizeof(T); j++)
+      ist.get(cp[j]);
+  }
+  
+  
   template<typename T1, typename T2>
   std::ostream& operator << (std::ostream& ost, const std::map<T1,T2>& map)
   {
@@ -116,6 +138,65 @@ namespace ngcore
       a = std::move(b);
       b = std::move(temp);
   }
+
+  
+  /// min of 2 values
+  template <class T>
+  NETGEN_INLINE T min2 (T a, T b)
+  {
+    return (a < b) ? a : b;
+  }
+  
+  /// max of 2 values
+  template <class T>
+  NETGEN_INLINE T max2 (T a, T b)
+  {
+    return (a > b) ? a : b;
+}
+  
+  /// min of 3 values
+  template <class T>
+  NETGEN_INLINE T min3 (T a, T b, T c)
+  {
+  return (a < b) ? (a < c) ? a : c
+    : (b < c) ? b : c;
+  }
+  
+  /// max of 3 values
+  template <class T>
+  NETGEN_INLINE T max3 (T a, T b, T c)
+  {
+    ///
+    return (a > b) ? ((a > c) ? a : c)
+      : ((b > c) ? b : c);
+  }
+  
+  
+  /// sign of value (+1, 0, -1)
+  template <class T>
+  NETGEN_INLINE int sgn (T a)
+  {
+    return (a > 0) ? 1 : ( ( a < 0) ? -1 : 0 );
+  }
+  
+  /// square element 
+  template <class T>
+  NETGEN_INLINE T sqr (const T a)
+  {
+    return a * a; 
+  }
+  
+  /// element to the third power
+  template <class T>
+  NETGEN_INLINE T pow3 (const T a)
+  {
+    return a * a * a; 
+  }
+  
+  
+
+  NETGEN_INLINE double IfPos (double a, double b, double c) { return a>0 ? b : c; }
+  NETGEN_INLINE double IfZero (double a, double b, double c) { return a==0. ? b : c; }
 
   // checks if string starts with sequence
   inline bool StartsWith(const std::string& str, const std::string& start)
@@ -168,6 +249,49 @@ namespace ngcore
       return current;
   }
 
+  
+
+  
+  template <int N> using IC = std::integral_constant<int,N>;  // needed for Iterate
+
+  
+  namespace detail {
+    template <typename T, typename Enable = int>
+    struct IsIC_trait {
+      static constexpr auto check() { return false; }
+    };
+    
+    template <typename T>
+    struct IsIC_trait<T, std::enable_if_t<std::is_same_v<T, IC<T::value>> == true, int> > {
+      static constexpr auto check() { return true; }  
+    };
+  }
+  
+  template <typename T>
+  constexpr bool is_IC() {
+    return detail::IsIC_trait<T>::check();
+  }
+  
+  
+
+  
+  template <int NUM, typename FUNC>
+  NETGEN_INLINE void Iterate (FUNC f)
+  {
+    if constexpr (NUM > 1) Iterate<NUM-1> (f);
+  if constexpr (NUM >= 1) f(IC<NUM-1>());
+  }
+  
+  
+  template <int NUM, typename FUNC>
+  NETGEN_INLINE void Switch (size_t nr, FUNC f)
+  {
+    if (NUM-1 == nr) f(IC<NUM-1>());
+    if constexpr (NUM > 1) Switch<NUM-1> (nr, f);
+  }
+  
+  
+  
   namespace detail
   {
     template<typename T>

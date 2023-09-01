@@ -7,13 +7,14 @@
 /* Date:   13. Apr. 2016                                             */
 /*********************************************************************/
 
+#include <filesystem>
 #include <map>
 #include <variant>
 
 
 namespace ngfem
 {
-  extern bool code_uses_tensors;
+  NGS_DLL_HEADER extern bool code_uses_tensors;
 
   template <typename T>
   inline string ToLiteral(const T & val)
@@ -53,7 +54,7 @@ namespace ngfem
 
     string pointer;
 
-    string AddPointer(const void *p );
+    NGS_DLL_HEADER string AddPointer(const void *p );
 
     void AddLinkFlag(string flag);
 
@@ -282,6 +283,7 @@ namespace ngfem
     }
   }
 
+  std::filesystem::path CreateTempDir();
   unique_ptr<SharedLibrary> CompileCode(const std::vector<std::variant<filesystem::path, string>> &codes, const std::vector<string> &link_flags, bool keep_files = false );
   namespace detail {
       string GenerateL2ElementCode(int order);

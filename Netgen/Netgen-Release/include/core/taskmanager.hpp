@@ -462,22 +462,26 @@ public:
     //   return IntRange(begin, end);
     // }
     
-    bool PopFirst (size_t & first)
+    bool PopFirst (size_t & hfirst)
     {
       // first = begin++;
       // return first < end;
       
-      first = begin;
+      size_t first = begin.load(std::memory_order_relaxed);
       
       size_t nextfirst = first+1;
       if (first >= end) nextfirst = std::numeric_limits<size_t>::max()-1;
 
-      while (!begin.compare_exchange_weak (first, nextfirst))
+      // while (!begin.compare_exchange_weak (first, nextfirst))
+      while (!begin.compare_exchange_weak (first, nextfirst,
+                                           std::memory_order_relaxed,
+                                           std::memory_order_relaxed))
         {
           first = begin;
           nextfirst = first+1;
           if (nextfirst >= end) nextfirst = std::numeric_limits<size_t>::max()-1;
         }
+      hfirst = first;
       return first < end;
     }
     
@@ -880,6 +884,30 @@ public:
   explicit Tasks (size_t _num = TaskManager::GetNumThreads()) : num(_num) { ; }
   auto GetNum() const { return num; } 
 };
+
+
+/*
+  // some idea, not yet supported
+
+ using namespace std;
+  template <typename T>
+  class ParallelValue
+  {
+    T val;
+  public:
+    ParallelValue (const T & _val) : val(_val) { ; }
+    operator T () const { return val; }
+  };
+  
+  template <typename FUNC> class ParallelFunction
+  {
+    FUNC f;
+  public:
+    ParallelFunction (const FUNC & _f) : f(_f) { ; }
+    operator FUNC () const { return f; }
+    auto operator() (size_t i) const { return f(i); }
+  };
+*/
 
 /* currently not used, plus causing problems on MSVC 2017
 template <typename T, typename std::enable_if<ngstd::has_call_operator<T>::value, int>::type = 0>                                  

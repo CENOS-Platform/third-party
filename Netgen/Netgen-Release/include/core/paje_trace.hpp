@@ -1,6 +1,7 @@
 #ifndef NETGEN_CORE_PAJE_TRACE_HPP
 #define NETGEN_CORE_PAJE_TRACE_HPP
 
+#include <algorithm>
 #include <limits>
 #include <vector>
 
@@ -97,6 +98,16 @@ namespace ngcore
           bool operator < (const TimerEvent & other) const { return time < other.time; }
         };
 
+      struct UserEvent
+        {
+          TTimePoint t_start = 0, t_end = 0;
+          std::string data = "";
+          int container = 0;
+          int id = 0;
+
+          bool operator < (const UserEvent & other) const { return t_start < other.t_start; }
+        };
+
       struct ThreadLink
         {
           int thread_id;
@@ -119,6 +130,9 @@ namespace ngcore
       std::vector<std::vector<Task> > tasks;
       std::vector<Job> jobs;
       std::vector<TimerEvent> timer_events;
+      std::vector<UserEvent> user_events;
+      std::vector<std::tuple<std::string, int>> user_containers;
+      std::vector<TimerEvent> gpu_events;
       std::vector<std::vector<ThreadLink> > links;
       NGCORE_API static std::vector<MemoryEvent> memory_events;
 
@@ -133,6 +147,36 @@ namespace ngcore
 
       void operator=(const PajeTrace &) = delete;
       void operator=(PajeTrace &&) = delete;
+
+      int AddUserContainer(std::string name, int parent=-1)
+      {
+        if(auto pos = std::find(user_containers.begin(), user_containers.end(), std::tuple{name,parent}); pos != user_containers.end())
+          return pos - user_containers.begin();
+        int id = user_containers.size();
+        user_containers.push_back({name, parent});
+        return id;
+      }
+
+      void AddUserEvent(UserEvent ue)
+      {
+          if(!tracing_enabled) return;
+          user_events.push_back(ue);
+      }
+      void StartGPU(int timer_id = 0)
+        {
+          if(!tracing_enabled) return;
+          if(unlikely(gpu_events.size() == max_num_events_per_thread))
+            StopTracing();
+          gpu_events.push_back(TimerEvent{timer_id, GetTimeCounter(), true});
+        }
+
+      void StopGPU(int timer_id)
+        {
+          if(!tracing_enabled) return;
+          if(unlikely(gpu_events.size() == max_num_events_per_thread))
+            StopTracing();
+          gpu_events.push_back(TimerEvent{timer_id, GetTimeCounter(), false});
+        }
 
       void StartTimer(int timer_id)
         {
@@ -171,7 +215,7 @@ namespace ngcore
         }
 
 
-      NETGEN_INLINE int StartTask(int thread_id, int id, int id_type = Task::ID_NONE, int additional_value = -1)
+      int StartTask(int thread_id, int id, int id_type = Task::ID_NONE, int additional_value = -1)
         {
           if(!tracing_enabled) return -1;
           if(!trace_threads && !trace_thread_counter) return -1;

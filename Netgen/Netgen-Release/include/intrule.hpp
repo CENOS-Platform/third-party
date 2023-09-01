@@ -275,8 +275,8 @@ namespace ngfem
     /// global number of ip
     // INLINE int IPNr () const { return -1; }
 
-    INLINE FlatVec<3, double> Point() { return &pi[0]; }
-    INLINE FlatVec<3, const double> Point() const { return &pi[0]; }
+    INLINE auto Point() { return FlatVec<3> (&pi[0]); }
+    INLINE auto Point() const { return FlatVec<3, const double> (&pi[0]); }
 
     void SetFacetNr (int afacetnr, VorB avb = BND)
     { facetnr = afacetnr; vb = avb; }
@@ -344,7 +344,9 @@ namespace ngfem
     ///
     bool is_complex;
     /// fabs(det)
-    double measure; 
+    double measure;
+    
+    BaseMappedIntegrationPoint (const BaseMappedIntegrationPoint&) = default;
   public:
     ///
     INLINE BaseMappedIntegrationPoint () = default;
@@ -491,9 +493,14 @@ namespace ngfem
       Compute();
     }
 
+    INLINE void CheckDims() const
+    {
+      static_assert(DIMR >= DIMS, "DIMR >= DIMS not satisfied");
+    }
+    
     INLINE void Compute ()
     {
-      if (DIMS == DIMR)
+      if constexpr (DIMS == DIMR)
 	{
 	  det = Det (dxdxi);
 	  normalvec = TSCAL(0.0);
@@ -572,6 +579,13 @@ namespace ngfem
         }
     }
 
+    INLINE const Mat<DIMR,DIMS,SCAL> GetJacobianCofactor() const 
+    { 
+      if (DIMS == DIMR)
+        return Cof (dxdxi);
+      else
+        return det * Trans(GetJacobianInverse());
+    }
 
     INLINE operator Vec<DIMS, AutoDiff<DIMR,TSCAL>> () const
     {
@@ -916,7 +930,7 @@ namespace ngfem
   public:
     Facet2ElementTrafo(ELEMENT_TYPE aeltype, VorB _vb = BND) 
       : eltype(aeltype),
-	points(99,(double*)ElementTopology::GetVertices (aeltype)),
+	points(99,(Vec<3>*)ElementTopology::GetVertices (aeltype)),
         vb(_vb)
     {
       // points = ElementTopology::GetVertices (eltype);
@@ -929,7 +943,7 @@ namespace ngfem
     template <typename T>
     Facet2ElementTrafo(ELEMENT_TYPE aeltype, const BaseArrayObject<T> & vnums) 
       : eltype(aeltype),
-	points(99,(double*)ElementTopology::GetVertices (aeltype))
+	points(99,(Vec<3>*)ElementTopology::GetVertices (aeltype))
     {
       // points = ElementTopology::GetVertices (eltype);
       edges = ElementTopology::GetEdges (eltype);
@@ -1116,7 +1130,7 @@ namespace ngfem
             FlatMatrix<> mat(2,1,lh);
 	    FlatVec<3> p1 = points (edges[fnr][0]);
 	    FlatVec<3> p2 = points (edges[fnr][1]);
-            mat.Col(0) = p1 - p2;
+            mat.Col(0) = (p1 - p2).Range(0,2);
             return mat;
 	    break;
 	  }
@@ -1212,7 +1226,7 @@ namespace ngfem
     }
 
 
-    const class SIMD_IntegrationRule & operator() (int fnr, const class SIMD_IntegrationRule & irfacet, LocalHeap & lh);
+    NGS_DLL_HEADER const class SIMD_IntegrationRule & operator() (int fnr, const class SIMD_IntegrationRule & irfacet, LocalHeap & lh);
 
   };
 
@@ -1238,7 +1252,7 @@ namespace ngfem
   public:
     Facet2SurfaceElementTrafo(ELEMENT_TYPE aeltype) :
       eltype(aeltype),
-      points(99,(double*)ElementTopology::GetVertices (aeltype))
+      points(99,(Vec<3>*)ElementTopology::GetVertices (aeltype))
     {
       // points = ElementTopology::GetVertices (eltype);
       edges = ElementTopology::GetEdges (eltype);
@@ -1247,7 +1261,7 @@ namespace ngfem
     
     Facet2SurfaceElementTrafo(ELEMENT_TYPE aeltype, FlatArray<int> & vnums)
       : eltype(aeltype),
-        points(99,(double*)ElementTopology::GetVertices (aeltype))
+        points(99,(Vec<3>*)ElementTopology::GetVertices (aeltype))
     {
       // points = ElementTopology::GetVertices (eltype);
       edges = ElementTopology::GetEdges (eltype);
@@ -1418,7 +1432,7 @@ namespace ngfem
       return elpoint;
     }
 
-    class SIMD_IntegrationRule & operator() (const class SIMD_IntegrationRule & irfacet, LocalHeap & lh);
+    NGS_DLL_HEADER class SIMD_IntegrationRule & operator() (const class SIMD_IntegrationRule & irfacet, LocalHeap & lh);
 
     IntegrationRule & Inverse (const IntegrationRule & ir, LocalHeap & lh);    
     class SIMD_IntegrationRule & Inverse (const class SIMD_IntegrationRule & ir, LocalHeap & lh);
@@ -1484,6 +1498,7 @@ namespace ngfem
   template <int DIM_ELEMENT, int DIM_SPACE, typename SCAL = double>
   class NGS_DLL_HEADER MappedIntegrationRule : public BaseMappedIntegrationRule
   {
+    static_assert(DIM_ELEMENT <= DIM_SPACE, "DIM-source > DIM-range !!");    
     FlatArray< MappedIntegrationPoint<DIM_ELEMENT, DIM_SPACE, SCAL> > mips;
   public:
     MappedIntegrationRule (const IntegrationRule & ir, 
@@ -1831,7 +1846,7 @@ namespace ngcore
 
     INLINE void Compute ()
     {
-      if (DIMS == DIMR)
+      if constexpr (DIMS == DIMR)
 	{
 	  det = Det (dxdxi);
 	  normalvec = SIMD<double>(0.0);
@@ -2343,7 +2358,7 @@ namespace ngfem
     SIMD_IntegrationRule & operator= (SIMD_IntegrationRule &&) = default;
     
     SIMD_IntegrationRule (size_t asize, SIMD<IntegrationPoint> * pip)
-      : Array<SIMD<IntegrationPoint>> (asize, pip) { ; }
+      : Array<SIMD<IntegrationPoint>> (asize, pip), nip(asize*SIMD<IntegrationPoint>::Size()) { }
 
     size_t GetNIP() const { return nip; } // Size()*SIMD<double>::Size(); }
     void SetNIP(size_t _nip) { nip = _nip; }
@@ -2400,8 +2415,8 @@ namespace ngfem
     // mir on other element as needed for evaluating DG jump terms
     const SIMD_BaseMappedIntegrationRule * other_mir = nullptr;
 
-    BareSliceMatrix<SIMD<double>> points{0,nullptr,DummySize(0,0)};
-    BareSliceMatrix<SIMD<double>> normals{0,nullptr,DummySize(0,0)};
+    BareSliceMatrix<SIMD<double>> points{0,0,0, nullptr};
+    BareSliceMatrix<SIMD<double>> normals{0,0,0, nullptr};
   public:
     SIMD_BaseMappedIntegrationRule (const SIMD_IntegrationRule & air,
                                     const ElementTransformation & aeltrans)
@@ -2467,6 +2482,7 @@ namespace ngfem
         for (size_t i = 0; i < ir.Size(); i++)
           new (&mips[i]) SIMD<MappedIntegrationPoint<DIM_ELEMENT, DIM_SPACE>> (ir[i], eltrans, -1);
 
+        /*
         new (&points) BareSliceMatrix<SIMD<double>> (sizeof(SIMD<MappedIntegrationPoint<DIM_ELEMENT, DIM_SPACE>>)/sizeof(SIMD<double>),
                                                      &mips[0].Point()(0),
                                                      DummySize(mips.Size(), DIM_SPACE));
@@ -2474,6 +2490,14 @@ namespace ngfem
         new (&normals) BareSliceMatrix<SIMD<double>> (sizeof(SIMD<MappedIntegrationPoint<DIM_ELEMENT, DIM_SPACE>>)/sizeof(SIMD<double>),
                                                       &mips[0].NV()(0),
                                                       DummySize(mips.Size(), DIM_SPACE));
+        */
+        new (&points) BareSliceMatrix<SIMD<double>> (mips.Size(), DIM_SPACE,
+                                                     sizeof(SIMD<MappedIntegrationPoint<DIM_ELEMENT, DIM_SPACE>>)/sizeof(SIMD<double>),
+                                                     &mips[0].Point()(0));
+        
+        new (&normals) BareSliceMatrix<SIMD<double>> (mips.Size(), DIM_SPACE,
+                                                      sizeof(SIMD<MappedIntegrationPoint<DIM_ELEMENT, DIM_SPACE>>)/sizeof(SIMD<double>),
+                                                      &mips[0].NV()(0));
       }
 
     virtual void ComputeNormalsAndMeasure (ELEMENT_TYPE et, int facetnr) override;

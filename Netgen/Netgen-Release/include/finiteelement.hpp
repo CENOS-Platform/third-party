@@ -127,7 +127,7 @@ namespace ngfem
         const_cast<FiniteElement*>(pfel) -> SetVertexNumbers(vnums);
     }
 
-    virtual bool ComplexShapes() const override;
+    HD virtual bool ComplexShapes() const override;
 
     virtual void Interpolate (const ElementTransformation & trafo,
                               const class CoefficientFunction & func, SliceMatrix<> coefs,
@@ -156,7 +156,11 @@ namespace ngfem
     const FiniteElement & operator[] (int i) const { return scalar_fe; }
 
     /// dof range of comp-th component
-    IntRange GetRange (int comp) const;
+    IntRange GetRange (int comp) const
+    {
+      int base = scalar_fe.GetNDof() * comp;
+      return IntRange (base, base + scalar_fe.GetNDof());
+    }
 
     /// the name of the element family
     virtual string ClassName() const override { return "VectorFiniteElement"; }
@@ -182,8 +186,8 @@ namespace ngfem
 
     const FiniteElement & FETrial() const { return fe_trial; } 
     const FiniteElement & FETest() const { return fe_test; }
-    virtual ELEMENT_TYPE ElementType() const { return fe_trial.ElementType(); }    
-    virtual bool ComplexShapes() const { return fe_trial.ComplexShapes() && fe_test.ComplexShapes(); }
+    HD virtual ELEMENT_TYPE ElementType() const { return fe_trial.ElementType(); }    
+    HD virtual bool ComplexShapes() const { return fe_trial.ComplexShapes() && fe_test.ComplexShapes(); }
   };
 
 
@@ -198,7 +202,7 @@ namespace ngfem
     /// initialize with pointers to components, copy pointers
     SymMatrixFiniteElement (const FiniteElement & ascalfe, int avdim, bool adeviatoric);
 
-    virtual ELEMENT_TYPE ElementType() const override { return scalfe.ElementType(); }
+    HD virtual ELEMENT_TYPE ElementType() const override { return scalfe.ElementType(); }
     /// number of components
     int GetNComponents() const { return dim; }
 
@@ -208,6 +212,35 @@ namespace ngfem
 
     /// the name of the element family
     virtual string ClassName() const override { return "SymMatrixFiniteElement"; }
+
+    virtual void Print (ostream & ost) const override;
+
+    virtual void Interpolate (const ElementTransformation & trafo, 
+                              const class CoefficientFunction & func, SliceMatrix<> coefs,
+                              LocalHeap & lh) const override; 
+  };
+
+
+  class NGS_DLL_HEADER SkewMatrixFiniteElement : public FiniteElement
+  {
+  protected:
+    int vdim;
+    int dim;
+    const FiniteElement & scalfe;
+  public:
+    /// initialize with pointers to components, copy pointers
+    SkewMatrixFiniteElement (const FiniteElement & ascalfe, int avdim);
+
+    HD virtual ELEMENT_TYPE ElementType() const override { return scalfe.ElementType(); }
+    /// number of components
+    int GetNComponents() const { return dim; }
+
+    /// select i-th component
+    // const FiniteElement & operator[] (int i) const { return *fea[i]; }
+    const FiniteElement & ScalFE() const { return scalfe; }
+
+    /// the name of the element family
+    virtual string ClassName() const override { return "SkewMatrixFiniteElement"; }
 
     virtual void Print (ostream & ost) const override;
 
