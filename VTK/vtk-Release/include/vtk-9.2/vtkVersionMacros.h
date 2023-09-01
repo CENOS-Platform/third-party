@@ -19,8 +19,8 @@
 
 #define VTK_MAJOR_VERSION 9
 #define VTK_MINOR_VERSION 2
-#define VTK_BUILD_VERSION 2
-#define VTK_VERSION "9.2.2"
+#define VTK_BUILD_VERSION 6
+#define VTK_VERSION "9.2.6"
 
 #define VTK_SOURCE_VERSION "vtk version " VTK_VERSION
 

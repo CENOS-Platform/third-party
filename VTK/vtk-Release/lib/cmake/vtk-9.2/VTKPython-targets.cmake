@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget VTK::vtkCommonCorePython VTK::vtkCommonMathPython VTK::vtkCommonTransformsPython VTK::vtkCommonDataModelPython VTK::vtkCommonExecutionModelPython VTK::vtkCommonMiscPython VTK::vtkFiltersCorePython VTK::vtkRenderingCorePython VTK::vtkInteractionStylePython VTK::vtkRenderingContext2DPython VTK::vtkFiltersGeneralPython VTK::vtkFiltersSourcesPython VTK::vtkInteractionWidgetsPython VTK::vtkViewsCorePython VTK::vtkViewsInfovisPython VTK::vtkCommonColorPython VTK::vtkViewsContext2DPython VTK::vtkTestingRenderingPython VTK::vtkPythonContext2DPython VTK::vtkImagingCorePython VTK::vtkImagingMathPython VTK::vtkRenderingHyperTreeGridPython VTK::vtkRenderingUIPython VTK::vtkRenderingOpenGL2Python VTK::vtkRenderingVolumePython VTK::vtkRenderingVolumeOpenGL2Python VTK::vtkRenderingFreeTypePython VTK::vtkRenderingLabelPython VTK::vtkRenderingLODPython VTK::vtkRenderingLICOpenGL2Python VTK::vtkRenderingImagePython VTK::vtkRenderingContextOpenGL2Python VTK::vtkIOVeraOutPython VTK::vtkIOTecplotTablePython VTK::vtkIOImagePython VTK::vtkIOSegYPython VTK::vtkIOXMLParserPython VTK::vtkIOXMLPython VTK::vtkIOParallelXMLPython VTK::vtkIOCorePython VTK::vtkIOLegacyPython VTK::vtkIOGeometryPython VTK::vtkIOParallelPython VTK::vtkIOPLYPython VTK::vtkIOMoviePython VTK::vtkIOOggTheoraPython VTK::vtkIONetCDFPython VTK::vtkIOMotionFXPython VTK::vtkIOMINCPython VTK::vtkIOLSDynaPython VTK::vtkIOInfovisPython VTK::vtkIOImportPython VTK::vtkParallelCorePython VTK::vtkIOIOSSPython VTK::vtkIOVideoPython VTK::vtkRenderingSceneGraphPython VTK::vtkRenderingVtkJSPython VTK::vtkIOExportPython VTK::vtkIOExportPDFPython VTK::vtkRenderingGL2PSOpenGL2Python VTK::vtkIOExportGL2PSPython VTK::vtkIOExodusPython VTK::vtkIOEnSightPython VTK::vtkIOCityGMLPython VTK::vtkIOChemistryPython VTK::vtkIOCesium3DTilesPython VTK::vtkIOCONVERGECFDPython VTK::vtkIOHDFPython VTK::vtkIOCGNSReaderPython VTK::vtkIOAsynchronousPython VTK::vtkIOAMRPython VTK::vtkInteractionImagePython VTK::vtkImagingStencilPython VTK::vtkImagingStatisticsPython VTK::vtkImagingGeneralPython VTK::vtkImagingMorphologicalPython VTK::vtkImagingFourierPython VTK::vtkIOSQLPython VTK::vtkImagingSourcesPython VTK::vtkInfovisCorePython VTK::vtkGeovisCorePython VTK::vtkInfovisLayoutPython VTK::vtkRenderingAnnotationPython VTK::vtkImagingHybridPython VTK::vtkImagingColorPython VTK::vtkFiltersTopologyPython VTK::vtkFiltersSelectionPython VTK::vtkFiltersSMPPython VTK::vtkFiltersPythonPython VTK::vtkFiltersProgrammablePython VTK::vtkFiltersModelingPython VTK::vtkFiltersPointsPython VTK::vtkFiltersVerdictPython VTK::vtkFiltersStatisticsPython VTK::vtkFiltersImagingPython VTK::vtkFiltersExtractionPython VTK::vtkFiltersGeometryPython VTK::vtkFiltersHybridPython VTK::vtkFiltersTexturePython VTK::vtkFiltersParallelPython VTK::vtkFiltersParallelImagingPython VTK::vtkFiltersGenericPython VTK::vtkCommonComputationalGeometryPython VTK::vtkFiltersFlowPathsPython VTK::vtkFiltersAMRPython VTK::vtkDomainsChemistryPython VTK::vtkDomainsChemistryOpenGL2Python VTK::vtkFiltersHyperTreePython VTK::vtkCommonPythonPython VTK::vtkChartsCorePython VTK::vtkCommonSystemPython VTK::vtkpythonmodules VTK::vtkpython)
+foreach(_expectedTarget VTK::vtkCommonCorePython VTK::vtkWebCorePython VTK::vtkCommonMathPython VTK::vtkCommonTransformsPython VTK::vtkCommonDataModelPython VTK::vtkCommonExecutionModelPython VTK::vtkIOCorePython VTK::vtkImagingCorePython VTK::vtkIOImagePython VTK::vtkIOXMLParserPython VTK::vtkIOXMLPython VTK::vtkCommonMiscPython VTK::vtkFiltersCorePython VTK::vtkRenderingCorePython VTK::vtkRenderingContext2DPython VTK::vtkRenderingFreeTypePython VTK::vtkRenderingSceneGraphPython VTK::vtkRenderingVtkJSPython VTK::vtkIOExportPython VTK::vtkWebGLExporterPython VTK::vtkInteractionStylePython VTK::vtkFiltersGeneralPython VTK::vtkFiltersSourcesPython VTK::vtkInteractionWidgetsPython VTK::vtkViewsCorePython VTK::vtkViewsInfovisPython VTK::vtkCommonColorPython VTK::vtkViewsContext2DPython VTK::vtkTestingRenderingPython VTK::vtkPythonContext2DPython VTK::vtkImagingMathPython VTK::vtkRenderingHyperTreeGridPython VTK::vtkRenderingUIPython VTK::vtkRenderingOpenGL2Python VTK::vtkRenderingVolumePython VTK::vtkRenderingVolumeOpenGL2Python VTK::vtkRenderingLabelPython VTK::vtkRenderingLODPython VTK::vtkRenderingLICOpenGL2Python VTK::vtkRenderingImagePython VTK::vtkRenderingContextOpenGL2Python VTK::vtkIOVeraOutPython VTK::vtkIOTecplotTablePython VTK::vtkIOSegYPython VTK::vtkIOParallelXMLPython VTK::vtkIOLegacyPython VTK::vtkIOGeometryPython VTK::vtkIOParallelPython VTK::vtkIOPLYPython VTK::vtkIOMoviePython VTK::vtkIOOggTheoraPython VTK::vtkIONetCDFPython VTK::vtkIOMotionFXPython VTK::vtkIOMINCPython VTK::vtkIOLSDynaPython VTK::vtkIOInfovisPython VTK::vtkIOImportPython VTK::vtkParallelCorePython VTK::vtkIOIOSSPython VTK::vtkIOVideoPython VTK::vtkIOExportPDFPython VTK::vtkRenderingGL2PSOpenGL2Python VTK::vtkIOExportGL2PSPython VTK::vtkIOExodusPython VTK::vtkIOEnSightPython VTK::vtkIOCityGMLPython VTK::vtkIOChemistryPython VTK::vtkIOCesium3DTilesPython VTK::vtkIOCONVERGECFDPython VTK::vtkIOHDFPython VTK::vtkIOCGNSReaderPython VTK::vtkIOAsynchronousPython VTK::vtkIOAMRPython VTK::vtkInteractionImagePython VTK::vtkImagingStencilPython VTK::vtkImagingStatisticsPython VTK::vtkImagingGeneralPython VTK::vtkImagingMorphologicalPython VTK::vtkImagingFourierPython VTK::vtkIOSQLPython VTK::vtkImagingSourcesPython VTK::vtkInfovisCorePython VTK::vtkGeovisCorePython VTK::vtkInfovisLayoutPython VTK::vtkRenderingAnnotationPython VTK::vtkImagingHybridPython VTK::vtkImagingColorPython VTK::vtkFiltersTopologyPython VTK::vtkFiltersSelectionPython VTK::vtkFiltersSMPPython VTK::vtkFiltersPythonPython VTK::vtkFiltersProgrammablePython VTK::vtkFiltersModelingPython VTK::vtkFiltersPointsPython VTK::vtkFiltersVerdictPython VTK::vtkFiltersStatisticsPython VTK::vtkFiltersImagingPython VTK::vtkFiltersExtractionPython VTK::vtkFiltersGeometryPython VTK::vtkFiltersHybridPython VTK::vtkFiltersTexturePython VTK::vtkFiltersParallelPython VTK::vtkFiltersParallelImagingPython VTK::vtkFiltersGenericPython VTK::vtkCommonComputationalGeometryPython VTK::vtkFiltersFlowPathsPython VTK::vtkFiltersAMRPython VTK::vtkDomainsChemistryPython VTK::vtkDomainsChemistryOpenGL2Python VTK::vtkFiltersHyperTreePython VTK::vtkCommonPythonPython VTK::vtkChartsCorePython VTK::vtkCommonSystemPython VTK::vtkpythonmodules VTK::vtkpython)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -53,6 +53,9 @@ endif()
 # Create imported target VTK::vtkCommonCorePython
 add_library(VTK::vtkCommonCorePython MODULE IMPORTED)
 
+# Create imported target VTK::vtkWebCorePython
+add_library(VTK::vtkWebCorePython MODULE IMPORTED)
+
 # Create imported target VTK::vtkCommonMathPython
 add_library(VTK::vtkCommonMathPython MODULE IMPORTED)
 
@@ -65,6 +68,21 @@ add_library(VTK::vtkCommonDataModelPython MODULE IMPORTED)
 # Create imported target VTK::vtkCommonExecutionModelPython
 add_library(VTK::vtkCommonExecutionModelPython MODULE IMPORTED)
 
+# Create imported target VTK::vtkIOCorePython
+add_library(VTK::vtkIOCorePython MODULE IMPORTED)
+
+# Create imported target VTK::vtkImagingCorePython
+add_library(VTK::vtkImagingCorePython MODULE IMPORTED)
+
+# Create imported target VTK::vtkIOImagePython
+add_library(VTK::vtkIOImagePython MODULE IMPORTED)
+
+# Create imported target VTK::vtkIOXMLParserPython
+add_library(VTK::vtkIOXMLParserPython MODULE IMPORTED)
+
+# Create imported target VTK::vtkIOXMLPython
+add_library(VTK::vtkIOXMLPython MODULE IMPORTED)
+
 # Create imported target VTK::vtkCommonMiscPython
 add_library(VTK::vtkCommonMiscPython MODULE IMPORTED)
 
@@ -74,11 +92,26 @@ add_library(VTK::vtkFiltersCorePython MODULE IMPORTED)
 # Create imported target VTK::vtkRenderingCorePython
 add_library(VTK::vtkRenderingCorePython MODULE IMPORTED)
 
-# Create imported target VTK::vtkInteractionStylePython
-add_library(VTK::vtkInteractionStylePython MODULE IMPORTED)
-
 # Create imported target VTK::vtkRenderingContext2DPython
 add_library(VTK::vtkRenderingContext2DPython MODULE IMPORTED)
+
+# Create imported target VTK::vtkRenderingFreeTypePython
+add_library(VTK::vtkRenderingFreeTypePython MODULE IMPORTED)
+
+# Create imported target VTK::vtkRenderingSceneGraphPython
+add_library(VTK::vtkRenderingSceneGraphPython MODULE IMPORTED)
+
+# Create imported target VTK::vtkRenderingVtkJSPython
+add_library(VTK::vtkRenderingVtkJSPython MODULE IMPORTED)
+
+# Create imported target VTK::vtkIOExportPython
+add_library(VTK::vtkIOExportPython MODULE IMPORTED)
+
+# Create imported target VTK::vtkWebGLExporterPython
+add_library(VTK::vtkWebGLExporterPython MODULE IMPORTED)
+
+# Create imported target VTK::vtkInteractionStylePython
+add_library(VTK::vtkInteractionStylePython MODULE IMPORTED)
 
 # Create imported target VTK::vtkFiltersGeneralPython
 add_library(VTK::vtkFiltersGeneralPython MODULE IMPORTED)
@@ -107,9 +140,6 @@ add_library(VTK::vtkTestingRenderingPython MODULE IMPORTED)
 # Create imported target VTK::vtkPythonContext2DPython
 add_library(VTK::vtkPythonContext2DPython MODULE IMPORTED)
 
-# Create imported target VTK::vtkImagingCorePython
-add_library(VTK::vtkImagingCorePython MODULE IMPORTED)
-
 # Create imported target VTK::vtkImagingMathPython
 add_library(VTK::vtkImagingMathPython MODULE IMPORTED)
 
@@ -127,9 +157,6 @@ add_library(VTK::vtkRenderingVolumePython MODULE IMPORTED)
 
 # Create imported target VTK::vtkRenderingVolumeOpenGL2Python
 add_library(VTK::vtkRenderingVolumeOpenGL2Python MODULE IMPORTED)
-
-# Create imported target VTK::vtkRenderingFreeTypePython
-add_library(VTK::vtkRenderingFreeTypePython MODULE IMPORTED)
 
 # Create imported target VTK::vtkRenderingLabelPython
 add_library(VTK::vtkRenderingLabelPython MODULE IMPORTED)
@@ -152,23 +179,11 @@ add_library(VTK::vtkIOVeraOutPython MODULE IMPORTED)
 # Create imported target VTK::vtkIOTecplotTablePython
 add_library(VTK::vtkIOTecplotTablePython MODULE IMPORTED)
 
-# Create imported target VTK::vtkIOImagePython
-add_library(VTK::vtkIOImagePython MODULE IMPORTED)
-
 # Create imported target VTK::vtkIOSegYPython
 add_library(VTK::vtkIOSegYPython MODULE IMPORTED)
 
-# Create imported target VTK::vtkIOXMLParserPython
-add_library(VTK::vtkIOXMLParserPython MODULE IMPORTED)
-
-# Create imported target VTK::vtkIOXMLPython
-add_library(VTK::vtkIOXMLPython MODULE IMPORTED)
-
 # Create imported target VTK::vtkIOParallelXMLPython
 add_library(VTK::vtkIOParallelXMLPython MODULE IMPORTED)
-
-# Create imported target VTK::vtkIOCorePython
-add_library(VTK::vtkIOCorePython MODULE IMPORTED)
 
 # Create imported target VTK::vtkIOLegacyPython
 add_library(VTK::vtkIOLegacyPython MODULE IMPORTED)
@@ -214,15 +229,6 @@ add_library(VTK::vtkIOIOSSPython MODULE IMPORTED)
 
 # Create imported target VTK::vtkIOVideoPython
 add_library(VTK::vtkIOVideoPython MODULE IMPORTED)
-
-# Create imported target VTK::vtkRenderingSceneGraphPython
-add_library(VTK::vtkRenderingSceneGraphPython MODULE IMPORTED)
-
-# Create imported target VTK::vtkRenderingVtkJSPython
-add_library(VTK::vtkRenderingVtkJSPython MODULE IMPORTED)
-
-# Create imported target VTK::vtkIOExportPython
-add_library(VTK::vtkIOExportPython MODULE IMPORTED)
 
 # Create imported target VTK::vtkIOExportPDFPython
 add_library(VTK::vtkIOExportPDFPython MODULE IMPORTED)

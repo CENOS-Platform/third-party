@@ -15,6 +15,16 @@ set_target_properties(VTK::vtkCommonCorePython PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkCommonCorePython )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkCommonCorePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkCommonCore.cp310-win_amd64.pyd" )
 
+# Import target "VTK::vtkWebCorePython" for configuration "Release"
+set_property(TARGET VTK::vtkWebCorePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkWebCorePython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkWebCore.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkWebCorePython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkWebCorePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkWebCore.cp310-win_amd64.pyd" )
+
 # Import target "VTK::vtkCommonMathPython" for configuration "Release"
 set_property(TARGET VTK::vtkCommonMathPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::vtkCommonMathPython PROPERTIES
@@ -55,6 +65,56 @@ set_target_properties(VTK::vtkCommonExecutionModelPython PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkCommonExecutionModelPython )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkCommonExecutionModelPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkCommonExecutionModel.cp310-win_amd64.pyd" )
 
+# Import target "VTK::vtkIOCorePython" for configuration "Release"
+set_property(TARGET VTK::vtkIOCorePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkIOCorePython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOCore.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOCorePython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOCorePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOCore.cp310-win_amd64.pyd" )
+
+# Import target "VTK::vtkImagingCorePython" for configuration "Release"
+set_property(TARGET VTK::vtkImagingCorePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkImagingCorePython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkImagingCore.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkImagingCorePython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkImagingCorePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkImagingCore.cp310-win_amd64.pyd" )
+
+# Import target "VTK::vtkIOImagePython" for configuration "Release"
+set_property(TARGET VTK::vtkIOImagePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkIOImagePython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOImage.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOImagePython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOImagePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOImage.cp310-win_amd64.pyd" )
+
+# Import target "VTK::vtkIOXMLParserPython" for configuration "Release"
+set_property(TARGET VTK::vtkIOXMLParserPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkIOXMLParserPython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOXMLParser.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOXMLParserPython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOXMLParserPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOXMLParser.cp310-win_amd64.pyd" )
+
+# Import target "VTK::vtkIOXMLPython" for configuration "Release"
+set_property(TARGET VTK::vtkIOXMLPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkIOXMLPython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOXML.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOXMLPython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOXMLPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOXML.cp310-win_amd64.pyd" )
+
 # Import target "VTK::vtkCommonMiscPython" for configuration "Release"
 set_property(TARGET VTK::vtkCommonMiscPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::vtkCommonMiscPython PROPERTIES
@@ -85,16 +145,6 @@ set_target_properties(VTK::vtkRenderingCorePython PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkRenderingCorePython )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkRenderingCorePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingCore.cp310-win_amd64.pyd" )
 
-# Import target "VTK::vtkInteractionStylePython" for configuration "Release"
-set_property(TARGET VTK::vtkInteractionStylePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(VTK::vtkInteractionStylePython PROPERTIES
-  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkInteractionStyle.cp310-win_amd64.pyd"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkInteractionStylePython )
-list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkInteractionStylePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkInteractionStyle.cp310-win_amd64.pyd" )
-
 # Import target "VTK::vtkRenderingContext2DPython" for configuration "Release"
 set_property(TARGET VTK::vtkRenderingContext2DPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::vtkRenderingContext2DPython PROPERTIES
@@ -104,6 +154,66 @@ set_target_properties(VTK::vtkRenderingContext2DPython PROPERTIES
 
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkRenderingContext2DPython )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkRenderingContext2DPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingContext2D.cp310-win_amd64.pyd" )
+
+# Import target "VTK::vtkRenderingFreeTypePython" for configuration "Release"
+set_property(TARGET VTK::vtkRenderingFreeTypePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkRenderingFreeTypePython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingFreeType.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkRenderingFreeTypePython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkRenderingFreeTypePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingFreeType.cp310-win_amd64.pyd" )
+
+# Import target "VTK::vtkRenderingSceneGraphPython" for configuration "Release"
+set_property(TARGET VTK::vtkRenderingSceneGraphPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkRenderingSceneGraphPython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingSceneGraph.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkRenderingSceneGraphPython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkRenderingSceneGraphPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingSceneGraph.cp310-win_amd64.pyd" )
+
+# Import target "VTK::vtkRenderingVtkJSPython" for configuration "Release"
+set_property(TARGET VTK::vtkRenderingVtkJSPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkRenderingVtkJSPython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingVtkJS.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkRenderingVtkJSPython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkRenderingVtkJSPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingVtkJS.cp310-win_amd64.pyd" )
+
+# Import target "VTK::vtkIOExportPython" for configuration "Release"
+set_property(TARGET VTK::vtkIOExportPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkIOExportPython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOExport.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOExportPython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOExportPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOExport.cp310-win_amd64.pyd" )
+
+# Import target "VTK::vtkWebGLExporterPython" for configuration "Release"
+set_property(TARGET VTK::vtkWebGLExporterPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkWebGLExporterPython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkWebGLExporter.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkWebGLExporterPython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkWebGLExporterPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkWebGLExporter.cp310-win_amd64.pyd" )
+
+# Import target "VTK::vtkInteractionStylePython" for configuration "Release"
+set_property(TARGET VTK::vtkInteractionStylePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkInteractionStylePython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkInteractionStyle.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkInteractionStylePython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkInteractionStylePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkInteractionStyle.cp310-win_amd64.pyd" )
 
 # Import target "VTK::vtkFiltersGeneralPython" for configuration "Release"
 set_property(TARGET VTK::vtkFiltersGeneralPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
@@ -195,16 +305,6 @@ set_target_properties(VTK::vtkPythonContext2DPython PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkPythonContext2DPython )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkPythonContext2DPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkPythonContext2D.cp310-win_amd64.pyd" )
 
-# Import target "VTK::vtkImagingCorePython" for configuration "Release"
-set_property(TARGET VTK::vtkImagingCorePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(VTK::vtkImagingCorePython PROPERTIES
-  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkImagingCore.cp310-win_amd64.pyd"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkImagingCorePython )
-list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkImagingCorePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkImagingCore.cp310-win_amd64.pyd" )
-
 # Import target "VTK::vtkImagingMathPython" for configuration "Release"
 set_property(TARGET VTK::vtkImagingMathPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::vtkImagingMathPython PROPERTIES
@@ -264,16 +364,6 @@ set_target_properties(VTK::vtkRenderingVolumeOpenGL2Python PROPERTIES
 
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkRenderingVolumeOpenGL2Python )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkRenderingVolumeOpenGL2Python "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingVolumeOpenGL2.cp310-win_amd64.pyd" )
-
-# Import target "VTK::vtkRenderingFreeTypePython" for configuration "Release"
-set_property(TARGET VTK::vtkRenderingFreeTypePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(VTK::vtkRenderingFreeTypePython PROPERTIES
-  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingFreeType.cp310-win_amd64.pyd"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkRenderingFreeTypePython )
-list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkRenderingFreeTypePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingFreeType.cp310-win_amd64.pyd" )
 
 # Import target "VTK::vtkRenderingLabelPython" for configuration "Release"
 set_property(TARGET VTK::vtkRenderingLabelPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
@@ -345,16 +435,6 @@ set_target_properties(VTK::vtkIOTecplotTablePython PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOTecplotTablePython )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOTecplotTablePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOTecplotTable.cp310-win_amd64.pyd" )
 
-# Import target "VTK::vtkIOImagePython" for configuration "Release"
-set_property(TARGET VTK::vtkIOImagePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(VTK::vtkIOImagePython PROPERTIES
-  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOImage.cp310-win_amd64.pyd"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOImagePython )
-list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOImagePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOImage.cp310-win_amd64.pyd" )
-
 # Import target "VTK::vtkIOSegYPython" for configuration "Release"
 set_property(TARGET VTK::vtkIOSegYPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::vtkIOSegYPython PROPERTIES
@@ -365,26 +445,6 @@ set_target_properties(VTK::vtkIOSegYPython PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOSegYPython )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOSegYPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOSegY.cp310-win_amd64.pyd" )
 
-# Import target "VTK::vtkIOXMLParserPython" for configuration "Release"
-set_property(TARGET VTK::vtkIOXMLParserPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(VTK::vtkIOXMLParserPython PROPERTIES
-  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOXMLParser.cp310-win_amd64.pyd"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOXMLParserPython )
-list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOXMLParserPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOXMLParser.cp310-win_amd64.pyd" )
-
-# Import target "VTK::vtkIOXMLPython" for configuration "Release"
-set_property(TARGET VTK::vtkIOXMLPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(VTK::vtkIOXMLPython PROPERTIES
-  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOXML.cp310-win_amd64.pyd"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOXMLPython )
-list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOXMLPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOXML.cp310-win_amd64.pyd" )
-
 # Import target "VTK::vtkIOParallelXMLPython" for configuration "Release"
 set_property(TARGET VTK::vtkIOParallelXMLPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::vtkIOParallelXMLPython PROPERTIES
@@ -394,16 +454,6 @@ set_target_properties(VTK::vtkIOParallelXMLPython PROPERTIES
 
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOParallelXMLPython )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOParallelXMLPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOParallelXML.cp310-win_amd64.pyd" )
-
-# Import target "VTK::vtkIOCorePython" for configuration "Release"
-set_property(TARGET VTK::vtkIOCorePython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(VTK::vtkIOCorePython PROPERTIES
-  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOCore.cp310-win_amd64.pyd"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOCorePython )
-list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOCorePython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOCore.cp310-win_amd64.pyd" )
 
 # Import target "VTK::vtkIOLegacyPython" for configuration "Release"
 set_property(TARGET VTK::vtkIOLegacyPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
@@ -554,36 +604,6 @@ set_target_properties(VTK::vtkIOVideoPython PROPERTIES
 
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOVideoPython )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOVideoPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOVideo.cp310-win_amd64.pyd" )
-
-# Import target "VTK::vtkRenderingSceneGraphPython" for configuration "Release"
-set_property(TARGET VTK::vtkRenderingSceneGraphPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(VTK::vtkRenderingSceneGraphPython PROPERTIES
-  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingSceneGraph.cp310-win_amd64.pyd"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkRenderingSceneGraphPython )
-list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkRenderingSceneGraphPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingSceneGraph.cp310-win_amd64.pyd" )
-
-# Import target "VTK::vtkRenderingVtkJSPython" for configuration "Release"
-set_property(TARGET VTK::vtkRenderingVtkJSPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(VTK::vtkRenderingVtkJSPython PROPERTIES
-  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingVtkJS.cp310-win_amd64.pyd"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkRenderingVtkJSPython )
-list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkRenderingVtkJSPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkRenderingVtkJS.cp310-win_amd64.pyd" )
-
-# Import target "VTK::vtkIOExportPython" for configuration "Release"
-set_property(TARGET VTK::vtkIOExportPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(VTK::vtkIOExportPython PROPERTIES
-  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
-  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOExport.cp310-win_amd64.pyd"
-  )
-
-list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOExportPython )
-list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOExportPython "${_IMPORT_PREFIX}/bin/Lib/site-packages/vtkmodules/vtkIOExport.cp310-win_amd64.pyd" )
 
 # Import target "VTK::vtkIOExportPDFPython" for configuration "Release"
 set_property(TARGET VTK::vtkIOExportPDFPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)

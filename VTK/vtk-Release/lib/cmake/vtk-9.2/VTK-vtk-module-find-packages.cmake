@@ -93,6 +93,53 @@ set(_vtk_module_find_package_enabled OFF)
 set(_vtk_module_find_package_is_required OFF)
 set(_vtk_module_find_package_fail_if_not_found OFF)
 if (_vtk_module_find_package_components)
+  if ("Python" IN_LIST _vtk_module_find_package_components)
+    set(_vtk_module_find_package_enabled ON)
+    if ("Python" IN_LIST _vtk_module_find_package_components_required)
+      set(_vtk_module_find_package_is_required "${${CMAKE_FIND_PACKAGE_NAME}_FIND_REQUIRED}")
+      set(_vtk_module_find_package_fail_if_not_found ON)
+    endif ()
+  endif ()
+else ()
+  set(_vtk_module_find_package_enabled ON)
+  set(_vtk_module_find_package_is_required "${${CMAKE_FIND_PACKAGE_NAME}_FIND_REQUIRED}")
+  set(_vtk_module_find_package_fail_if_not_found ON)
+endif ()
+
+if (_vtk_module_find_package_enabled)
+  set(_vtk_module_find_package_required)
+  if (_vtk_module_find_package_is_required)
+    set(_vtk_module_find_package_required REQUIRED)
+  endif ()
+
+  find_package(Python3
+    3.10
+    
+    
+    ${_vtk_module_find_package_quiet}
+    ${_vtk_module_find_package_required}
+    COMPONENTS          Interpreter;Development.Module
+    OPTIONAL_COMPONENTS Development.Embed)
+  if (NOT Python3_FOUND AND _vtk_module_find_package_fail_if_not_found)
+    if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
+      message(STATUS
+        "Could not find the ${CMAKE_FIND_PACKAGE_NAME} package due to a "
+        "missing dependency: Python3")
+    endif ()
+    set("${CMAKE_FIND_PACKAGE_NAME}_Python_FOUND" 0)
+    list(APPEND "${CMAKE_FIND_PACKAGE_NAME}_Python_NOT_FOUND_MESSAGE"
+      "Failed to find the Python3 package.")
+  endif ()
+endif ()
+
+unset(_vtk_module_find_package_fail_if_not_found)
+unset(_vtk_module_find_package_enabled)
+unset(_vtk_module_find_package_required)
+
+set(_vtk_module_find_package_enabled OFF)
+set(_vtk_module_find_package_is_required OFF)
+set(_vtk_module_find_package_fail_if_not_found OFF)
+if (_vtk_module_find_package_components)
   if ("loguru" IN_LIST _vtk_module_find_package_components)
     set(_vtk_module_find_package_enabled ON)
     if ("loguru" IN_LIST _vtk_module_find_package_components_required)
@@ -176,53 +223,6 @@ if (_vtk_module_find_package_enabled)
     set("${CMAKE_FIND_PACKAGE_NAME}_opengl_FOUND" 0)
     list(APPEND "${CMAKE_FIND_PACKAGE_NAME}_opengl_NOT_FOUND_MESSAGE"
       "Failed to find the OpenGL package.")
-  endif ()
-endif ()
-
-unset(_vtk_module_find_package_fail_if_not_found)
-unset(_vtk_module_find_package_enabled)
-unset(_vtk_module_find_package_required)
-
-set(_vtk_module_find_package_enabled OFF)
-set(_vtk_module_find_package_is_required OFF)
-set(_vtk_module_find_package_fail_if_not_found OFF)
-if (_vtk_module_find_package_components)
-  if ("Python" IN_LIST _vtk_module_find_package_components)
-    set(_vtk_module_find_package_enabled ON)
-    if ("Python" IN_LIST _vtk_module_find_package_components_required)
-      set(_vtk_module_find_package_is_required "${${CMAKE_FIND_PACKAGE_NAME}_FIND_REQUIRED}")
-      set(_vtk_module_find_package_fail_if_not_found ON)
-    endif ()
-  endif ()
-else ()
-  set(_vtk_module_find_package_enabled ON)
-  set(_vtk_module_find_package_is_required "${${CMAKE_FIND_PACKAGE_NAME}_FIND_REQUIRED}")
-  set(_vtk_module_find_package_fail_if_not_found ON)
-endif ()
-
-if (_vtk_module_find_package_enabled)
-  set(_vtk_module_find_package_required)
-  if (_vtk_module_find_package_is_required)
-    set(_vtk_module_find_package_required REQUIRED)
-  endif ()
-
-  find_package(Python3
-    3.10
-    
-    
-    ${_vtk_module_find_package_quiet}
-    ${_vtk_module_find_package_required}
-    COMPONENTS          Interpreter;Development.Module
-    OPTIONAL_COMPONENTS Development.Embed)
-  if (NOT Python3_FOUND AND _vtk_module_find_package_fail_if_not_found)
-    if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
-      message(STATUS
-        "Could not find the ${CMAKE_FIND_PACKAGE_NAME} package due to a "
-        "missing dependency: Python3")
-    endif ()
-    set("${CMAKE_FIND_PACKAGE_NAME}_Python_FOUND" 0)
-    list(APPEND "${CMAKE_FIND_PACKAGE_NAME}_Python_NOT_FOUND_MESSAGE"
-      "Failed to find the Python3 package.")
   endif ()
 endif ()
 
