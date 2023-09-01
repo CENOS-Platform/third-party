@@ -112,7 +112,8 @@ namespace ngla
       BT type;
       int bblock;
       int nbblocks;
-      void DoArchive(Archive& ar)
+      template <typename ARCHIVE>
+      void DoArchive(ARCHIVE& ar)
       {
         ar & blocknr & type & bblock & nbblocks;
       }
@@ -133,6 +134,9 @@ namespace ngla
     // the original matrix
     // const SparseMatrixTM<TM> & mat;
 
+    int max_bs = 1024;  
+    int max_micro_bs = 256; // not yet used
+    
   public:
     typedef typename mat_traits<TM>::TSCAL TSCAL_MAT;
 
@@ -149,6 +153,9 @@ namespace ngla
     ///
     int VWidth() const override { return height; }
     ///
+    BaseMatrix::OperatorInfo GetOperatorInfo () const override
+    { return { string("SparseCholesky-")+typeid(TM).name(), size_t(height), size_t(height) }; }
+    
     void SetHermitian (bool herm = true) { hermitian = herm; } 
     ///
     void Allocate (const Array<int> & aorder, 
@@ -211,6 +218,24 @@ namespace ngla
       auto ext_size =  firstinrow[range.First()+1]-firstinrow[range.First()] - range.Size()+1;
       return rowindex2.Range(base, base+ext_size);
     }
+
+
+    FlatArray<MicroTask> GetMicroTasks() const { return microtasks; }
+    FlatTable<int> GetMicroDependency() const { return micro_dependency; }
+    FlatTable<int> GetMicroDependencyTranspose() const { return micro_dependency_trans; }
+    FlatArray<int> GetBlocks() const { return blocks; }
+
+    FlatArray<int> GetOrder() const { return order; }
+    FlatArray<int> GetInvOrder() const { return inv_order; }
+
+    FlatArray<int> GetRowIndex2() const { return rowindex2; }
+    FlatArray<size_t> GetFirstInRowRI() const { return firstinrow_ri; }
+    FlatArray<size_t> GetFirstInRow() const { return firstinrow; }
+
+    FlatArray<TM> GetLFact() const { return lfact; }
+    FlatArray<TM> GetDiag() const { return diag; }
+
+    auto GetNUsed() const { return nused; }
   };
 
 

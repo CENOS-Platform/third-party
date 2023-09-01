@@ -20,7 +20,7 @@ namespace ngfem
       : FiniteElement (andof, aorder) { ; }
 
     /// the name
-    HD NGS_DLL_HEADER
+    NGS_DLL_HEADER
     virtual string ClassName() const override;
 
     /// compute shape
@@ -135,7 +135,7 @@ namespace ngfem
   public:
     using BaseScalarFiniteElement::BaseScalarFiniteElement;
 
-    int Dim () const final { return D; } 
+    HD int Dim () const final { return D; } 
     
     /**
        returns derivatives in point ip.

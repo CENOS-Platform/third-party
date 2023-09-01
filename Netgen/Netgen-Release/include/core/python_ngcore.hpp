@@ -156,30 +156,6 @@ namespace ngcore
     { return std::string("sp_")+GetPyName<T>(); }
   };
 
-    // ***************  Archiving functionality  **************
-
-    template<typename T>
-    Archive& Archive :: Shallow(T& val)
-    {
-      static_assert(detail::is_any_pointer<T>, "ShallowArchive must be given pointer type!");
-#ifdef NETGEN_PYTHON
-      if(shallow_to_python)
-        {
-          if(is_output)
-            ShallowOutPython(pybind11::cast(val));
-          else
-          {
-            pybind11::object obj;
-            ShallowInPython(obj);
-            val = pybind11::cast<T>(obj);
-          }
-        }
-      else
-#endif // NETGEN_PYTHON
-        *this & val;
-      return *this;
-    }
-
   template<typename ARCHIVE>
   class NGCORE_API_EXPORT PyArchive : public ARCHIVE
   {
@@ -190,7 +166,6 @@ namespace ngcore
   protected:
     using ARCHIVE::stream;
     using ARCHIVE::version_map;
-    using ARCHIVE::logger;
   public:
     PyArchive(const pybind11::object& alst = pybind11::none()) :
       ARCHIVE(std::make_shared<std::stringstream>()),
@@ -202,7 +177,6 @@ namespace ngcore
           stream = std::make_shared<std::stringstream>
             (pybind11::cast<pybind11::bytes>(lst[pybind11::len(lst)-1]));
           *this & version_needed;
-          logger->debug("versions needed for unpickling = {}", version_needed);
           for(auto& libversion : version_needed)
             if(libversion.second > GetLibraryVersion(libversion.first))
               throw Exception("Error in unpickling data:\nLibrary " + libversion.first +
@@ -219,7 +193,6 @@ namespace ngcore
     {
       if(Output())
         {
-          logger->debug("Need version {} of library {}.", version, library);
           version_needed[library] = version_needed[library] > version ? version_needed[library] : version;
         }
     }
@@ -243,7 +216,6 @@ namespace ngcore
       FlushBuffer();
       lst.append(pybind11::bytes(std::static_pointer_cast<std::stringstream>(stream)->str()));
       stream = std::make_shared<std::stringstream>();
-      logger->debug("Writeout version needed = {}", version_needed);
       *this & version_needed;
       FlushBuffer();
       lst.append(pybind11::bytes(std::static_pointer_cast<std::stringstream>(stream)->str()));
@@ -284,6 +256,15 @@ namespace ngcore
     else
       throw py::type_error("Cannot convert Python object to C Array");
     return arr;
+  }
+
+  template <typename T>
+  py::object makePyTuple (FlatArray<T> ar)
+  {
+    py::tuple res(ar.Size());
+    for (auto i : Range(ar))
+      res[i] = py::cast(ar[i]);
+    return res;
   }
 
   template <typename T, typename TIND=typename FlatArray<T>::index_type>

@@ -29,6 +29,7 @@ namespace ngcomp
 				     shared_ptr<DifferentialOperator> attrace_diffop = nullptr,
                                      int acomp = 0);
   public:
+    GridFunctionCoefficientFunction () = default;
     GridFunctionCoefficientFunction (shared_ptr<GridFunction> agf, int acomp = 0);
     GridFunctionCoefficientFunction (shared_ptr<GridFunction> agf, 
                                      shared_ptr<DifferentialOperator> adiffop,
@@ -39,6 +40,7 @@ namespace ngcomp
                                      shared_ptr<BilinearFormIntegrator> abfi, int acomp = 0);
     
     virtual ~GridFunctionCoefficientFunction ();
+    void DoArchive(Archive& ar) override;
     /// scalar valued or vector valued
     virtual bool IsComplex() const;
     virtual int Dimension() const;
@@ -62,24 +64,7 @@ namespace ngcomp
 			   BareSliceMatrix<Complex> values) const override;
     virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir, BareSliceMatrix<SIMD<double>> values) const override;
     virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir, BareSliceMatrix<SIMD<Complex>> values) const override;
-    /*
-    virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir, FlatArray<AFlatMatrix<double>*> input,
-                           AFlatMatrix<double> values) const override
-    { Evaluate (ir, values); }
-    */
-    
-    /*
-    virtual void EvaluateDeriv (const SIMD_BaseMappedIntegrationRule & ir,
-                                AFlatMatrix<> result,
-                                AFlatMatrix<> deriv) const
-    { Evaluate (ir, result); deriv = 0.0; }
-    virtual void EvaluateDeriv (const SIMD_BaseMappedIntegrationRule & ir,
-                                FlatArray<AFlatMatrix<>*> input,
-                                FlatArray<AFlatMatrix<>*> dinput,
-                                AFlatMatrix<> result,
-                                AFlatMatrix<> deriv) const
-    { Evaluate (ir, result); deriv = 0.0; }
-    */
+
     virtual bool StoreUserData() const override { return true; }
 
     virtual void NonZeroPattern (const class ProxyUserData & ud, FlatVector<AutoDiffDiff<1,bool>> nonzero) const override
@@ -108,9 +93,12 @@ namespace ngcomp
       Grid-functions
   */
   class NGS_DLL_HEADER GridFunction 
-    : public NGS_Object, public GridFunctionCoefficientFunction
+    : public GridFunctionCoefficientFunction // , public NGS_Object
   {
   protected:
+    string name;
+    Flags flags;
+    Flags flaglist;
     /// the finite element space
     shared_ptr<FESpace> fespace;
     /// should we do a prolongation from one multigrid-level to the next ?
@@ -134,6 +122,7 @@ namespace ngcomp
     weak_ptr<GridFunctionCoefficientFunction> derivcf;
   public:
     /// 
+    explicit GridFunction () = default;
     GridFunction (shared_ptr<FESpace> afespace, 
 		  const string & name = "gfu", 
 		  const Flags & flags = Flags());
@@ -143,6 +132,8 @@ namespace ngcomp
     virtual void Update ();
     ///
     bool DoesAutoUpdate () const { return autoupdate; }
+    void ConnectAutoUpdate();
+    
     ///
     virtual void DoArchive (Archive & archive) override;
     ///  
@@ -169,17 +160,19 @@ namespace ngcomp
     // const FESpace & GetFESpace() const { return *fespace; }
     ///
     shared_ptr<FESpace> GetFESpace() const { return fespace; }
-
     ///
-    virtual string GetClassName () const override
+    shared_ptr<MeshAccess> GetMeshAccess() const { return fespace->GetMeshAccess(); }
+    ///
+    virtual string GetClassName () const
     {
       return "GridFunction";
     }
 
-    virtual string GetName () const
-    {
-      return name;
-    }
+    void SetName(const string & aname) { name = aname; }
+    string GetName () const { return name; }
+
+    const Flags& GetFlags() const { return flags; }
+    Flags& GetFlags() { return flags; }
 
     virtual void Interpolate (const CoefficientFunction & cf,
                               const Region * reg, int mdcomp, LocalHeap & lh);
@@ -187,7 +180,7 @@ namespace ngcomp
     ///
     virtual void PrintReport (ostream & ost) const override;
     ///
-    virtual Array<MemoryUsage> GetMemoryUsage () const override;
+    virtual Array<MemoryUsage> GetMemoryUsage () const;
 
     // void Visualize(const string & name);
 
@@ -285,7 +278,6 @@ namespace ngcomp
     // multidim component, if -1 then all components are loaded/saved
     virtual void Load (istream & ist, int mdcomp = -1) = 0;
     virtual void Save (ostream & ost, int mdcomp = -1) const = 0;
-    using NGS_Object::shared_from_this;
   };
 
 
@@ -302,14 +294,7 @@ namespace ngcomp
   class NGS_DLL_HEADER S_GridFunction : public GridFunction
   {
   public:
-    /*
-    S_GridFunction (const FESpace & afespace, const string & aname, const Flags & flags)
-      : GridFunction (afespace, aname, flags) { ; }
-    S_GridFunction (shared_ptr<FESpace> afespace, const string & aname, const Flags & flags)
-      : GridFunction (afespace, aname, flags) { ; }
-    */
-    // using GridFunction::GridFunction;
-
+    S_GridFunction () = default;
     S_GridFunction (shared_ptr<FESpace> afespace, 
 		    const string & aname = "gfu", 
 		    const Flags & flags = Flags());
@@ -395,14 +380,6 @@ namespace ngcomp
     Array<shared_ptr<BilinearFormIntegrator>> bfi2d;
     Array<shared_ptr<BilinearFormIntegrator>> bfi3d;
     bool applyd;
-    //
-    // int cache_elnr;
-    // bool cache_bound;
-    // LocalHeap lh;
-    // ElementTransformation eltrans;
-    // const FiniteElement * fel;
-    // Array<int> dnums;
-    // FlatVector<SCAL> elu;
 
   public:
     VisualizeGridFunction (shared_ptr<MeshAccess> ama,

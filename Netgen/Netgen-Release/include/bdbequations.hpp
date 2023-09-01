@@ -336,8 +336,6 @@ namespace ngfem
     static void GenerateMatrix (const FiniteElement & fel, const MIP & mip,
 				MAT && mat, LocalHeap & lh)
     {
-      // HeapReset hr(lh);
-      // mat.Row(0) = Cast(fel).GetShape(mip.IP(), lh);
       Cast(fel).CalcShape (mip.IP(), mat.Row(0));      
     }
 
@@ -570,8 +568,6 @@ namespace ngfem
     static void GenerateMatrix (const AFEL & fel, const MIP & mip,
 				MAT & mat, LocalHeap & lh)
     {
-      // HeapReset hr(lh);
-      // mat.Row(0) = static_cast<const FEL&>(fel).GetShape(mip.IP(), lh);
       Cast(fel).CalcShape (mip.IP(), mat.Row(0));
     }
 
@@ -584,11 +580,11 @@ namespace ngfem
 
     template <typename AFEL, typename MIP, class TVX, class TVY>
     static void Apply (const AFEL & fel, const MIP & mip,
-		       const TVX & x, TVY & y,
+		       const TVX & x, TVY && y,
 		       LocalHeap & lh) 
     {
       HeapReset hr(lh);
-      y = Trans (static_cast<const FEL&>(fel).GetShape (mip.IP(), lh)) * x;
+      y = Trans (Cast(fel).GetShape (mip.IP(), lh)) * x;
       // y(0) = InnerProduct (x, static_cast<const FEL&>(fel).GetShape (mip.IP(), lh));
     }
 
@@ -596,7 +592,7 @@ namespace ngfem
 		       const FlatVector<double> & x, FlatVector<double> & y,
 		       LocalHeap & lh) 
     {
-      y(0) = static_cast<const FEL&>(fel).Evaluate(mip.IP(), x);
+      y(0) = Cast(fel).Evaluate(mip.IP(), x);
     }
 
 
@@ -606,7 +602,7 @@ namespace ngfem
 			    LocalHeap & lh) 
     {
       HeapReset hr(lh);
-      y.Range(0,fel.GetNDof()) = static_cast<const FEL&>(fel).GetShape (mip.IP(), lh) * x;
+      y.Range(0,fel.GetNDof()) = Cast(fel).GetShape (mip.IP(), lh) * x;
     }
 
 
@@ -618,11 +614,7 @@ namespace ngfem
 			      FlatMatrix<double> x, BareSliceVector<double> y,
 			      LocalHeap & lh)
     {
-      // static Timer t("applytransir - bnd");
-      // RegionTimer reg(t);
-
-      static_cast<const FEL&>(fel).
-	EvaluateTrans (mir.IR(), FlatVector<> (mir.Size(), &x(0,0)), y);
+      Cast(fel).EvaluateTrans (mir.IR(), FlatVector<> (mir.Size(), &x(0,0)), y);
     }
 
     template <class MIR>
@@ -894,9 +886,9 @@ namespace ngfem
 
     template <typename FEL, class VECX, class VECY>
     void Apply (const FEL & fel, const BaseMappedIntegrationPoint & mip,
-		const VECX & x, VECY & y, LocalHeap & lh) const
+		const VECX & x, VECY && y, LocalHeap & lh) const
     {
-      typedef typename VECY::TSCAL TRESULT;
+      typedef typename remove_reference<VECY>::type::TSCAL TRESULT;
       TRESULT val = coef -> T_Evaluate<TRESULT> (mip);
       for (int i = 0; i < DIM; i++)
 	y(i) = val * x(i);
@@ -1008,7 +1000,7 @@ namespace ngfem
 
     template <typename FEL, typename MIP, class VECX, class VECY>
     void Apply (const FEL & fel, const MIP & mip,
-		const VECX & x, VECY & y, LocalHeap & lh) const
+		const VECX & x, VECY && y, LocalHeap & lh) const
     {
       y(0) = Evaluate (*coef1, mip) * x(0);
       y(1) = Evaluate (*coef2, mip) * x(1);
@@ -1340,7 +1332,7 @@ namespace ngfem
   
     template <typename FEL, typename MIP, typename VEC>
     void GenerateVector (const FEL & fel, const MIP & mip,
-			 VEC & vec, LocalHeap & lh) const
+			 VEC && vec, LocalHeap & lh) const
     {
       Vec<N> hv;
       coef -> Evaluate (mip, hv);
@@ -1373,11 +1365,11 @@ namespace ngfem
 
     template <typename FEL, typename MIP, typename VEC>
     void GenerateVector (const FEL & fel, const MIP & mip,
-			 VEC & vec, LocalHeap & lh) const
+			 VEC && vec, LocalHeap & lh) const
     {
       vec = 0.0;
 
-      typedef typename VEC::TSCAL TSCAL;
+      typedef typename remove_reference<VEC>::type::TSCAL TSCAL;
     
       TSCAL length = 0.;
       for(int i=0; i<N; i++)
@@ -1436,7 +1428,7 @@ namespace ngfem
 
     template <typename FEL, typename MIP, class VECX, class VECY>
     void Apply (const FEL & fel, const MIP & mip,
-		const VECX & x, VECY & y, LocalHeap & lh) const
+		const VECX & x, VECY && y, LocalHeap & lh) const
     {
       const double r = mip.GetPoint()(0);
       double val = r*Evaluate (*coef, mip);

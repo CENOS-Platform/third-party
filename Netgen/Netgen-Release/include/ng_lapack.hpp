@@ -14,6 +14,53 @@
 namespace ngbla 
 {
 
+  class T_Lapack { };
+  static constexpr T_Lapack Lapack;
+
+  template <typename TA>
+  class LapackExpr : public Expr<LapackExpr<TA> >
+  {
+    const TA & a;
+  public:
+    LapackExpr (const TA & aa) : a(aa) { ; }
+    const TA & A() const { return a; }
+    size_t Height() const { return a.Height(); }
+    size_t Width() const { return a.Width(); }
+  };
+  
+  template <typename TA>
+  INLINE LapackExpr<TA> operator| (const Expr<TA> & a, T_Lapack /* tl */)
+  {
+    return LapackExpr<TA> (a.Spec());
+  }
+
+  
+  template <typename TOP, typename T, typename TB>
+  class assign_trait<TOP, T, LapackExpr<TB>, int>
+  {
+  public:
+    static INLINE T & Assign (MatExpr<T> & self, const Expr<LapackExpr<TB>> & v)
+    {
+    #ifdef LAPACK
+      if constexpr (std::is_same_v<TOP,typename MatExpr<T>::As>)
+                     LapackMultAdd (v.Spec().A().A(), v.Spec().A().B(), 1.0, self.Spec(), 0.0);
+      if constexpr (std::is_same_v<TOP,typename MatExpr<T>::AsAdd>)
+                     LapackMultAdd (v.Spec().A().A(), v.Spec().A().B(), 1.0, self.Spec(), 1.0);
+      if constexpr (std::is_same_v<TOP,typename MatExpr<T>::AsSub>)
+                     LapackMultAdd (v.Spec().A().A(), v.Spec().A().B(), -1.0, self.Spec(), 1.0);
+      return self.Spec();
+    #else // LAPACK
+      throw Exception("No Lapack");
+    #endif // LAPACK
+    }
+  };  
+
+
+  
+
+
+
+  
 #ifdef LAPACK
 
   extern "C" {
@@ -1067,11 +1114,11 @@ namespace ngbla
     integer nvl = 1; 
     integer nvr = eveci.Width() ; 
   
-    std::complex<double> * vl = 0; 
-    std::complex<double> * vr;//  = new std::complex<double> [nvr*n];
+    Complex * vl = 0;
+    Complex * vr;//  = new std::complex<double> [nvr*n];
   
     integer lwork = 8*n; 
-    std::complex<double> * work = new std::complex<double>[lwork]; 
+    Complex * work = new Complex [lwork];
     double *rwork = new double[8*n];  
     integer info = 0;
   
@@ -1082,10 +1129,10 @@ namespace ngbla
     else
       {
         nvr = n;
-        vr =  new std::complex<double> [nvr*n];
+        vr =  new Complex [nvr*n];
       }
 
-    zgeev_(&jobvl, &jobvr, &n, (std::complex<double>*)(void*)&a(0,0), &n, (std::complex<double>*)(void*)&lami(0), vl, &nvl, vr, &nvr, work, &lwork, rwork, &info);
+    zgeev_(&jobvl, &jobvr, &n, &a(0,0), &n, &lami(0), vl, &nvl, vr, &nvr, work, &lwork, rwork, &info);
     //  alpha, beta, &vl, &nvl, vr, &nvr,  
     // 	     work , &lwork, rwork,  &info);
   
@@ -1135,14 +1182,14 @@ namespace ngbla
     char jobvr = 'N', jobvl= 'N';
     // bool balancing = 0; 
   
-    std::complex<double> * alpha= new std::complex<double>[n];
-    std::complex<double> * beta = new std::complex<double>[n]; 
-    std::complex<double> vl=0.; 
+    Complex * alpha= new Complex[n];
+    Complex * beta = new Complex[n];
+    Complex vl=0.;
   
     integer nvl = 1; 
-    std::complex<double> * vr = NULL;
+    Complex * vr = NULL;
   
-    std::complex<double> * work = new std::complex<double>[8*n]; 
+    Complex * work = new Complex[8*n];
     integer lwork = 8*n; 
     double *rwork = new double[8*n];  
   
@@ -1211,10 +1258,10 @@ namespace ngbla
     for(i=0;i<n;i++)
       {
         if(abs(beta[i]) >= 1.e-30) 
-          lami[i]=std::complex<double>(alpha[i]/beta[i]);     
+          lami[i]=Complex(alpha[i]/beta[i]);
         else 
           {
-            lami[i] = std::complex<double>(100.,100.);
+            lami[i] = Complex(100.,100.);
           }
       } 
   

@@ -59,8 +59,8 @@ set_target_properties(ngs_lapack PROPERTIES
 add_library(netgen_python INTERFACE IMPORTED)
 
 set_target_properties(netgen_python PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "E:/source/cenos/backend/third-party/python/include"
-  INTERFACE_LINK_LIBRARIES "E:/source/cenos/backend/third-party/python/libs/python310.lib"
+  INTERFACE_INCLUDE_DIRECTORIES "C:/CENOS/third-party/python310/include"
+  INTERFACE_LINK_LIBRARIES "C:/CENOS/third-party/python310/libs/python310.lib"
 )
 
 # Create imported target ngstd

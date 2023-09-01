@@ -111,11 +111,6 @@ namespace ngfem
                                                  BareSliceMatrix<SIMD<double>> values,
                                                  SliceMatrix<> coefs) const override;
 
-/*    
-    virtual void CalcDShape (const IntegrationPoint & ip, 
-			     const std::function<void(int,Vec<DIM>)> & callback) const;
-                       */
-
     HD NGS_DLL_HEADER virtual void CalcMappedDShape (const BaseMappedIntegrationPoint & mip, 
                                                      BareSliceMatrix<> dshape) const override;
 
@@ -126,8 +121,6 @@ namespace ngfem
     virtual void CalcMappedDShape (const SIMD_BaseMappedIntegrationRule & mir, 
                                    BareSliceMatrix<SIMD<double>> dshapes) const override;
     
-#endif
-
     /// compute dshape, matrix: ndof x (spacedim spacedim)
     NGS_DLL_HEADER virtual void CalcDDShape (const IntegrationPoint & ip, 
                                              BareSliceMatrix<> ddshape) const override;
@@ -135,14 +128,17 @@ namespace ngfem
     NGS_DLL_HEADER virtual void CalcMappedDDShape (const BaseMappedIntegrationPoint & mip, 
                                                    BareSliceMatrix<> ddshape) const override;
     
+#endif
+
     // NGS_DLL_HEADER virtual void GetPolOrders (FlatArray<PolOrder<DIM> > orders) const;
 
-    HD NGS_DLL_HEADER 
+    NGS_DLL_HEADER 
     virtual void CalcDualShape (const BaseMappedIntegrationPoint & mip, SliceVector<> shape) const override;
 
     NGS_DLL_HEADER virtual void AddDualTrans (const IntegrationRule & ir, BareSliceVector<double> values, BareSliceVector<> coefs) const override;
     NGS_DLL_HEADER virtual void AddDualTrans (const SIMD_IntegrationRule & ir, BareVector<SIMD<double>> values, BareSliceVector<> coefs) const override;    
 
+    
     NGS_DLL_HEADER virtual bool GetDiagDualityMassInverse (FlatVector<> diag) const override;
     
   protected:
@@ -155,7 +151,7 @@ namespace ngfem
     */
     
     template<typename Tx, typename TFA>  
-    INLINE void T_CalcShape (const TIP<DIM,Tx> & ip, TFA & shape) const
+    INLINE void T_CalcShape (const TIP<DIM,Tx> & ip, TFA && shape) const
     {
       static_cast<const FEL*> (this) -> T_CalcShape (ip, shape);
     }
@@ -171,7 +167,11 @@ namespace ngfem
     
     void CalcDualShape2 (const BaseMappedIntegrationPoint & mip, SliceVector<> shape) const
     {
-      throw Exception (string("dual shape not implemented for element ")+typeid(*this).name()); 
+      // throw Exception (string("dual shape not implemented for element ")+typeid(*this).name());
+      double imeas = 1.0/mip.GetMeasure();
+      shape = 0.0;
+      static_cast<const FEL*> (this)->        
+        T_CalcDualShape (GetTIP<DIM>(mip.IP()), SBLambda ( [&](int j, double val) { shape(j) = imeas * val; }));
     }
     
   };
@@ -233,25 +233,6 @@ namespace ngfem
 
 namespace ngbla
 {
-
-  /*
-  template <int DIM, typename SCAL = double>
-  class AD2Vec : public MatExpr<AD2Vec<DIM,SCAL> >
-  {
-    AutoDiff<DIM,SCAL> ad;
-  public:
-    INLINE AD2Vec (double d) : ad(d) { ; }
-    INLINE AD2Vec (AutoDiff<DIM,SCAL> aad) : ad(aad) { ; }
-    INLINE SCAL operator() (int i) const { return ad.DValue(i); }
-    INLINE SCAL operator() (int i, int j) const { return ad.DValue(i); }
-    INLINE AutoDiff<DIM,SCAL> Data() const { return ad; }
-
-    INLINE int Size () const { return DIM; }
-    INLINE int Height () const { return DIM; }
-    INLINE int Width () const { return 1; }
-  };
-  */
-
   template <int DIM, typename SCAL>
   auto GetGradient (const AutoDiff<DIM,SCAL> & ad)
   {
@@ -260,17 +241,6 @@ namespace ngbla
       grad(i) = ad.DValue(i);
     return grad;
   }
-
-  /*
-  template <int DIM, typename SCAL>
-  auto GetGradient (const AutoDiff<DIM,SCAL> & ad)
-  {
-    Vec<DIM,SCAL> grad;
-    for (int i = 0; i < DIM; i++)
-      grad(i) = ad.DValue(i);
-    return grad;
-  }
-  */
 }
 
 

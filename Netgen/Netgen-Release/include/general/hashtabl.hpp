@@ -772,6 +772,15 @@ public:
     int pos = Position0 (ahash);
     return (pos != -1);
   }
+
+  inline optional<T> GetIfUsed (const INDEX_2 & ahash) const
+  {
+    int pos = Position0 (ahash);
+    if (pos != -1)
+      return cont[pos];
+    else
+      return nullopt;
+  }
     
   inline void SetData0 (int pos, const INDEX_2 & ahash, const T & acont)
   {
@@ -1468,7 +1477,7 @@ inline size_t HashValue (INDEX_3 i3, size_t size) { return (i3[0]+15*size_t(i3[1
       ClosedHashTable tmp(2*Size());
       for (auto both : *this)
         tmp[both.first] = both.second;
-      *this = move(tmp);
+      *this = std::move(tmp);
     }
     
     // returns true if new position is created

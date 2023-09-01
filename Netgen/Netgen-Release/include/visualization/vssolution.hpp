@@ -94,7 +94,6 @@ class NGGUI_API VisualSceneSolution : public VisualScene
   int fieldlinestimestamp, surface_vector_timestamp;
   int pointcurve_timestamp;
   int isosurface_timestamp;
-  int subdivision_timestamp;
   int timetimestamp;
   double minval, maxval;
 
@@ -174,7 +173,6 @@ public:
   int autoscale, logscale;
   double mminval, mmaxval;
   int numisolines;
-  int subdivisions;
 
   bool showclipsolution;
   bool showsurfacesolution;
@@ -328,7 +326,7 @@ public:
 
   void DrawSurfaceVectors ();
   void DrawTrigSurfaceVectors(const NgArray< Point<3> > & lp, const Point<3> & pmin, const Point<3> & pmax,
-			      const int sei, const SolData * vsol);
+			      const int sei, const SolData * vsol, bool swap_lam=false);
   void DrawIsoSurface(const SolData * sol, const SolData * grad, int comp);
   
   void DrawIsoLines (const Point<3> & p1, 

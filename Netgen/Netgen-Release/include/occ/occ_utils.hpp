@@ -3,6 +3,9 @@
 
 #include <variant>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 #include <BRepGProp.hxx>
 #include <BRep_Tool.hxx>
 #include <GProp_GProps.hxx>
@@ -13,6 +16,8 @@
 #include <TopoDS_Vertex.hxx>
 #include <gp_Trsf.hxx>
 #include <gp_GTrsf.hxx>
+
+#pragma clang diagnostic pop
 
 #include "meshing.hpp"
 
@@ -276,13 +281,12 @@ namespace netgen
     }
   };
 
-
-  inline gp_Pnt Center (TopoDS_Shape shape)
+  inline auto Properties (TopoDS_Shape shape)
   {
     GProp_GProps props;
     double tol;
     switch (shape.ShapeType())
-      {
+    {
       case TopAbs_SOLID:
       case TopAbs_COMPOUND:
       case TopAbs_COMPSOLID:
@@ -298,8 +302,18 @@ namespace netgen
         BRepGProp::LinearProperties(shape, props, tol); break;
       default:
         BRepGProp::LinearProperties(shape, props);
-      }
-    return props.CentreOfMass();
+    }
+    return props;
+  }
+
+  inline gp_Pnt Center (TopoDS_Shape shape)
+  {
+    return Properties(shape).CentreOfMass();
+  }
+
+  inline double Mass (TopoDS_Shape shape)
+  {
+    return Properties(shape).Mass();
   }
 
 }

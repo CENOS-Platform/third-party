@@ -24,7 +24,8 @@ namespace ngla
   protected:
     shared_ptr<ParallelDofs> paralleldofs;
     mutable char safety_check = 0;
-
+    bool is_complex = false;
+    
   protected:
     /// 
     BaseMatrix ();
@@ -41,21 +42,23 @@ namespace ngla
     virtual int VWidth() const;
 
     /// inline function VHeight
-    int Height() const
+    size_t Height() const
     {
       return VHeight();
     }
   
     /// inline function VWidth
-    int Width() const
+    size_t Width() const
     {
       return VWidth();
     }
 
+    virtual tuple<size_t, size_t> Shape() const { return { Height(), Width() }; }
+
     virtual xbool IsSymmetric() const { return maybe; }
 
     /// is matrix complex ?
-    virtual bool IsComplex() const { return false; }
+    virtual bool IsComplex() const { return is_complex; }
     
     /// scalar assignment
     BaseMatrix & operator= (double s)
@@ -139,30 +142,18 @@ namespace ngla
     virtual INVERSETYPE SetInverseType ( INVERSETYPE ainversetype ) const;
     virtual INVERSETYPE SetInverseType ( string ainversetype ) const;
     virtual INVERSETYPE  GetInverseType () const;
-
+    virtual void SetInverseFlags (const Flags & flags) { ; }
+    virtual shared_ptr<BaseMatrix> DeleteZeroElements(double tol) const
+    {
+      throw Exception (string("DeleteZeroElements not overloaded, type =")+typeid(*this).name());
+    }
+    
+    
     virtual void DoArchive (Archive & ar);
 
     
     template <typename TSCAL>
       Matrix<TSCAL> ToDense() const;
-    /*
-    {
-      auto vecx = CreateRowVector();
-      auto vecy = CreateColVector();
-      
-      Matrix<TSCAL> dmat(Height(), Width());
-      auto fx = vecx.FV<TSCAL>();
-      auto fy = vecy.FV<TSCAL>();
-      for (int i = 0; i < fx.Size(); i++)
-        {
-          fx = 0;
-          fx(i) = 1;
-          Mult (vecx, vecy);
-          dmat.Col(i) = fy;
-        }
-      return std::move(dmat);
-    }
-    */
 
     // time per run
     double Timing (int runs = 10) const;
@@ -173,6 +164,9 @@ namespace ngla
       string name = "undef";
       size_t height = 0, width = 0;
       Array<const BaseMatrix*> childs;
+      OperatorInfo() = default;
+      OperatorInfo(string aname, size_t ah, size_t aw)
+        : name(aname), height(ah), width(aw) { } 
     };
     
     virtual BaseMatrix::OperatorInfo GetOperatorInfo () const;
@@ -205,12 +199,9 @@ namespace ngla
   class NGS_DLL_HEADER S_BaseMatrix : virtual public BaseMatrix
   {
   public:
-    ///
-    S_BaseMatrix ();
-    ///
-    virtual ~S_BaseMatrix ();
-
-    virtual bool IsComplex() const { return false; }
+    S_BaseMatrix () = default;
+    virtual ~S_BaseMatrix () = default;
+    // virtual bool IsComplex() const { return false; }
   };
 
   // specifies the scalar type Complex.
@@ -219,11 +210,12 @@ namespace ngla
   {
   public:
     ///
-    S_BaseMatrix ();
-    ///
-    virtual ~S_BaseMatrix ();
-    virtual bool IsComplex() const { return true; }
+    S_BaseMatrix () { is_complex = true; }
+    virtual ~S_BaseMatrix () = default;
     
+    // virtual bool IsComplex() const { return true; }
+
+    /*
     /// calls MultAdd (Complex s);
     virtual void MultAdd (double s, const BaseVector & x, BaseVector & y) const;
     /// must be overloaded
@@ -233,6 +225,7 @@ namespace ngla
     virtual void MultTransAdd (double s, const BaseVector & x, BaseVector & y) const;
     /// should be overloaded
     virtual void MultTransAdd (Complex s, const BaseVector & x, BaseVector & y) const;
+    */
   };
 
 
@@ -304,11 +297,6 @@ namespace ngla
     AutoVector Evaluate() const override
     {
       return m->Evaluate(*v);
-      /*
-      auto vec = CreateVector();
-      AssignTo (1, vec);
-      return vec;
-      */
     }
     
     void AssignTo (double s, BaseVector & v2) const override
@@ -837,15 +825,15 @@ namespace ngla
   {
     bool has_format;
     size_t size;
-    bool is_complex;
+    // bool is_complex;
   public:
     ///
     IdentityMatrix ()
-      : has_format(false), is_complex(false) { ; }
+      : has_format(false) { ; }
     IdentityMatrix (size_t asize, bool ais_complex)
-      : has_format(true), size(asize), is_complex(ais_complex) { ; }
+      : has_format(true), size(asize) { is_complex=ais_complex; }
     
-    virtual bool IsComplex() const override { return is_complex; }
+    // virtual bool IsComplex() const override { return is_complex; }
     virtual BaseMatrix::OperatorInfo GetOperatorInfo () const override;
     
     ///

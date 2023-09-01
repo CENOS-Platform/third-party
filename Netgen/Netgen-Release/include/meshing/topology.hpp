@@ -105,7 +105,8 @@ public:
   [[deprecated("use GetEdges (ElementIndex) -> FlatArray")]]                          
   void GetElementEdges (int elnr, NgArray<int> & edges) const;
   [[deprecated("use GetFaces (ElementIndex) -> FlatArray")]]                            
-  void GetElementFaces (int elnr, NgArray<int> & faces, bool withorientation = false) const;
+  void GetElementFaces (int elnr, NgArray<int> & faces) const;
+  void GetElementFaces (int elnr, NgArray<int> & faces, bool withorientation) const;  
 
   // definition in meshclass.hpp 
   inline FlatArray<T_EDGE> GetEdges (ElementIndex elnr) const;
@@ -134,10 +135,11 @@ public:
   // [[deprecated("use GetElementEdge instead")]]                        
   int GetSegmentEdgeOrientation (int elnr) const; // old style
   
-  
   DLL_HEADER void GetFaceVertices (int fnr, NgArray<int> & vertices) const;
   DLL_HEADER void GetFaceVertices (int fnr, int * vertices) const;
+  [[deprecated("use GetEdgeVertices -> tupe(v0,v1) instead")]]                            
   DLL_HEADER void GetEdgeVertices (int enr, int & v1, int & v2) const;
+  [[deprecated("use GetEdgeVertices -> tupe(v0,v1) instead")]]
   DLL_HEADER void GetEdgeVertices (int enr, PointIndex & v1, PointIndex & v2) const;
   auto GetEdgeVertices (int enr) const { return tuple(edge2vert[enr][0], edge2vert[enr][1]); }
   auto GetEdgeVerticesPtr (int enr) const { return &edge2vert[enr][0]; }
@@ -203,7 +205,7 @@ public:
   FlatArray<int> GetVertexPointElements (PointIndex vnr) const
   { return vert2pointelement[vnr]; }
   
-  int GetVerticesEdge ( int v1, int v2) const;
+  DLL_HEADER int GetVerticesEdge ( int v1, int v2) const;
   void GetSegmentVolumeElements ( int segnr, NgArray<ElementIndex> & els ) const;
   void GetSegmentSurfaceElements ( int segnr, NgArray<SurfaceElementIndex> & els ) const;
 

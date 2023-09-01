@@ -327,6 +327,8 @@ namespace ngfem
     */
   }
 
+#endif // FASTCOMPILE
+
   template <class FEL, ELEMENT_TYPE ET, class BASE>
   void T_ScalarFiniteElement<FEL,ET,BASE> :: 
   AddDualTrans (const SIMD_IntegrationRule & ir, BareVector<SIMD<double>> values,
@@ -358,12 +360,7 @@ namespace ngfem
   }
 
 
-  template <class FEL, ELEMENT_TYPE ET, class BASE>  
-  bool T_ScalarFiniteElement<FEL,ET,BASE> :: GetDiagDualityMassInverse (FlatVector<> diag) const 
-  {
-    return static_cast<const FEL*>(this)->GetDiagDualityMassInverse2(diag);
-  }
-  
+#ifndef FASTCOMPILE
   
   template <class FEL, ELEMENT_TYPE ET, class BASE>
   void T_ScalarFiniteElement<FEL,ET,BASE> :: 
@@ -707,7 +704,6 @@ namespace ngfem
        });
   }
 
-
   
   /*
   template <class FEL, ELEMENT_TYPE ET, class BASE>
@@ -753,12 +749,27 @@ namespace ngfem
   }
   */
 
-
   template <class FEL, ELEMENT_TYPE ET, class BASE>
   void T_ScalarFiniteElement<FEL,ET,BASE> :: 
   CalcMappedDShape (const BaseMappedIntegrationPoint & bmip, 
 		    BareSliceMatrix<> dshape) const
   {
+    Switch<4-DIM>
+      (bmip.DimSpace()-DIM, [&bmip, dshape, this](auto CODIM)
+       {
+         constexpr int DIM_ = DIM;
+         constexpr int DIMSPACE = int(DIM)+int(CODIM.value);
+         static_assert(DIM<=DIMSPACE, "dim<=dimspace");
+         
+         auto & mip = static_cast<const MappedIntegrationPoint<DIM_,DIMSPACE> &> (bmip);
+         auto dshapes = dshape.AddSize(ndof, DIMSPACE);
+         
+         this->T_CalcShape (GetTIP(mip),
+                            SBLambda ([dshapes] (size_t i, auto shape)
+                                      { dshapes.Row(i) = ngbla::GetGradient(shape); }));
+       });
+
+    /*
     if (bmip.DimSpace() == DIM)
       {
         auto & mip = static_cast<const MappedIntegrationPoint<DIM,DIM> &> (bmip);
@@ -782,6 +793,7 @@ namespace ngfem
       {
         cout << "CalcMappedDShape called for bboundary (not implemented)" << endl;        
       }
+    */
   }
 
 
@@ -790,10 +802,27 @@ namespace ngfem
   CalcMappedDShape (const BaseMappedIntegrationRule & bmir, 
 		    BareSliceMatrix<> dshape) const
   {
-    auto & mir = static_cast<const MappedIntegrationRule<DIM,DIM> &> (bmir);
-    for (size_t i = 0; i < mir.Size(); i++)
-      T_ScalarFiniteElement::CalcMappedDShape (mir[i], dshape.Cols(i*DIM,(i+1)*DIM));
-  }
+    /*
+    // auto & mir = static_cast<const MappedIntegrationRule<DIM,DIM> &> (bmir);
+    for (size_t i = 0; i < bmir.Size(); i++)
+      T_ScalarFiniteElement::CalcMappedDShape (bmir[i], dshape.Cols(i*DIM,(i+1)*DIM));
+    */
+
+    Switch<4-DIM>
+      (bmir.DimSpace()-DIM, [&bmir, dshape, this](auto CODIM)
+       {
+         constexpr int DIM_ = DIM;
+         constexpr int DIMSPACE = int(DIM)+int(CODIM.value);
+         auto & mir = static_cast<const MappedIntegrationRule<DIM_,DIMSPACE> &> (bmir);
+         for (size_t i = 0; i < mir.Size(); i++)
+           {
+             auto dshapes = dshape.Cols(i*DIMSPACE, (i+1)*DIMSPACE).AddSize(ndof, DIMSPACE);
+             this->T_CalcShape (GetTIP(mir[i]),
+                                SBLambda ([dshapes] (size_t j, auto shape)
+                                          { dshapes.Row(j) = ngbla::GetGradient(shape); }));
+           }
+       });
+}
 
 
   template <class FEL, ELEMENT_TYPE ET, class BASE>
@@ -890,11 +919,23 @@ namespace ngfem
                            }));
   }
 
+
+#endif
+
+  template <class FEL, ELEMENT_TYPE ET, class BASE>  
+  bool T_ScalarFiniteElement<FEL,ET,BASE> :: GetDiagDualityMassInverse (FlatVector<> diag) const 
+  {
+    return static_cast<const FEL*>(this)->GetDiagDualityMassInverse2(diag);
+  }
+  
+  
   
   template <class FEL, ELEMENT_TYPE ET, class BASE>
   void T_ScalarFiniteElement<FEL,ET,BASE> :: 
   CalcDualShape (const BaseMappedIntegrationPoint & mip, SliceVector<> shape) const
   {
+    static_cast<const FEL*>(this) -> CalcDualShape2 (mip, shape);    
+    /*
     try
       {
         static_cast<const FEL*>(this) -> CalcDualShape2 (mip, shape);
@@ -906,52 +947,11 @@ namespace ngfem
         static_cast<const FEL*> (this)->        
           T_CalcDualShape (GetTIP<DIM>(mip.IP()), SBLambda ( [&](int j, double val) { shape(j) = imeas * val; }));
       }
+    */
   }
   
   
 
-  /*
-    ... not yet working
-  template <class FEL, ELEMENT_TYPE ET, class BASE>
-  void T_ScalarFiniteElement<FEL,ET,BASE> :: 
-  GetPolOrders (FlatArray<PolOrder<DIM> > orders) const
-  {
-    Vec<DIM,PolOrder<DIM>> po;
-
-    switch (ET)
-      {
-      case ET_TRIG:
-        po[0] = INT<DIM> (1,1); 
-        po[1] = INT<DIM> (1,1); 
-        break;
-      case ET_QUAD:
-        po[0] = INT<DIM> (1,0); 
-        po[1] = INT<DIM> (0,1); 
-        break;
-      case ET_TET:
-        po[0] = INT<DIM> (1,1,1); 
-        po[1] = INT<DIM> (1,1,1); 
-        po[2] = INT<DIM> (1,1,1); 
-        break;
-      case ET_PRISM:
-        po[0] = INT<DIM> (1,1,0); 
-        po[1] = INT<DIM> (1,1,0); 
-        po[2] = INT<DIM> (0,0,1); 
-        break;
-
-      default:
-        for (int i = 0; i < DIM; i++)
-          for (int j = 0; j < DIM; j++)
-            po[i](j) = 1;
-      }
-
-    T_CalcShape (&po[0], orders);
-    // did not work for old tensor productelements: order cancellation for lam_e
-  }
-  */
-
-
-#endif
 
 }
 

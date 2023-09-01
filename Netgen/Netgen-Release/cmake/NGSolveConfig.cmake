@@ -1,4 +1,4 @@
-set(PACKAGE_VERSION "6.2.2301-86-gd3024c075")
+set(PACKAGE_VERSION "6.2.2304-222-gbc9944405")
 find_package(Netgen CONFIG REQUIRED HINTS
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
@@ -14,16 +14,14 @@ get_filename_component(NGSOLVE_LIBRARY_DIR  "${NETGEN_LIBRARY_DIR}"  ABSOLUTE)
 get_filename_component(NGSOLVE_PYTHON_DIR   "${NETGEN_PYTHON_DIR}"   ABSOLUTE)
 get_filename_component(NGSOLVE_RESOURCE_DIR "${NETGEN_RESOURCE_DIR}" ABSOLUTE)
 
-set(NGSOLVE_INCLUDE_DIRS ";${NETGEN_INCLUDE_DIRS}")
-
 set(NGSOLVE_CXX_COMPILER "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/bin/Hostx64/x64/cl.exe")
 set(NGSOLVE_CMAKE_BUILD_TYPE "Release")
 
 set(NGSOLVE_CMAKE_THREAD_LIBS_INIT "")
 set(NGSOLVE_MKL_LIBRARIES "")
 set(NGSOLVE_PYBIND_INCLUDE_DIR "")
-set(NGSOLVE_PYTHON_INCLUDE_DIRS "E:/source/cenos/backend/third-party/python/include")
-set(NGSOLVE_PYTHON_LIBRARIES "E:/source/cenos/backend/third-party/python/libs/python310.lib")
+set(NGSOLVE_PYTHON_INCLUDE_DIRS "C:/CENOS/third-party/python310/include")
+set(NGSOLVE_PYTHON_LIBRARIES "C:/CENOS/third-party/python310/libs/python310.lib")
 set(NGSOLVE_PYTHON_PACKAGES_INSTALL_DIR  "")
 set(NGSOLVE_TCL_INCLUDE_PATH "E:/source/third-party-auto/Netgen-Release/include")
 set(NGSOLVE_TCL_LIBRARY "E:/source/third-party-auto/Netgen-Release/lib/tclstub86.lib")
@@ -53,7 +51,7 @@ set(NGSOLVE_MAX_SYS_DIM       3)
 
 set(NGSOLVE_COMPILE_FLAGS " /DHAVE_NETGEN_SOURCES /DUSE_TIMEOFDAY /DTCL /DLAPACK /DNGS_PYTHON /DUSE_UMFPACK /DNETGEN_PYTHON /DNG_PYTHON /DPYBIND11_SIMPLE_GIL_MANAGEMENT /D_WIN32_WINNT=0x1000 /DWNT /DWNT_WINDOW /DNOMINMAX /DMSVC_EXPRESS /D_CRT_SECURE_NO_WARNINGS /DHAVE_STRUCT_TIMESPEC /DWIN32" CACHE STRING "Preprocessor definitions of ngscxx")
 set(NGSOLVE_LINK_FLAGS " /LIBPATH:\"%NGSCXX_DIR%/../lib\" nglib.lib ngcore.lib libngsolve.lib /LIBPATH:\"%PYTHON_LIBDIR%\"" CACHE STRING "Link flags set in ngsld")
-set(NGSOLVE_INCLUDE_DIRS E:/source/cenos/backend/third-party/python/include CACHE STRING "Include dirs set in ngscxx")
+set(NGSOLVE_INCLUDE_DIRS C:/CENOS/third-party/python310/include CACHE STRING "Include dirs set in ngscxx")
 
 set(NGSOLVE_INSTALL_DIR_PYTHON  Lib/site-packages)
 set(NGSOLVE_INSTALL_DIR_BIN     bin)
