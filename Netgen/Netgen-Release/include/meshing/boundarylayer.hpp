@@ -1,6 +1,8 @@
-#ifndef FILE_BOUNDARYLAYER
-#define FILE_BOUNDARYLAYER
+#ifndef NETGEN_BOUNDARYLAYER_HPP
+#define NETGEN_BOUNDARYLAYER_HPP
 
+namespace netgen
+{
 
 ///
 DLL_HEADER extern void InsertVirtualBoundaryLayer (Mesh & mesh);
@@ -19,6 +21,7 @@ public:
   bool outside = false; // set the boundary layer on the outside
   bool grow_edges = false;
   bool limit_growth_vectors = true;
+  double limit_safety = 0.3; // alloow only 30% of the growth vector length
   bool sides_keep_surfaceindex = false;
   Array<size_t> project_boundaries;
 };
@@ -88,4 +91,5 @@ class BoundaryLayerTool
     Vec<3> getEdgeTangent(PointIndex pi, int edgenr);
 };
 
-#endif
+} // namespace netgen
+#endif // NETGEN_BOUNDARYLAYER_HPP
