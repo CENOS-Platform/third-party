@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget netgen_mpi netgen_metis ngcore netgen nggui togl nglib netgen_cgns)
+foreach(_expectedTarget netgen_mpi netgen_metis ngcore netgen nggui ngpy ngguipy togl nglib netgen_cgns)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -73,6 +73,20 @@ add_library(nggui SHARED IMPORTED)
 
 set_target_properties(nggui PROPERTIES
   INTERFACE_LINK_LIBRARIES "nglib;togl;opengl32;glu32;nglib"
+)
+
+# Create imported target ngpy
+add_library(ngpy SHARED IMPORTED)
+
+set_target_properties(ngpy PROPERTIES
+  INTERFACE_LINK_LIBRARIES "nglib"
+)
+
+# Create imported target ngguipy
+add_library(ngguipy SHARED IMPORTED)
+
+set_target_properties(ngguipy PROPERTIES
+  INTERFACE_LINK_LIBRARIES "nglib;nggui"
 )
 
 # Create imported target togl

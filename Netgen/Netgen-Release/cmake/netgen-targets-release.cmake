@@ -28,12 +28,31 @@ list(APPEND _IMPORT_CHECK_FILES_FOR_netgen "${_IMPORT_PREFIX}/bin/netgen.exe" )
 set_property(TARGET nggui APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(nggui PROPERTIES
   IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/lib/libnggui.lib"
-  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELEASE "TKBO;TKBRep;TKBool;TKCAF;TKCDF;TKFillet;TKG2d;TKG3d;TKGeomAlgo;TKGeomBase;TKHLR;TKIGES;TKLCAF;TKMath;TKMesh;TKOffset;TKPrim;TKSTEP;TKSTEP209;TKSTEPAttr;TKSTEPBase;TKSTL;TKService;TKShHealing;TKTopAlgo;TKV3d;TKVCAF;TKXCAF;TKXDEIGES;TKXDESTEP;TKXSBase;TKernel"
   IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/libnggui.dll"
   )
 
 list(APPEND _IMPORT_CHECK_TARGETS nggui )
 list(APPEND _IMPORT_CHECK_FILES_FOR_nggui "${_IMPORT_PREFIX}/lib/libnggui.lib" "${_IMPORT_PREFIX}/bin/libnggui.dll" )
+
+# Import target "ngpy" for configuration "Release"
+set_property(TARGET ngpy APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(ngpy PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/Lib/site-packages/netgen/libngpy.lib"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/Lib/site-packages/netgen/libngpy.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS ngpy )
+list(APPEND _IMPORT_CHECK_FILES_FOR_ngpy "${_IMPORT_PREFIX}/Lib/site-packages/netgen/libngpy.lib" "${_IMPORT_PREFIX}/Lib/site-packages/netgen/libngpy.pyd" )
+
+# Import target "ngguipy" for configuration "Release"
+set_property(TARGET ngguipy APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(ngguipy PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/Lib/site-packages/netgen/libngguipy.lib"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/Lib/site-packages/netgen/libngguipy.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS ngguipy )
+list(APPEND _IMPORT_CHECK_FILES_FOR_ngguipy "${_IMPORT_PREFIX}/Lib/site-packages/netgen/libngguipy.lib" "${_IMPORT_PREFIX}/Lib/site-packages/netgen/libngguipy.pyd" )
 
 # Import target "togl" for configuration "Release"
 set_property(TARGET togl APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
@@ -49,7 +68,6 @@ list(APPEND _IMPORT_CHECK_FILES_FOR_togl "${_IMPORT_PREFIX}/lib/togl.lib" "${_IM
 set_property(TARGET nglib APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(nglib PROPERTIES
   IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/lib/nglib.lib"
-  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELEASE "TKBO;TKBRep;TKBool;TKCAF;TKCDF;TKFillet;TKG2d;TKG3d;TKGeomAlgo;TKGeomBase;TKHLR;TKIGES;TKLCAF;TKMath;TKMesh;TKOffset;TKPrim;TKSTEP;TKSTEP209;TKSTEPAttr;TKSTEPBase;TKSTL;TKService;TKShHealing;TKTopAlgo;TKV3d;TKVCAF;TKXCAF;TKXDEIGES;TKXDESTEP;TKXSBase;TKernel"
   IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/nglib.dll"
   )
 
