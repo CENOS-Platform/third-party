@@ -16,8 +16,8 @@ namespace ngbla
   template <typename T, typename TS, typename TDIST> class VectorView;
 
 
-  template <typename T, typename TS, typename TD>
-  INLINE void SetVector (typename mat_traits<T>::TSCAL val, VectorView<T,TS,TD> vec) NETGEN_NOEXCEPT
+  template <typename T, typename ...Args>
+  INLINE void SetVector (typename mat_traits<T>::TSCAL val, VectorView<T,Args...> vec) NETGEN_NOEXCEPT
   {
     for (size_t i : Range(vec))
       vec[i] = val;
@@ -28,46 +28,45 @@ namespace ngbla
   template <typename T = double>
   using FlatVector = VectorView<T,size_t,IC<1>>;
 
-  template <typename T>
-  auto make_FlatVector (const T & v) 
-  { return FlatVector<typename T::TELEM> (v); }
-  
   template <typename T, typename TELEM=typename T::TELEM>
-  constexpr bool IsConvertibleToFlatVector ()
-  {
-    // return is_convertible_v<T,FlatVector<TELEM>>;
+  constexpr bool IsConvertibleToFlatVector () {
     return is_constructible_v<FlatVector<TELEM>,T>;
   }
 
+  template <typename T, typename TELEM=typename T::TELEM>
+  auto make_FlatVector (const T & v) {
+    return FlatVector<TELEM> (v);
+  }
+  
 
+  
   template <typename T = double>
   using SliceVector = VectorView<T,size_t,size_t>;
 
-  template <typename T>
-  auto make_SliceVector (const T & v) 
-  { return SliceVector<typename T::TELEM> (v); }
-  
   template <typename T, typename TELEM=typename T::TELEM>
-  constexpr bool IsConvertibleToSliceVector ()
-  {
-    // return is_convertible_v<T,SliceVector<TELEM>>;
+  constexpr bool IsConvertibleToSliceVector () {
     return is_constructible_v<SliceVector<TELEM>,T>;    
   }
+
+  template <typename T, typename TELEM=typename T::TELEM>
+  auto make_SliceVector (const T & v) {
+    return SliceVector<TELEM> (v);
+  }
+  
   
 
 
   template <typename T = double>
   using BareSliceVector = VectorView<T,undefined_size,size_t>;
-
-  template <typename T>
-  auto make_BareSliceVector (const T & v) 
-  { return BareSliceVector<typename T::TELEM> (v); }
   
   template <typename T, typename TELEM=typename T::TELEM>
-  constexpr bool IsConvertibleToBareSliceVector ()
-  {
-    // return is_convertible_v<T,BareSliceVector<TELEM>>;
+  constexpr bool IsConvertibleToBareSliceVector () {
     return is_constructible_v<BareSliceVector<TELEM>,T>;        
+  }
+
+  template <typename T, typename TELEM=typename T::TELEM>
+  auto make_BareSliceVector (const T & v) {
+    return BareSliceVector<TELEM> (v);
   }
 
 
@@ -75,17 +74,16 @@ namespace ngbla
   template <typename T = double>
   using BareVector = VectorView<T,undefined_size,IC<1>>;
 
-  template <typename T>
-  auto make_BareVector (const T & v) 
-  { return BareVector<typename T::TELEM> (v); }
-  
   template <typename T, typename TELEM=typename T::TELEM>
-  constexpr bool IsConvertibleToBareVector ()
-  {
-    // return is_convertible_v<T,BareVector<TELEM>>;
+  constexpr bool IsConvertibleToBareVector () {
     return is_constructible_v<BareVector<TELEM>,T>;            
   }
 
+  template <typename T, typename TELEM=typename T::TELEM>
+  auto make_BareVector (const T & v) {
+    return BareVector<TELEM> (v);
+  }
+  
   
   template <typename T, typename TS>
   using LinearVector = VectorView<T,TS,IC<1>>;
@@ -96,7 +94,6 @@ namespace ngbla
 
   
   template <int S, class T> class Vec;
-  // template <int S, typename T> class FlatVec;
 
   template <int S, typename T = double>
   using FlatVec = VectorView<T,IC<S>,IC<1>>;
@@ -111,9 +108,7 @@ namespace ngbla
   
   template <class T> class SysVector;
   template <class T = double> class Vector;
-  // template <class T> class SliceVector;
   template <int DIST, typename T> class FixSliceVector;
-  // template <int S, int DIST, typename T> class FlatSliceVec;
 
 #ifdef WIN32
   #pragma warning( disable : 4848) // support for standard attribute 'no_unique_address' in C++17 and earlier is a vendor extension
@@ -126,7 +121,7 @@ namespace ngbla
   class VectorView : public MatExpr<VectorView<T,TS,TDIST>>
   {
   protected:
-    typedef MatExpr<VectorView<T,TS,TDIST>> BASE;
+    typedef MatExpr<VectorView> BASE;
     T * __restrict data;
     NO_UNIQUE_ADDRESS TS size;
     NO_UNIQUE_ADDRESS TDIST dist;
@@ -202,7 +197,6 @@ namespace ngbla
     INLINE auto Range () const { return IntRange (0, size); }
 
     INLINE T * Addr(size_t i) const { return data+i*dist; }
-    
     INLINE T * Data() const { return data; }
 
     INLINE auto View() const { return VectorView(*this); }         
@@ -233,8 +227,7 @@ namespace ngbla
       for (size_t i = 0; i < cs; i++)
       data[i*dist] = v(i);
       */
-      // CMCPMatExpr<VectorView<T,TS,TDIST>>::operator= (v);  // not working ?
-      this->template Assign<typename MatExpr<VectorView<T,TS,TDIST>>::As> (v);      
+      this->template Assign<typename BASE::As> (v);      
       return *this;
     }
     INLINE auto & operator= (VectorView && v)
@@ -244,38 +237,30 @@ namespace ngbla
       for (size_t i = 0; i < cs; i++)
         data[i*dist] = v(i);
       */
-      // CMCPMatExpr<VectorView<T,TS,TDIST>>::operator= (v);  // not working ?
-      this->template Assign<typename MatExpr<VectorView<T,TS,TDIST>>::As> (v);
+      this->template Assign<typename BASE::As> (v);
       return *this;
     }
 
     /// copy vector. sizes must match
-    template <typename T2, typename TS2, typename TD2>
-    INLINE auto & operator= (const VectorView<T2,TS2,TD2> & v) 
+    template <typename ...Args>
+    INLINE auto & operator= (const VectorView<Args...> & v) 
     {
-      MatExpr<VectorView<T,TS,TDIST>>::operator= (v);
-      /*
-      NETGEN_CHECK_RANGE(v.Size(),0,Size()+1);
-      auto cs = CombinedSize(this->Size(), v.Size());
-      for (size_t i = 0; i < cs; i++)
-	data[i*dist] = v(i);
-      */
+      // BASE::operator= (v);
+      this->template Assign<typename BASE::As> (v);      
       return *this;
     }
     
     template<typename TB>
     INLINE auto & operator= (const Expr<TB> & v) 
     {
-      MatExpr<VectorView<T,TS,TDIST>>::operator= (v);
+      // BASE::operator= (v);
+      this->template Assign<typename BASE::As> (v);            
       return *this;
     }
 
     /// assign constant value
     INLINE auto & operator= (TSCAL scal) const
     {
-      // CMCPMatExpr<VectorView<T,TS,TDIST>>::operator= (scal);
-      // for (auto i : Range())
-      // data[i*dist] = scal;
       SetVector (scal, *this);
       return *this;
     }
@@ -322,7 +307,7 @@ namespace ngbla
       return RowsArrayExpr<VectorView> (*this, rows);
     }
 
-    INLINE VectorView<T,size_t,TDIST> Range (size_t first, size_t next) const
+    INLINE auto Range (size_t first, size_t next) const
     {
       return VectorView<T,size_t,TDIST> (next-first, dist, data+first*dist);
     }    
@@ -403,7 +388,7 @@ namespace ngbla
     explicit Vector (size_t as) : FlatVector<T> (as, new T[as]) { ; }
 
 
-    /// allocate and copy matrix  
+    /// allocate and copy vector 
     Vector (const Vector & v2) 
       : FlatVector<T> (v2.Size(), new T[v2.Size()]) 
     {
@@ -426,11 +411,6 @@ namespace ngbla
     Vector (initializer_list<T> list) 
       : FlatVector<T> (list.size(), new T[list.size()])
     {
-      /*
-      int cnt = 0;
-      for (auto i = list.begin(); i < list.end(); i++, cnt++)
-        data[cnt] = *i;
-      */
       size_t cnt = 0;
       for (auto val : list)
         (*this)[cnt++] = val;
@@ -721,18 +701,9 @@ namespace ngbla
       data[I] = v;
     }
 
-    /*
-    template <class... T2>
-    Vec(const TELEM &v, T2... rest) {
-      static_assert(S==1+sizeof...(rest),"Vec<S> ctor with wrong number of arguments called");
-      Set<0>(v, rest...);
-    }
-    */
-
     template <class... T2,
-              typename enable_if<S==1+sizeof...(T2),int>::type=0>
+              enable_if_t<S==1+sizeof...(T2),bool> = true>
     Vec(const TELEM &v, T2... rest) {
-      // static_assert(S==1+sizeof...(rest),"Vec<S> ctor with wrong number of arguments called");
       Set<0>(v, rest...);
     }
   
@@ -895,8 +866,6 @@ namespace ngbla
       
   /// cross product of 3-vectors
   template <typename TA, typename TB,
-            // std::enable_if_t<ConstVectorSize<TA>() == 3, bool> = true,
-            // std::enable_if_t<ConstVectorSize<TB>() == 3, bool> = true>
             std::enable_if_t<ConstVecSize<TA>::VSIZE == 3, bool> = true,
             std::enable_if_t<ConstVecSize<TB>::VSIZE == 3, bool> = true>
   INLINE auto Cross (const TA & a, const TB & b)
@@ -904,16 +873,6 @@ namespace ngbla
     typedef decltype (a(0)*b(0)) T;
     return Vec<3,T>({ a(1)*b(2)-a(2)*b(1), a(2)*b(0)-a(0)*b(2), a(0)*b(1)-a(1)*b(0) });
   }
-
-  /*
-  /// cross product
-  template <typename S>
-  INLINE Vec<3,S> Cross (const Vec<3,S> & a, const Vec<3,S> & b)
-  {
-    return Vec<3,S>({ a(1)*b(2)-a(2)*b(1), a(2)*b(0)-a(0)*b(2), a(0)*b(1)-a(1)*b(0) });
-  }
-  */
-
 
   template <typename S>
   INLINE Vec<1,S> Cross (const Vec<2,S> & a, const Vec<2,S> & b)
@@ -1195,6 +1154,7 @@ namespace ngstd
 }
 
 
+/*
 #ifdef PARALLEL
 namespace ngcore
 {
@@ -1216,5 +1176,18 @@ namespace ngcore
   };
 }
 #endif
+*/
+
+namespace ngcore
+{
+  template<typename T> struct MPI_typetrait;
+  
+  template<int S, typename T>
+  struct MPI_typetrait<ngbla::Vec<S, T> > {
+    static auto MPIType () {
+      return MPI_typetrait<std::array<T,S>>::MPIType();
+    }
+  };
+}
 
 #endif

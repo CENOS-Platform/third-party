@@ -1,4 +1,4 @@
-set(PACKAGE_VERSION "6.2.2304-222-gbc9944405")
+set(PACKAGE_VERSION "6.2.2304-279-g12147997d")
 find_package(Netgen CONFIG REQUIRED HINTS
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
@@ -90,11 +90,11 @@ if(NGSOLVE_USE_PYTHON)
 
     set_target_properties(${target} PROPERTIES PREFIX "" CXX_STANDARD 17)
 
-    if(NETGEN_USE_GUI AND WIN32)
-      target_link_libraries(${target} PUBLIC ngsolve)
-    else(NETGEN_USE_GUI AND WIN32)
-      target_link_libraries(${target} PUBLIC solve)
-    endif(NETGEN_USE_GUI AND WIN32)
+    #if(NETGEN_USE_GUI AND WIN32)
+    target_link_libraries(${target} PUBLIC ngsolve)
+    #else(NETGEN_USE_GUI AND WIN32)
+    #  target_link_libraries(${target} PUBLIC solve)
+    #endif(NETGEN_USE_GUI AND WIN32)
 
     if(WIN32)
       set_target_properties( ${target} PROPERTIES SUFFIX ".pyd" )

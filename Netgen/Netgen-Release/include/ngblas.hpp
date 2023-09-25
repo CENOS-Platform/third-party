@@ -743,12 +743,12 @@ namespace ngbla
 
   
   // x = y
-  template <typename OP, typename T, typename TS, typename TD, typename TB, typename TBS, typename TBD>
-  class assign_trait<OP, VectorView<T,TS,TD>, VectorView<TB,TBS,TBD>, 
-                     enable_if_t<std::is_same_v<OP,typename MatExpr<VectorView<T,TS,TD>>::As> == true, int>>
+  template <typename OP, typename T, typename ...Args, typename TB, typename ...BArgs>
+  class assign_trait<OP, VectorView<T,Args...>, VectorView<TB, BArgs...>, 
+                     enable_if_t<std::is_same_v<OP,typename MatExpr<VectorView<T,Args...>>::As> == true, int>>
   {
-    typedef VectorView<T,TS,TD> TVec;
-    typedef VectorView<TB,TBS,TBD> TVecB;
+    typedef VectorView<T,Args...> TVec;
+    typedef VectorView<TB, BArgs...> TVecB;
   public:
     static inline auto & Assign (MatExpr<TVec> & self, const Expr<TVecB> & v)
     {
@@ -1030,9 +1030,9 @@ namespace ngbla
       constexpr bool ADD = std::is_same<OP,typename MatExpr<T>::AsAdd>::value || std::is_same<OP,typename MatExpr<T>::AsSub>::value;
       constexpr bool POS = std::is_same<OP,typename MatExpr<T>::As>::value || std::is_same<OP,typename MatExpr<T>::AsAdd>::value;
       
-      NgGEMM<ADD,!POS> (SliceMatrix(prod.View().A().A()),
-                        SliceMatrix(prod.View().B()),
-                        SliceMatrix(self.Spec()));
+      NgGEMM<ADD,!POS> (make_SliceMatrix(prod.View().A().A()),
+                        make_SliceMatrix(prod.View().B()),
+                        make_SliceMatrix(self.Spec()));
       return self.Spec();
     }
   };
@@ -1055,9 +1055,9 @@ namespace ngbla
       auto vecb = prod.Spec().B().A();
       FlatMatrix matb(1, vecb.Height(), vecb.Data());
       
-      NgGEMM<ADD,POS> (SliceMatrix(mata),
-                       SliceMatrix(matb),
-                       SliceMatrix(self.Spec()));
+      NgGEMM<ADD,POS> (make_SliceMatrix(mata),
+                       make_SliceMatrix(matb),
+                       make_SliceMatrix(self.Spec()));
       return self.Spec();
     }
   };
