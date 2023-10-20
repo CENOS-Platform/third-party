@@ -1,4 +1,183 @@
 
+
+
+
+
+
+
+enum VNUM { V1, V2, V3, V4,
+            E12, E13, E14,
+            E21, E23, E24,
+            E31, E32, E34,
+            E41, E42, E43,
+            F123, F124, F134,
+            F213, F214, F234,
+            F312, F314, F324,
+            F412, F413, F423
+};
+
+class El
+{
+public:
+  HPREF_ELEMENT_TYPE type;
+  std::vector<VNUM> vertices;
+
+  El (HPREF_ELEMENT_TYPE atype,
+      std::vector<VNUM> avertices)
+    : type(atype), vertices(avertices) { } 
+};
+
+extern std::map<HPREF_ELEMENT_TYPE, HPRef_Struct*> & GetHPRegistry();
+
+template <HPREF_ELEMENT_TYPE GEOM>
+class HPRefStruct : public HPRef_Struct
+{
+  typedef int int3[3];
+  typedef int int4[4];
+  typedef int int8[8];  
+  std::vector<std::array<int,3>> refedges;
+  std::vector<std::array<int,4>> reffaces;
+  std::vector<HPREF_ELEMENT_TYPE> neweltypes_vec;
+  std::vector<std::array<int,8>> newelverts;
+
+public:
+  HPRefStruct(HPREF_ELEMENT_TYPE type,
+              std::vector<El> list)
+  {
+    GetHPRegistry()[type] = this;
+    
+    geom = GEOM;
+    std::map<VNUM, int> mapnums;
+    int ii = 0;
+    for (auto v : { V1, V2, V3, V4})
+      mapnums[v] = ++ii;
+    
+    for (auto el : list)
+      for (auto v : el.vertices)
+        if (mapnums.count(v)==0)
+          mapnums[v] = ++ii;
+
+    int elist[][3] =
+      { { 1, 2, E12 },
+        { 1, 3, E13 },
+        { 1, 4, E14 },
+        { 2, 1, E21 },
+        { 2, 3, E23 },
+        { 2, 4, E24 },
+        { 3, 1, E31 },
+        { 3, 2, E32 },
+        { 3, 4, E34 },
+        { 4, 1, E41 },
+        { 4, 2, E42 },
+        { 4, 3, E43 }
+      };
+    int flist[][4] =
+      { { 1, 2, 3, F123 },
+        { 1, 2, 4, F124 },
+        { 1, 3, 4, F134 },
+        { 2, 1, 3, F213 },
+        { 2, 1, 4, F214 },
+        { 2, 3, 4, F234 },
+        { 3, 1, 2, F312 },
+        { 3, 1, 4, F314 },
+        { 3, 2, 4, F324 },
+        { 4, 1, 2, F412 },
+        { 4, 1, 3, F413 },
+        { 4, 2, 3, F423 }
+      };
+      
+    /*
+      // too advanced ...
+    for (auto [i1,i2,inew] : elist)
+      if (mapnums.count(VNUM(inew)))
+        refedges.push_back( { i1, i2, mapnums[VNUM(inew)] });
+    */
+    for (int i = 0; i < size(elist); i++)
+      {
+        int i1 = elist[i][0];
+        int i2 = elist[i][1];
+        int inew = elist[i][2];
+        if (mapnums.count(VNUM(inew)))
+          refedges.push_back( { i1, i2, mapnums[VNUM(inew)] });
+      }
+    
+    refedges.push_back( { 0, 0, 0 } );
+    splitedges = (int3*) &refedges[0][0];
+
+    /*
+      // too advanced ...
+    for (auto [i1,i2,i3,inew] : flist)
+      if (mapnums.count(VNUM(inew)))
+        reffaces.push_back( { i1, i2, i3, mapnums[VNUM(inew)] });
+    */
+    for (int i = 0; i < size(flist); i++)
+      {
+        int i1 = flist[i][0];
+        int i2 = flist[i][1];
+        int i3 = flist[i][2];
+        int inew = flist[i][3];
+        if (mapnums.count(VNUM(inew)))
+          reffaces.push_back( { i1, i2, i3, mapnums[VNUM(inew)] });
+      }
+
+
+
+    reffaces.push_back( { 0, 0, 0 } );
+    splitfaces = (int4*) &reffaces[0][0];
+    
+
+
+    splitelements = nullptr;
+    
+    for (auto el : list)
+      {
+        neweltypes_vec.push_back (el.type);
+        std::array<int,8> verts;
+        for (int j = 0; j < std::min(verts.size(), el.vertices.size()); j++)
+          verts[j] = mapnums[VNUM(el.vertices[j])];
+        newelverts.push_back(verts);
+      }
+    
+    neweltypes_vec.push_back (HP_NONE);
+
+    neweltypes = &neweltypes_vec[0];
+    newels = (int8*) &newelverts[0][0];    
+
+    /*
+    int ind = 0;
+    cout << "rule, split edges:" << endl;
+    while (splitedges[ind][0])
+      {
+        cout << splitedges[ind][0] << "-" << splitedges[ind][1] << ": " << splitedges[ind][2] << endl;
+        ind++;
+      }
+    
+    ind = 0;
+    cout << "rule, split faces:" << endl;
+    while (splitfaces[ind][0])
+      {
+        cout << splitfaces[ind][0] << "-" << splitfaces[ind][1]
+             << "-" << splitfaces[ind][2] << ": " << splitfaces[ind][3] << endl;
+        ind++;
+      }
+
+    ind = 0;
+    cout << "rule, new els:" << endl;
+    while (neweltypes[ind] != HP_NONE)
+      {
+        cout << "new type " << neweltypes[ind] << ", verts: ";
+        for (int j = 0; j < 8; j++)
+          cout << newels[ind][j] << " ";
+        ind++;
+      }
+    */
+  }
+};
+
+
+
+
+
  
 // HP_NONETET
 int refnonetet_splitedges[][3] =
@@ -81,6 +260,16 @@ HPRef_Struct reftet_0e_1v =
   reftet_0e_1v_newelstypes, 
   reftet_0e_1v_newels
 };
+
+/*
+  // new syntax ???
+HPRef_Struct2 str =
+  {
+    HP_TET_0E_1V, HP_TET,
+    El(HP_TET_0E_1V, { V1, V12, V13, V14 })
+  };
+*/  
+
 
 
 
@@ -2994,7 +3183,7 @@ HPRef_Struct reftet_1f_0e_0v =
 
 
 
-
+/*
 // HP_TET_1F_0E_1VA    ... singular vertex in face
 int reftet_1f_0e_1va_splitedges[][3] =
 {
@@ -3028,8 +3217,18 @@ HPRef_Struct reftet_1f_0e_1va =
   reftet_1f_0e_1va_newelstypes, 
   reftet_1f_0e_1va_newels
 };
+*/
 
 
+HPRefStruct<HP_TET> reftet_1f_0e_1va
+  {
+    HP_TET_1F_0E_1VA,
+    {
+      El(HP_HEX7_1FA, { V4, V3, E23, E24, E41, E31, E21 }),
+      El(HP_TET_1F_0E_1VA, { E21, V2, E23, E24 }),
+      El(HP_TET, {  E21, E41, E31, V1 })
+    }
+  };
 
 
 
@@ -3109,6 +3308,33 @@ HPRef_Struct reftet_1f_0e_2v =
   reftet_1f_0e_2v_newelstypes, 
   reftet_1f_0e_2v_newels
 };
+
+
+
+
+
+
+
+
+HPRefStruct<HP_TET> reftet_1f_0e_3v
+  {
+    HP_TET_1F_0E_3V,
+    {
+      El(HP_TET,   { V1, E21, E31, E41 }),
+      El(HP_PRISM_1FA_0E_0V, { F234, F423, F324, E21, E41, E31 }),
+      El(HP_PRISM_1FB_1EA_0V, { E32, F324, E31, E23, F234, E21  }),
+      El(HP_PRISM_1FB_1EA_0V, { E43, F423, E41, E34, F324, E31  }),
+      El(HP_PRISM_1FB_1EA_0V, { E24, F234, E21, E42, F423, E41  }),
+      El(HP_TET_1F_0E_0V, { E21, E24, E23, F234 }),
+      El(HP_TET_1F_0E_1VA, { E21, V2, E23, E24 }),            
+      El(HP_TET_1F_0E_0V, { E31, E32, E34, F324 }),
+      El(HP_TET_1F_0E_1VA, { E31, V3, E34, E32 }),            
+      El(HP_TET_1F_0E_0V, { E41, E43, E42, F423 }),
+      El(HP_TET_1F_0E_1VA, { E41, V4, E42, E43 }),            
+    }
+  };
+
+
 
 
 
@@ -3216,6 +3442,94 @@ HPRef_Struct reftet_1f_1eb_0v =
 
 
 
+// HP_TET_1F_1E_1VA      // 1 sing edge in face e23, sing vert 2
+int reftet_1f_1e_1va_splitedges[][3] =
+{
+  { 2, 1, 5 },
+  { 2, 3, 10 }, 
+  { 2, 4, 6 },
+  { 3, 1, 7 },
+  { 3, 4, 8 },
+  { 4, 1, 9 },
+  { 0, 0, 0 }
+};
+
+HPREF_ELEMENT_TYPE reftet_1f_1e_1va_newelstypes[] =
+{
+  HP_PRISM_1FB_1EA_0V,
+  HP_PRISM_1FA_0E_0V,
+  HP_TET,
+  HP_TET_1F_1E_1VA,
+  HP_NONE,
+};
+int reftet_1f_1e_1va_newels[][8] =
+{
+  { 3, 8, 7, 10, 6, 5 },
+  { 6, 4, 8, 5, 9, 7 },
+  { 5, 9, 7, 1},
+  { 5, 2, 10, 6 }
+};
+HPRef_Struct reftet_1f_1e_1va =
+{
+  HP_TET,
+  reftet_1f_1e_1va_splitedges, 
+  0, 0, 
+  reftet_1f_1e_1va_newelstypes, 
+  reftet_1f_1e_1va_newels
+};
+
+
+
+
+
+
+
+// HP_TET_1F_1E_1VB      // 1 sing edge in face e24, sing vert 2
+int reftet_1f_1e_1vb_splitedges[][3] =
+{
+  { 2, 1, 5 },
+  { 2, 3, 6 },
+  { 2, 4, 7 },
+  { 3, 1, 8 },
+  { 4, 1, 9 },
+  { 4, 3, 10 },
+  { 0, 0, 0 }
+};
+
+HPREF_ELEMENT_TYPE reftet_1f_1e_1vb_newelstypes[] =
+{
+  HP_PRISM_1FB_1EA_0V,
+  HP_PRISM_1FA_0E_0V,  
+  HP_TET,
+  HP_TET_1F_1E_1VB,  
+  HP_NONE,
+};
+int reftet_1f_1e_1vb_newels[][8] =
+{
+  { 4, 9, 10, 7, 5, 6 },
+  { 3, 6, 10, 8, 5, 9 },
+  { 5, 9, 8, 1},
+  { 5, 2, 6, 7 }  
+};
+HPRef_Struct reftet_1f_1e_1vb =
+{
+  HP_TET,
+  reftet_1f_1e_1vb_splitedges, 
+  0, 0, 
+  reftet_1f_1e_1vb_newelstypes, 
+  reftet_1f_1e_1vb_newels
+};
+
+
+
+
+
+
+
+
+
+
+
 
 // HP_TET_1F_1E_2VA     //  1 sing edge not in face (e12), sing v2,v3    
 int reftet_1f_1e_2va_splitedges[][3] =
@@ -3278,39 +3592,176 @@ HPRef_Struct reftet_1f_1e_2va =
 
 
 
-
-
-// HP_TET_1F_2E_0V    singular edge in face 234 is 34, and edge not in face is 14
-int reftet_1f_2e_0va_splitedges[][3] =
+// HP_TET_1F_1E_2VB     //  1 sing edge not in face (e12), sing v2,v4    
+int reftet_1f_1e_2vb_splitedges[][3] =
 {
-  { 2, 1, 5 },
-  { 2, 4, 6 },
-  { 3, 1, 7 },
-  { 3, 4, 8 },
-  { 4, 1, 9 },
+  { 1, 3, 5 },
+  { 1, 4, 6 },
+  { 2, 1, 7 },
+  { 2, 3, 8 },
+  { 2, 4, 9 },
+  { 3, 1, 10 },
+  { 4, 1, 11 },
+  { 4, 2, 12 },
+  { 4, 3, 13 },
   { 0, 0, 0 }
 };
 
+int reftet_1f_1e_2vb_splitfaces[][4] =
+  {
+    { 2, 1, 3, 14 },
+    { 2, 1, 4, 15 },
+    { 0, 0, 0, 0 }
+  };
+
+
+HPREF_ELEMENT_TYPE reftet_1f_1e_2vb_newelstypes[] =
+{
+  HP_PRISM,
+  HP_PRISM_SINGEDGE,
+  HP_PRISM_1FB_0E_0V,
+  HP_TET_1F_0E_1VA,
+  HP_TET_1F_0E_1VA,
+  HP_TET_1E_1VA,  
+  HP_TET_1E_1VA,
+  HP_HEX7_1FB,
+  HP_NONE,
+
+};
+int reftet_1f_1e_2vb_newels[][8] =
+{
+  { 5, 14, 10, 6, 15, 11 },
+  { 1, 5, 6, 7, 14, 15 },
+  { 8, 15, 9, 13, 11, 12 },
+  { 11, 4, 12, 13 },
+  { 15, 2, 8, 9 },
+  { 2, 7, 15, 14 },
+  { 2, 8, 14, 15 },
+  { 10, 11, 15, 14, 3, 13, 8 }
+};
+HPRef_Struct reftet_1f_1e_2vb =
+{
+  HP_TET,
+  reftet_1f_1e_2vb_splitedges,
+  reftet_1f_1e_2vb_splitfaces,   
+  0, 
+  reftet_1f_1e_2vb_newelstypes, 
+  reftet_1f_1e_2vb_newels
+};
+
+
+
+
+
+
+//  HP_TET_1F_1EA_3V
+HPRefStruct<HP_TET> reftet_1f_1ea_3v
+  {
+    HP_TET_1F_1EA_3V,
+    {
+      El(HP_PRISM,  { E14, E41, F214, E13, E31, F213 }),
+      El(HP_PRISM_SINGEDGE, { V1, E13, E14, E21, F213, F214 }),
+      El(HP_HEX7_1FB, { E31, E41, F214, F213, F324, F423, F234 }),
+      El(HP_PRISM_1FB_0E_0V, { F234, E23, F213, F324, E32, E31 }),
+      El(HP_PRISM_1FB_0E_0V, { F423, E42, E41, F234, E24, F214 }),
+      El(HP_PRISM_1FB_0E_0V, { F324, E34, E31, F423, E43, E41 }),
+      El(HP_TET_1F_0E_0V, { E31, E32, E34, F324 }),
+      El(HP_TET_1F_0E_1VA, { E31, V3, E34, E32 }),
+
+      El(HP_TET_1F_0E_0V, { E41, E43, E42, F423 }),
+      El(HP_TET_1F_0E_1VA, { E41, V4, E42, E43 }),
+      El(HP_PYRAMID_1FB_0E_0V, {  E24, E23, F213, F214, F234 }),  // needs check
+      El(HP_PYRAMID_1FB_0E_1VA, { E23, E24, F214, F213, V2 }),
+      El(HP_TET_1E_1VA, { V2, E21, F214, F213 }),
+    }
+  };
+
+
+
+//  HP_TET_1F_1E_3V     e4 (E23), V2, V3, V4
+HPRefStruct<HP_TET> reftet_1f_1e_3v
+  {
+    HP_TET_1F_1E_3V,
+    {
+      El(HP_TET,  { V1, E21, E31, E41 }),
+      El(HP_HEX7_1FA, { E34, E24, E42, E43, E31, E21, E41 }),
+      El(HP_PRISM_1FB_1EA_0V, { E32, E34, E31, E23, E24, E21 }),
+      El(HP_TET_1F_0E_1VA, { E41, V4, E42, E43 }),
+      El(HP_TET_1F_1E_1VB, { E21, V2, E23, E24 }),
+      El(HP_TET_1F_1E_1VA, { E31, V3, E34, E32 }),
+    }
+  };
+
+
+
+HPRefStruct<HP_TET> reftet_1f_2eoo_3v
+  {
+    HP_TET_1F_2Eoo_3V,
+    {
+      El(HP_TET,  { E14, E41, F214, F314 }),
+      El(HP_PRISM_1FA_0E_0V, { V4, E34, E24, E41, F314, F214 }),
+      El(HP_PRISM, { F123, F213, F312, E14, F214, F314 }),
+      El(HP_PRISM_SINGEDGE, { E12, F123, E14, E21, F213, F214 }), 
+      El(HP_PRISM_SINGEDGE, { E13, E14, F123, E31, F314, F312 }),
+      El(HP_HEX_1F_0E_0V, { E32, E23, E24, E34, F312, F213, F214, F314 }),
+      El(HP_TET_1E_1VA, { V1, E12, F123, E14 }),
+      El(HP_TET_1E_1VA, { V1, E13, E14, F123 }),
+      El(HP_PYRAMID_1FB_0E_1VA, { E34, E32, F312, F314, V3 }),
+      El(HP_PYRAMID_1FB_0E_1VA, { E23, E24, F214, F213, V2 }),
+      El(HP_TET_1E_1VA, { V2, E21, F214, F213 }),
+      El(HP_TET_1E_1VA, { V3, E31, F312, F314 }),
+
+    }
+  };
+
+// HP_TET_1F_2E_0VA    singular edge in face 234 is 34, and edge not in face is 14
+int reftet_1f_2e_0va_splitedges[][3] =
+{
+  { 1, 2, 5 },
+  { 1, 3, 6 },
+  { 2, 1, 7 },
+  { 3, 1, 8 },
+  { 3, 2, 9 },
+  { 4, 1, 10 },
+  { 4, 2, 11 },
+  { 4, 3, 12 },
+  { 0, 0, 0 }
+};
+
+int reftet_1f_2e_0va_splitfaces[][4] =
+{
+  { 4, 1, 2, 13 }, 
+  { 4, 1, 3, 14 },
+  { 0, 0, 0, 0 }
+};
 
 HPREF_ELEMENT_TYPE reftet_1f_2e_0va_newelstypes[] =
 {
+  HP_PRISM,
+  HP_PRISM_SINGEDGE,
+  HP_HEX7_1FB,
   HP_PRISM_1FB_1EA_0V,
-  HP_PRISM_1FA_0E_0V,
-  HP_TET,
+  HP_TET_1F_1E_1VA,
+  HP_TET_1E_1VA,
+  HP_TET_1E_1VA,
   HP_NONE,
 };
 int reftet_1f_2e_0va_newels[][8] =
 {
-  // { 2, 5, 6, 3, 7, 8 },
-  { 3, 8, 7, 2, 6, 5 },
-  { 6, 4, 8, 5, 9, 7 },
-  { 5, 9, 7, 1}
+  { 6, 8, 14, 5, 7, 13 },
+  { 1, 5, 6, 10, 13, 14 },
+  { 7, 8, 14, 13, 2, 9, 11 },
+  { 3, 8, 9, 12, 14, 11 },
+  { 14, 4, 11, 12 },
+  { 4, 11, 13, 14 },
+  { 4, 10, 14, 13 }
 };
 HPRef_Struct reftet_1f_2e_0va =
 {
   HP_TET,
   reftet_1f_2e_0va_splitedges, 
-  0, 0, 
+  reftet_1f_2e_0va_splitfaces, 
+  0, 
   reftet_1f_2e_0va_newelstypes, 
   reftet_1f_2e_0va_newels
 };
@@ -3318,6 +3769,94 @@ HPRef_Struct reftet_1f_2e_0va =
 
 
 
+
+// HP_TET_1F_2E_0VB    singular edge in face 234 is 34, and edge not in face is 13
+int reftet_1f_2e_0vb_splitedges[][3] =
+{
+  { 1, 2, 5 },
+  { 1, 4, 6 },
+  { 2, 1, 7 },
+  { 3, 1, 8 },
+  { 3, 2, 9 },
+  { 3, 4, 10 },
+  { 4, 1, 11 },
+  { 4, 2, 12 },
+  { 0, 0, 0 }
+};
+
+int reftet_1f_2e_0vb_splitfaces[][4] =
+{
+  { 3, 1, 2, 13 }, 
+  { 3, 1, 4, 14 },
+  { 0, 0, 0, 0 }
+};
+
+HPREF_ELEMENT_TYPE reftet_1f_2e_0vb_newelstypes[] =
+{
+  HP_PRISM,
+  HP_PRISM_SINGEDGE,
+  HP_HEX7_1FB,
+  HP_PRISM_1FB_1EA_0V,
+  HP_TET_1F_1E_1VA,
+  HP_TET_1E_1VA,
+  HP_TET_1E_1VA,
+  HP_NONE,
+};
+int reftet_1f_2e_0vb_newels[][8] =
+{
+  { 6, 14, 11, 5, 13, 7 },
+  { 1, 6, 5, 8, 14, 13 },
+  { 11, 7, 13, 14, 12, 2, 9 },
+  { 4, 12, 11, 10, 9, 14 },
+  { 14, 3, 10, 9 },
+  { 3, 8, 13, 14  },
+  { 3, 9, 14, 13 }
+};
+HPRef_Struct reftet_1f_2e_0vb =
+{
+  HP_TET,
+  reftet_1f_2e_0vb_splitedges, 
+  reftet_1f_2e_0vb_splitfaces, 
+  0, 
+  reftet_1f_2e_0vb_newelstypes, 
+  reftet_1f_2e_0vb_newels
+};
+
+
+
+
+
+//  HP_TET_1F_2E_1V     e4,e5 (E23,E24), V2 
+HPRefStruct<HP_TET> reftet_1f_2e_1v
+  {
+    HP_TET_1F_2E_1V,
+    {
+      El(HP_TET,  { V1, E21, E31, E41 }),
+      El(HP_PRISM_1FA_0E_0V, { F234, E43, E34, E21, E41, E31 }),
+      El(HP_PRISM_1FB_1EA_0V, { V3, E34, E31, E23, F234, E21 }),
+      El(HP_PRISM_1FB_1EA_0V, { E24, F234, E21, V4, E43, E41 }),
+      El(HP_TET_1F_1E_1VA, { E21, V2, E23, F234 }),
+      El(HP_TET_1F_1E_1VB, { E21, V2, F234, E24 }),
+    }
+  };
+
+
+
+//  HP_TET_1F_2E_3V     e4,e5 (E23,E24), V2, V3, V4
+HPRefStruct<HP_TET> reftet_1f_2e_3v
+  {
+    HP_TET_1F_2E_3V,
+    {
+      El(HP_TET,  { V1, E21, E31, E41 }),
+      El(HP_PRISM_1FA_0E_0V, { F234, E43, E34, E21, E41, E31 }),
+      El(HP_PRISM_1FB_1EA_0V, { E32, E34, E31, E23, F234, E21 }),
+      El(HP_PRISM_1FB_1EA_0V, { E24, F234, E21, E42, E43, E41 }),
+      El(HP_TET_1F_1E_1VA, { E21, V2, E23, F234 }),
+      El(HP_TET_1F_1E_1VB, { E21, V2, F234, E24 }),
+      El(HP_TET_1F_1E_1VA, { E31, V3, E34, E32 }),
+      El(HP_TET_1F_1E_1VB, { E41, V4, E42, E43 }),
+    }
+  };
 
 
 
@@ -3378,9 +3917,8 @@ HPRef_Struct reftet_2f_0e_0v =
 
 
 
-
-//  HP_TET_2F_1E_0VA = 601,  // 2 singular faces, sing edge e4
-int reftet_2f_1e_0va_splitedges[][3] =
+// HP_TET_2F_0E_1V
+int reftet_2f_0e_1v_splitedges[][3] =
 {
   { 1, 2, 5 },
   { 2, 1, 6 },
@@ -3388,33 +3926,103 @@ int reftet_2f_1e_0va_splitedges[][3] =
   { 3, 2, 8 },
   { 4, 1, 9 },
   { 4, 2, 10 },
+  { 4, 3, 13 },
   { 0, 0, 0 }
 };
 
-int reftet_2f_1e_0va_splitfaces[][4] =
+int reftet_2f_0e_1v_splitfaces[][4] =
   {
     { 3, 1, 2, 11 },
     { 4, 1, 2, 12 },
     { 0, 0, 0, 0 }
   };
 
-HPREF_ELEMENT_TYPE reftet_2f_1e_0va_newelstypes[] =
+
+HPREF_ELEMENT_TYPE reftet_2f_0e_1v_newelstypes[] =
 {
   HP_PRISM_1FA_0E_0V,
   HP_PRISM_1FA_0E_0V,
   HP_PRISM_1FB_1EA_0V,
   HP_PRISM_1FB_1EA_0V,
   HP_TET,
-  HP_NONE,
+  HP_TET_1F_1E_1VB,  
+  HP_TET_1F_1E_1VA,  
+  HP_NONE
 };
-int reftet_2f_1e_0va_newels[][8] =
+int reftet_2f_0e_1v_newels[][8] =
 {
   { 2, 10, 8, 6, 12, 11 },
   { 1, 7, 9, 5, 11, 12 },
   //   { 3, 11, 8, 4, 12, 10 },
-  { 4, 10, 12, 3, 8, 11 }, 
-  { 3, 7, 11, 4, 9, 12 },
-  { 5, 6, 11, 12 }
+  { 13, 10, 12, 3, 8, 11 }, 
+  { 3, 7, 11, 13, 9, 12 },
+  { 5, 6, 11, 12 },
+  { 12, 4, 10, 13 },
+  { 12, 4, 13, 9 } 
+};
+HPRef_Struct reftet_2f_0e_1v =
+{
+  HP_TET,
+  reftet_2f_0e_1v_splitedges, 
+  reftet_2f_0e_1v_splitfaces, 
+  0, 
+  reftet_2f_0e_1v_newelstypes, 
+  reftet_2f_0e_1v_newels
+};
+
+
+
+
+
+
+
+
+//  HP_TET_2F_1E_0VA,  // 2 singular faces, sing edge e4
+int reftet_2f_1e_0va_splitedges[][3] =
+{
+  { 1, 2, 5 },
+  { 2, 1, 6 },
+  { 2, 4, 7 },
+  { 3, 1, 8 },
+  { 3, 2, 9 },
+  { 3, 4, 10 },
+  { 4, 1, 11 },
+  { 4, 2, 12 },
+  { 0, 0, 0 }
+};
+
+int reftet_2f_1e_0va_splitfaces[][4] =
+  {
+    { 3, 2, 1, 13 },
+    { 3, 2, 4, 14 },
+    { 4, 1, 2, 15 },
+    { 0, 0, 0, 0 }
+  };
+
+HPREF_ELEMENT_TYPE reftet_2f_1e_0va_newelstypes[] =
+{
+  HP_TET,
+  HP_PRISM_1FA_0E_0V,
+  HP_PRISM_1FA_0E_0V,
+  HP_PRISM_SINGEDGE, 
+  HP_PRISM_SINGEDGE, 
+  HP_PRISM_SINGEDGE,
+  HP_TET_1F_1E_1VA, 
+  HP_TET_1F_1E_1VB, 
+  HP_TET_1F_1E_1VB, 
+  HP_NONE,
+};
+int reftet_2f_1e_0va_newels[][8] =
+{
+  { 5, 6, 13, 15 },
+  { 1, 8, 11, 5, 13, 15 },
+  { 7, 12, 14, 6, 15, 13 },
+  { 2, 6, 7, 9, 13, 14 },
+  { 4, 15, 11,  10, 13, 8 },
+  { 4, 12, 15,  10, 14, 13, },
+  { 13, 3, 10, 14 },
+  { 13, 3, 14, 9 },
+  { 13, 3, 8, 10 },
 };
 HPRef_Struct reftet_2f_1e_0va =
 {
@@ -3427,7 +4035,7 @@ HPRef_Struct reftet_2f_1e_0va =
 };
 
 
-//  HP_TET_2F_1E_0VB = 602,  // 2 singular faces f234,f134, sing edge e5=e23
+//  HP_TET_2F_1E_0VB = 602,  // 2 singular faces f234,f134, sing edge e5=e24
 int reftet_2f_1e_0vb_splitedges[][3] =
 {
   { 1, 2, 5 },
@@ -3452,17 +4060,27 @@ int reftet_2f_1e_0vb_splitfaces[][4] =
 HPREF_ELEMENT_TYPE reftet_2f_1e_0vb_newelstypes[] =
 {
   HP_TET,
-  /*
   HP_PRISM_1FA_0E_0V,
   HP_PRISM_1FA_0E_0V,
-  HP_PRISM_1FB_1EA_0V,
-  HP_PRISM_1FB_1EA_0V,
-  */
+  HP_PRISM_SINGEDGE, 
+  HP_PRISM_SINGEDGE, 
+  HP_PRISM_SINGEDGE,
+  HP_TET_1F_1E_1VA, 
+  HP_TET_1F_1E_1VB, 
+  HP_TET_1F_1E_1VB, 
   HP_NONE,
 };
 int reftet_2f_1e_0vb_newels[][8] =
 {
   { 5, 6, 15, 14 },
+  { 1, 8, 10, 5, 15, 14 },
+  { 7, 13, 9, 6, 14, 15 },
+  { 2, 7, 6, 11, 13, 14 },
+  { 3, 8, 15, 12, 10, 14 },
+  { 3, 15, 9, 12, 14, 13 },
+  { 14, 4, 11, 13 },
+  { 14, 4, 13, 12 },
+  { 14, 4, 12, 10 },
 };
 
 HPRef_Struct reftet_2f_1e_0vb =
@@ -3480,45 +4098,82 @@ HPRef_Struct reftet_2f_1e_0vb =
 int reftet_3f_0e_0v_splitedges[][3] =
 {
   { 1, 2, 5 },
-  { 2, 1, 6 },
-  { 3, 1, 7 },
-  { 3, 2, 8 },
-  { 4, 1, 9 },
-  { 4, 2, 10 },
+  { 1, 3, 6 },
+  { 2, 1, 7 },
+  { 2, 3, 8 },
+  { 3, 1, 9 },
+  { 3, 2, 10 },
+  { 4, 1, 11 },
+  { 4, 2, 12 },
+  { 4, 3, 13 },
   { 0, 0, 0 }
 };
 
 int reftet_3f_0e_0v_splitfaces[][4] =
   {
-    { 3, 1, 2, 11 },
-    { 4, 1, 2, 12 },
+    { 1, 2, 3, 14 },
+    { 2, 3, 1, 15 },
+    { 3, 1, 2, 16 },
+    { 4, 1, 2, 17 },
+    { 4, 1, 3, 18 },
+    { 4, 2, 3, 19 },
     { 0, 0, 0, 0 }
   };
 
+int reftet_3f_0e_0v_splitelements[][5] =
+  {
+    { 4, 1, 2, 3, 20 },
+    { 0 }
+  };
 HPREF_ELEMENT_TYPE reftet_3f_0e_0v_newelstypes[] =
 {
-  HP_PRISM_1FA_0E_0V,
-  HP_PRISM_1FA_0E_0V,
-  HP_PRISM_1FB_1EA_0V,
-  HP_PRISM_1FB_1EA_0V,
   HP_TET,
+  HP_PRISM_1FA_0E_0V,
+  HP_PRISM_1FA_0E_0V,
+  HP_PRISM_1FA_0E_0V,
+  
+  HP_PRISM_1FB_1EA_0V,
+  HP_PRISM_1FB_1EA_0V,
+  HP_PRISM_1FB_1EA_0V,
+  HP_PRISM_1FB_1EA_0V,
+  HP_PRISM_1FB_1EA_0V,
+  HP_PRISM_1FB_1EA_0V,
+
+  HP_TET_1F_1E_1VA,  // 1E_1VA
+  HP_TET_1F_0E_0V,  
+  HP_TET_1F_0E_0V,  // 1E_1VA
+  HP_TET_1F_0E_0V,  // 1E_1VA
+  HP_TET_1F_0E_0V,  // 1E_1VA
+  HP_TET_1F_0E_0V,  // 1E_1VA
   HP_NONE,
 };
 int reftet_3f_0e_0v_newels[][8] =
 {
-  { 2, 10, 8, 6, 12, 11 },
-  { 1, 7, 9, 5, 11, 12 },
-  //   { 3, 11, 8, 4, 12, 10 },
-  { 4, 10, 12, 3, 8, 11 }, 
-  { 3, 7, 11, 4, 9, 12 },
-  { 5, 6, 11, 12 }
+  { 14, 15, 16, 20 },
+  { 5, 17, 7, 14, 20, 15 },
+  { 6, 9, 18, 14, 16, 20 },
+  { 10, 8, 19, 16, 15, 20 },
+  
+  { 1, 5, 14, 11, 17, 20 },
+  { 11, 18, 20, 1, 6, 14 },
+  { 2, 8, 15, 12, 19, 20 },
+  { 12, 17, 20, 2, 7, 15 },
+  { 3, 9, 16, 13, 18, 20 },
+  { 13, 19, 20, 3, 10, 16 },
+
+  { 20, 4, 11, 17 },
+  { 20, 4, 17, 12 },
+  { 20, 4, 12, 19 },
+  { 20, 4, 19, 13 },
+  { 20, 4, 13, 18 },
+  { 20, 4, 18, 11 }
 };
 HPRef_Struct reftet_3f_0e_0v =
 {
   HP_TET,
   reftet_3f_0e_0v_splitedges, 
   reftet_3f_0e_0v_splitfaces, 
-  0, 
+  reftet_3f_0e_0v_splitelements, 
   reftet_3f_0e_0v_newelstypes, 
   reftet_3f_0e_0v_newels
 };

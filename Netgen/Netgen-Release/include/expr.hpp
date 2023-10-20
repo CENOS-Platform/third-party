@@ -330,25 +330,29 @@ namespace ngbla
 
     INLINE auto Row (size_t r) const
     {
-      return RowExpr<const T> (static_cast<const T&> (*this), r);
+      // return RowExpr<const T> (static_cast<const T&> (*this), r);
+      return RowExpr<const T> (this->View(), r);
     }
 
     INLINE auto Col (size_t r) const
     {
-      return ColExpr<const T> (static_cast<const T&> (*this), r);
+      // return ColExpr<const T> (static_cast<const T&> (*this), r);
+      return ColExpr<const T> (this->View(), r);
     }
 
 
     INLINE SubMatrixExpr<T>
     Rows (size_t first, size_t next) const
     { 
-      return SubMatrixExpr<T> (static_cast<T&> (*this), first, 0, next-first, Width()); 
+      // return SubMatrixExpr<T> (static_cast<T&> (*this), first, 0, next-first, Width());
+      return SubMatrixExpr<T> (this->View(), first, 0, next-first, Width()); 
     }
 
     INLINE SubMatrixExpr<T>
     Cols (size_t first, size_t next) const
     { 
-      return SubMatrixExpr<T> (static_cast<T&> (*this), 0, first, Height(), next-first);
+      // return SubMatrixExpr<T> (static_cast<T&> (*this), 0, first, Height(), next-first);
+      return SubMatrixExpr<T> (this->View(), 0, first, Height(), next-first);
     }
 
     INLINE SubMatrixExpr<T>
@@ -779,13 +783,15 @@ namespace ngbla
     SubMatrixExpr<const T>
     INLINE Rows (size_t first, size_t next) const
     { 
-      return SubMatrixExpr<const T> (static_cast<const T&> (*this), first, 0, next-first, Width()); 
+      // return SubMatrixExpr<const T> (static_cast<const T&> (*this), first, 0, next-first, Width());
+      return SubMatrixExpr<const T> (this->View(), first, 0, next-first, Width()); 
     }
 
     SubMatrixExpr<const T>
     INLINE Cols (size_t first, size_t next) const
     { 
-      return SubMatrixExpr<const T> (static_cast<const T&> (*this), 0, first, Height(), next-first);
+      // return SubMatrixExpr<const T> (static_cast<const T&> (*this), 0, first, Height(), next-first);
+      return SubMatrixExpr<const T> (this->View(), 0, first, Height(), next-first);
     }
 
     SubMatrixExpr<const T>
@@ -841,9 +847,13 @@ namespace ngbla
     
     INLINE SumExpr (TA aa, TB ab) : a(aa), b(ab) { ; }
 
+    /*
     INLINE auto operator() (size_t i) const { return a(i)+b(i); }
     INLINE auto operator() (size_t i, size_t j) const { return a(i,j)+b(i,j); }
-
+    */
+    template <typename ...I>
+    INLINE auto operator() (I... i) const { return a(i...)+b(i...); }    
+    
     INLINE auto Height() const { return CombinedSize(a.Height(), b.Height()); }
     INLINE auto Width() const { return CombinedSize(a.Width(), b.Width()); }
 
@@ -883,9 +893,11 @@ namespace ngbla
     
     INLINE SubExpr (TA aa, TB ab) : a(aa), b(ab) { ; }
 
-    INLINE auto operator() (size_t i) const { return a(i)-b(i); }
-    INLINE auto operator() (size_t i, size_t j) const { return a(i,j)-b(i,j); }
-
+    // INLINE auto operator() (size_t i) const { return a(i)-b(i); }
+    // INLINE auto operator() (size_t i, size_t j) const { return a(i,j)-b(i,j); }
+    template <typename ...I>
+    INLINE auto operator() (I... i) const { return a(i...)-b(i...); }
+    
     INLINE auto View() const { return SubExpr(a,b); }
     INLINE auto Shape() const { return CombinedSize(a.Shape(), b.Shape()); }
     
@@ -921,8 +933,12 @@ namespace ngbla
   public:
     MinusExpr (TA aa) : a(aa) { ; }
 
-    INLINE auto operator() (size_t i) const { return -a(i); }
-    INLINE auto operator() (size_t i, size_t j) const { return -a(i,j); }
+    // INLINE auto operator() (size_t i) const { return -a(i); }
+    // INLINE auto operator() (size_t i, size_t j) const { return -a(i,j); }
+
+    template <typename ...I>
+    INLINE auto operator() (I... i) const { return -a(i...); }
+    
     INLINE auto View() const { return MinusExpr(a); }
     INLINE auto Shape() const { return a.Shape(); }
     
@@ -1056,6 +1072,7 @@ namespace ngbla
 
     INLINE MultExpr (TA aa, TB ab) : a(aa), b(ab) { ; }
 
+    /*
     INLINE auto operator() (size_t i) const
     { return operator()(i,0); }  
 
@@ -1074,15 +1091,36 @@ namespace ngbla
       decltype (a(0,0)*b(0,0)) sum (0);
       return sum;
     }
+    */
+    template <typename ...J>
+    INLINE auto operator() (size_t i, J... j) const
+    { 
+      size_t wa = a.Width();
+
+      if (wa >= 1)
+	{
+	  auto sum = a(i,0) * b(0,j...);
+	  for (size_t k = 1; k < wa; k++)
+	    sum += a(i,k) * b(k,j...);
+          return sum;
+	}
+
+      decltype (a(0,0)*b(0,j...)) sum (0);
+      return sum;
+    }
 
     INLINE auto View() const { return MultExpr(a,b); }
     INLINE auto Shape() const
     {
-      typedef decltype(b.Shape()) TBSHAPE;
-      if constexpr (tuple_size<TBSHAPE>() == 1)
+      if constexpr (tuple_size<decltype(b.Shape())>() == 1)
         return tuple(get<0>(a.Shape()));
       else
         return tuple(get<0>(a.Shape()), get<1>(b.Shape()));
+      /*
+        // too complicated ? 
+      return tuple_cat(tuple(get<0>(a.Shape())),
+                       std::apply([](auto&&, const auto&... args) {return std::tie(args...);}, b.Shape()) );
+      */
     }
     
     INLINE TA A() const { return a; }
@@ -1230,11 +1268,11 @@ namespace ngbla
   template <class TA> 
   class SubMatrixExpr : public MatExpr<SubMatrixExpr<TA> >
   {
-    TA & a;
+    TA a;
     size_t first_row, first_col;
     size_t height, width;
   public:
-    SubMatrixExpr (TA & aa, size_t fr, size_t fc, size_t ah, size_t aw) 
+    SubMatrixExpr (TA aa, size_t fr, size_t fc, size_t ah, size_t aw) 
       : a(aa), first_row(fr), first_col(fc), height(ah), width(aw) { ; }
 
     INLINE size_t Height() const { return height; }
@@ -1268,10 +1306,10 @@ namespace ngbla
   template <class TA> 
   class RowExpr : public MatExpr<RowExpr<TA> >
   {
-    TA & a;
+    TA a;
     size_t row;
   public:
-    RowExpr (TA & aa, size_t r)
+    RowExpr (TA aa, size_t r)
       : a(aa), row(r) { ; }
 
     INLINE size_t Height() const { return 1; }
@@ -1300,10 +1338,10 @@ namespace ngbla
   template <class TA> 
   class ColExpr : public MatExpr<ColExpr<TA> >
   {
-    TA & a;
+    TA a;
     size_t col;
   public:
-    ColExpr (TA & aa, size_t c)
+    ColExpr (TA aa, size_t c)
       : a(aa), col(c) { ; }
 
     INLINE size_t Height() const { return a.Height(); }

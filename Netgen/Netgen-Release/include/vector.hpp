@@ -13,7 +13,7 @@
 namespace ngbla
 {
 
-  template <typename T, typename TS, typename TDIST> class VectorView;
+  template <typename T=double, typename TS=size_t, typename TDIST=IC<1>> class VectorView;
 
 
   template <typename T, typename ...Args>
@@ -1007,7 +1007,8 @@ namespace ngbla
   template <int S, typename T>
   INLINE auto operator* (double a, const Vec<S,T> & vec)
   {
-    typedef decltype(RemoveConst(a*vec(0))) TRES;
+    // typedef decltype(RemoveConst(a*vec(0))) TRES;
+    typedef typename std::remove_const<decltype(a*std::declval<T>())>::type TRES;
     Vec<S, TRES> res;
     for (int i = 0; i < S; i++)
       res(i) = a * vec(i);
@@ -1020,7 +1021,8 @@ namespace ngbla
   template <int S, typename T>
   INLINE auto operator* (Complex a, const Vec<S,T> & vec) 
   {
-    typedef decltype(RemoveConst(a*vec(0))) TRES;
+    // typedef decltype(RemoveConst(a*vec(0))) TRES;
+    typedef typename std::remove_const<decltype(a*std::declval<T>())>::type TRES;    
     Vec<S, TRES> res;
     for (int i = 0; i < S; i++)
       res(i) = a * vec(i);
@@ -1032,7 +1034,8 @@ namespace ngbla
             typename enable_if<!is_convertible_v<T,Complex>,int>::type=0>
   INLINE auto operator* (T a, const Vec<S,T> & vec) 
   {
-    typedef decltype(RemoveConst(a*vec(0))) TRES;
+    // typedef decltype(RemoveConst(a*vec(0))) TRES;
+    typedef typename std::remove_const<decltype(a*std::declval<T>())>::type TRES;    
     Vec<S, TRES> res;
     for (int i = 0; i < S; i++)
       res(i) = a * vec(i);
@@ -1042,7 +1045,8 @@ namespace ngbla
   template <int S, typename T>
   INLINE auto operator+ (const Vec<S,T> & a, const Vec<S,T> & b) 
   {
-    typedef decltype(RemoveConst(a(0))) TRES;    
+    // typedef decltype(RemoveConst(a(0))) TRES;
+    typedef typename std::remove_const<T>::type TRES;        
     Vec<S,TRES> res;
     for (int i = 0; i < S; i++)
       res(i) = a(i)+b(i);
@@ -1052,7 +1056,8 @@ namespace ngbla
   template <int S, typename T>
   INLINE auto operator- (const Vec<S,T> & a, const Vec<S,T> & b) 
   {
-    typedef decltype(RemoveConst(a(0))) TRES;        
+    // typedef decltype(RemoveConst(a(0))) TRES;
+    typedef typename std::remove_const<T>::type TRES;    
     Vec<S,TRES> res;
     for (int i = 0; i < S; i++)
       res(i) = a(i)-b(i);
@@ -1062,9 +1067,10 @@ namespace ngbla
   
   template <int S, typename T>
   INLINE auto operator* (double a, FlatVec<S,T> vec) 
-    -> Vec<S, decltype(RemoveConst(a*vec(0)))>
+  // -> Vec<S, decltype(RemoveConst(a*vec(0)))>
   {
-    typedef decltype(RemoveConst(a*vec(0))) TRES;
+    // typedef decltype(RemoveConst(a*vec(0))) TRES;
+    typedef typename std::remove_const<decltype(a*std::declval<T>())>::type TRES;
     Vec<S, TRES> res;
     for (int i = 0; i < S; i++)
       res(i) = a * vec(i);
@@ -1074,9 +1080,10 @@ namespace ngbla
 
   template <int S, typename T>
   INLINE auto operator* (Complex a, FlatVec<S,T> vec) 
-    -> Vec<S, decltype(RemoveConst(a*vec(0)))>
+  // -> Vec<S, decltype(RemoveConst(a*vec(0)))>
   {
-    typedef decltype(RemoveConst(a*vec(0))) TRES;
+    // typedef decltype(RemoveConst(a*vec(0))) TRES;
+    typedef typename std::remove_const<decltype(a*std::declval<T>())>::type TRES;    
     Vec<S, TRES> res;
     for (int i = 0; i < S; i++)
       res(i) = a * vec(i);
@@ -1085,9 +1092,10 @@ namespace ngbla
 
   template <int S, int D, typename T>
   INLINE auto operator* (double a, FlatSliceVec<S,D,T> vec) 
-    -> Vec<S, decltype(RemoveConst(a*vec(0)))>
+  // -> Vec<S, decltype(RemoveConst(a*vec(0)))>
   {
-    typedef decltype(RemoveConst(a*vec(0))) TRES;
+    // typedef decltype(RemoveConst(a*vec(0))) TRES;
+    typedef typename std::remove_const<decltype(a*std::declval<T>())>::type TRES;        
     Vec<S, TRES> res;
     for (int i = 0; i < S; i++)
       res(i) = a * vec(i);
@@ -1097,9 +1105,10 @@ namespace ngbla
 
   template <int S, int D, typename T>
   INLINE auto operator* (Complex a, FlatSliceVec<S,D,T> vec) 
-    -> Vec<S, decltype(RemoveConst(a*vec(0)))>
+  // -> Vec<S, decltype(RemoveConst(a*vec(0)))>
   {
-    typedef decltype(RemoveConst(a*vec(0))) TRES;
+    // typedef decltype(RemoveConst(a*vec(0))) TRES;
+    typedef typename std::remove_const<decltype(a*std::declval<T>())>::type TRES;            
     Vec<S, TRES> res;
     for (int i = 0; i < S; i++)
       res(i) = a * vec(i);

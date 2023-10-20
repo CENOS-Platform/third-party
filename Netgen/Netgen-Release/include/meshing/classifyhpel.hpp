@@ -9,7 +9,6 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
 
   HPREF_ELEMENT_TYPE type = HP_NONE; 
   
-
   int debug = 0;
   for (int j = 0;j < 4; j++)
     {
@@ -21,6 +20,8 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
   if (debug < 4) debug = 0;
   
 
+  // *testout << "new el" << endl;
+  
   for (int j = 0; j < 4; j++)
     for (int k = 0; k < 4; k++)
       {
@@ -184,7 +185,7 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
             // << isface[0] << isface[1] << isface[2] << isface[3] 
             // << ", num = " << isface[0]+isface[1]+isface[2]+isface[3] << endl;
 
-
+        
         bool sp1 = cp1 
           || (ep1 && !isedge1 && !isedge2 && !isedge3)
           || (fp1 && !isfedge1 && !isfedge2 && !isfedge3);
@@ -207,6 +208,11 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
         bool se4 = isedge4 || (isfedge4 && !isface[0] && !isface[3]);
         bool se5 = isedge5 || (isfedge5 && !isface[0] && !isface[2]);
         bool se6 = isedge6 || (isfedge6 && !isface[0] && !isface[1]);
+
+        // *testout << "sp = " << sp1 << sp2 << sp3 << sp4 << endl;
+        // *testout << "se = " << se1 << se2 << se3 << se4 << se5 << se6 << endl;        
+        // *testout << "sf = " << isface[0] << isface[1] << isface[2] << isface[3] << endl;
+
         
 	switch (isface[0]+isface[1]+isface[2]+isface[3])
 	  {
@@ -228,19 +234,19 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
 		{
 		case 0:
 		  {		
-		    if (!ep1 && !ep2 && !ep3 && !ep4)
+		    if (!sp1 && !sp2 && !sp3 && !sp4)
 		      type = HP_TET;
 				
-		    if (ep1 && !ep2 && !ep3 && !ep4)
+		    if (sp1 && !sp2 && !sp3 && !sp4)
 		      type = HP_TET_0E_1V;
 		    
-		    if (ep1 && ep2 && !ep3 && !ep4)
+		    if (sp1 && sp2 && !sp3 && !sp4)
 		      type = HP_TET_0E_2V;
 		    
-		    if (ep1 && ep2 && ep3 && !ep4)
+		    if (sp1 && sp2 && sp3 && !sp4)
 		      type = HP_TET_0E_3V;
 		    
-		    if (ep1 && ep2 && ep3 && ep4)
+		    if (sp1 && sp2 && sp3 && sp4)
 		      type = HP_TET_0E_4V;
 		    
 		    break;
@@ -250,34 +256,34 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
 		  {
 		    if (!isedge1) break;
 		    
-		    if (!cp1 && !cp2 && !ep3 && !ep4)
+		    if (!sp1 && !sp2 && !sp3 && !sp4)
 		      type = HP_TET_1E_0V;
 		    
-		    if (cp1 && !cp2 && !ep3 && !ep4)
+		    if (sp1 && !sp2 && !sp3 && !sp4)
 		      type = HP_TET_1E_1VA;
 		    
-		    if (!cp1 && !cp2 && !ep3 && ep4)
+		    if (!sp1 && !sp2 && !sp3 && sp4)
 		      type = HP_TET_1E_1VB;
 		    
-		    if (cp1 && cp2 && !ep3 && !ep4)
+		    if (sp1 && sp2 && !sp3 && !sp4)
 		      type = HP_TET_1E_2VA;
 		    
-		    if (cp1 && !cp2 && ep3 && !ep4)
+		    if (sp1 && !sp2 && sp3 && !sp4)
 		      type = HP_TET_1E_2VB;
 		    
-		    if (cp1 && !cp2 && !ep3 && ep4)
+		    if (sp1 && !sp2 && !sp3 && sp4)
 		      type = HP_TET_1E_2VC;
 		    
-		    if (!cp1 && !cp2 && ep3 && ep4)
+		    if (!sp1 && !sp2 && sp3 && sp4)
 		      type = HP_TET_1E_2VD;
 		    
-		    if (cp1 && cp2 && ep3 && !ep4)
+		    if (sp1 && sp2 && sp3 && !sp4)
 		      type = HP_TET_1E_3VA;
 		    
-		    if (cp1 && !cp2 && ep3 && ep4)
+		    if (sp1 && !sp2 && sp3 && sp4)
 		      type = HP_TET_1E_3VB;
 		    
-		    if (cp1 && cp2 && ep3 && ep4)
+		    if (sp1 && sp2 && sp3 && sp4)
 		      type = HP_TET_1E_4V;
 		    
 		    break;
@@ -286,42 +292,42 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
 		  {
 		    if (isedge1 && isedge2)
 		      {
-			if (!cp2 && !cp3 && !ep4)
+			if (!sp2 && !sp3 && !sp4)
 			  type = HP_TET_2EA_0V;
 			
-			if (cp2 && !cp3 && !ep4)
+			if (sp2 && !sp3 && !sp4)
 			  type = HP_TET_2EA_1VA;
-			if (!cp2 && cp3 && !ep4)
+			if (!sp2 && sp3 && !sp4)
 			  type = HP_TET_2EA_1VB;
 			
-			if (!cp2 && !cp3 && ep4)
+			if (!sp2 && !sp3 && sp4)
 			  type = HP_TET_2EA_1VC;
 			
-			if (cp2 && cp3 && !ep4)
+			if (sp2 && sp3 && !sp4)
 			  type = HP_TET_2EA_2VA;
-			if (cp2 && !cp3 && ep4)
+			if (sp2 && !sp3 && sp4)
 			  type = HP_TET_2EA_2VB;
-			if (!cp2 && cp3 && ep4)
+			if (!sp2 && sp3 && sp4)
 			  type = HP_TET_2EA_2VC;
 			
-			if (cp2 && cp3 && ep4)
+			if (sp2 && sp3 && sp4)
 			  type = HP_TET_2EA_3V;
 		      }
 		    if (isedge1 && isedge6)
 		      {
-			if (!cp1 && !cp2 && !cp3 && !cp4)
+			if (!sp1 && !sp2 && !sp3 && !sp4)
 			  type = HP_TET_2EB_0V;
-			if (cp1 && !cp2 && !cp3 && !cp4)
+			if (sp1 && !sp2 && !sp3 && !sp4)
 			  type = HP_TET_2EB_1V;
-			if (cp1 && cp2 && !cp3 && !cp4)
+			if (sp1 && sp2 && !sp3 && !sp4)
 			  type = HP_TET_2EB_2VA;
-			if (cp1 && !cp2 && cp3 && !cp4)
+			if (sp1 && !sp2 && sp3 && !sp4)
 			  type = HP_TET_2EB_2VB;
-			if (cp1 && !cp2 && !cp3 && cp4)
+			if (sp1 && !sp2 && !sp3 && sp4)
 			  type = HP_TET_2EB_2VC;
-			if (cp1 && cp2 && cp3 && !cp4)
+			if (sp1 && sp2 && sp3 && !sp4)
 			  type = HP_TET_2EB_3V;
-			if (cp1 && cp2 && cp3 && cp4)
+			if (sp1 && sp2 && sp3 && sp4)
 			  type = HP_TET_2EB_4V;
 		      }
 		    break;
@@ -330,36 +336,36 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
 		  {
 		    if (isedge1 && isedge2 && isedge3)
 		      {
-			if (!cp2 && !cp3 && !cp4)
+			if (!sp2 && !sp3 && !sp4)
 			  type = HP_TET_3EA_0V;
-			if (cp2 && !cp3 && !cp4)
+			if (sp2 && !sp3 && !sp4)
 			  type = HP_TET_3EA_1V;
-			if (cp2 && cp3 && !cp4)
+			if (sp2 && sp3 && !sp4)
 			  type = HP_TET_3EA_2V;
-			if (cp2 && cp3 && cp4)
+			if (sp2 && sp3 && sp4)
 			  type = HP_TET_3EA_3V;
 		      }
 		    if (isedge1 && isedge3 && isedge4)
 		      {
-			if (!cp3 && !cp4)
+			if (!sp3 && !sp4)
 			  type = HP_TET_3EB_0V;
-			if (cp3 && !cp4)
+			if (sp3 && !sp4)
                           type = HP_TET_3EB_1V;
-			if (cp3 && cp4)
+			if (sp3 && sp4)
 			  type = HP_TET_3EB_2V;
 		      }
 		    if (isedge1 && isedge2 && isedge5)
 		      {
-			if (!cp3 && !cp4)
+			if (!sp3 && !sp4)
 			  type = HP_TET_3EC_0V;
-			if (cp3 && !cp4)
+			if (sp3 && !sp4)
 			  type = HP_TET_3EC_1V;
-			if (cp3 && cp4)
+			if (sp3 && sp4)
 			  type = HP_TET_3EC_2V;
 		      }
                     if (isedge1 && isedge2 && isedge4)
                       {
-                        if (!cp4)
+                        if (!sp4)
                           type = HP_TET_3ED_3V; // a loop
                       }
 
@@ -400,6 +406,9 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
 		      type = HP_TET_1F_0E_1VA;
 		    if (!fp1 && ep2 && ep3 & !ep4)
 		      type = HP_TET_1F_0E_2V;
+
+                    if (!sp1 && sp2 && sp3 && sp4)
+                      type = HP_TET_1F_0E_3V;                        
 		    break;
 		  }
 		case 1:
@@ -414,22 +423,47 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
 			  type = HP_TET_1F_1E_2VB;
 			if (!sp1 && !sp2 && sp3 && sp4)
 			  type = HP_TET_1F_1E_2VC;
+			if (!sp1 && sp2 && sp3 && sp4)
+			  type = HP_TET_1F_1EA_3V;
 		      }
 		    if (se4) // V2-V3
 		      {
 			if (!sp1 && !sp2 && !sp3 && !sp4)
 			  type = HP_TET_1F_1EB_0V;
+			if (!sp1 && sp2 && !sp3 && !sp4)
+                          type = HP_TET_1F_1E_1VA;
+			if (!sp1 && sp2 && sp3 && sp4)
+                          type = HP_TET_1F_1E_3V;
 		      }
+                    if (se5) // V2-V4
+                      {
+			if (!sp1 && sp2 && !sp3 && !sp4)
+                          type = HP_TET_1F_1E_1VB;
+                      }
 		    break;
 		  }
                 case 2:
                   {
+                    if (isedge1 && isedge2)
+                      {
+                        if (sp1 && sp2 && sp3 && !sp4)
+                          type = HP_TET_1F_2Eoo_3V;
+                      }
                     if (isedge6 && isedge3)
                       if (!cp1 && !cp2 && !cp3)
                         type = HP_TET_1F_2E_0VA;
                     if (isedge6 && isedge2)
-                      if (!cp1 && !cp2 && !cp4)
-                        type = HP_TET_1F_2E_0VB;
+                      {
+                        if (!cp1 && !cp2 && !cp4)
+                          type = HP_TET_1F_2E_0VB;
+                      }
+                    if (se4 && se5)
+                      { // 2 edges in face
+                        if (!sp1 && sp2 && !sp3 && !sp4)
+                          type = HP_TET_1F_2E_1V;
+                        if (!sp1 && sp2 && sp3 && sp4)
+                          type = HP_TET_1F_2E_3V;
+                      }
                     break;
                   }
                 default:
@@ -457,23 +491,40 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
                         type = HP_TET_2F_0E_1V;
                         break;
                       }
+                    break;
 		  }
                 case 1:
                   {
-                    if (isedge4 && !ep1 && !cp2 && !cp4)
+                    // *testout << "so far: 2F, 1E, sp = " << sp1 << sp2 << sp3 << sp4 << endl;
+
+                    if (isedge4)
                       {
-                        type = HP_TET_2F_1E_0VA;
-                        break;
+                        if (!ep1 && !cp2 && !cp4)
+                          {
+                            type = HP_TET_2F_1E_0VA;
+                            break;
+                          }
+                        if (!sp1 && sp2 && sp3 && sp4)
+                          {
+                            type = HP_TET_2F_1E_3VA;
+                            break;
+                          }
+                        if (sp1 && sp2 && sp3 && sp4)
+                          {
+                            type = HP_TET_2F_1E_4VA;
+                            break;
+                          }
                       }
+                    
                     if (isedge5 && !ep1 && !cp2 && !cp3)
                       {
                         type = HP_TET_2F_1E_0VB;
                         break;
                       }
-                    
+                    break;
                   }
                 default:
-                  ;
+                  *testout << "2F, 2E or more not implemented so far" << endl;
 		}
 	      break;
 	    }
@@ -519,7 +570,7 @@ HPREF_ELEMENT_TYPE ClassifyTet(HPRefElement & el, INDEX_2_HASHTABLE<int> & edges
                  << el.pnums[3] << endl
 		 << "cp = " << cp1 << cp2 << cp3 << cp4 << endl
 		 << "ep = " << ep1 << ep2 << ep3 << ep4 << endl
-		 << "fp = " << fp1 << fp2 << fp3 << fp4 << endl        
+		 << "fp = " << fp1 << fp2 << fp3 << fp4 << endl
 		 << "isedge = " << isedge1 << isedge2 << isedge3 
 		 << isedge4 << isedge5 << isedge6 << endl
 		 << "isfedge = " << isfedge1 << isfedge2 << isfedge3 
@@ -909,7 +960,7 @@ HPREF_ELEMENT_TYPE ClassifyTrig(HPRefElement & el, INDEX_2_HASHTABLE<int> & edge
 	if(cornerpoint.Test(el.PNum(p[k]))) 
 	  point_sing[p[k]-1] = 3;
       
-      *testout << "point_sing = " << point_sing[0] << point_sing[1] << point_sing[2] << endl;
+      // *testout << "point_sing = " << point_sing[0] << point_sing[1] << point_sing[2] << endl;
 
       if(edge_sing[0] + edge_sing[1] + edge_sing[2] == 0) 
         { 
@@ -973,7 +1024,7 @@ HPREF_ELEMENT_TYPE ClassifyTrig(HPRefElement & el, INDEX_2_HASHTABLE<int> & edge
       if(type!=HP_NONE) break;
     }
 
-  *testout << "type = " << type << endl;
+  // *testout << "type = " << type << endl;
     
   for(int k=0;k<3;k++) el[k] = pnums[k]; 
   /*if(type != HP_NONE) 
@@ -1257,7 +1308,7 @@ HPREF_ELEMENT_TYPE ClassifyQuad(HPRefElement & el, INDEX_2_HASHTABLE<int> & edge
   int ep1(-1), ep2(-1), ep3(-1), ep4(-1), cp1(-1), cp2(-1), cp3(-1), cp4(-1);
   int isedge1, isedge2, isedge3, isedge4;
 
-  *testout << "edges = " << edges << endl;
+  // *testout << "edges = " << edges << endl;
   
   for (int j = 1; j <= 4; j++)
     {
@@ -1707,21 +1758,22 @@ HPREF_ELEMENT_TYPE ClassifyHex7 (HPRefElement & el, INDEX_2_HASHTABLE<int> & edg
                                  NgBitArray & cornerpoint, NgBitArray & edgepoint, INDEX_3_HASHTABLE<int> & faces, INDEX_2_HASHTABLE<int> & face_edges, 
                                  INDEX_2_HASHTABLE<int> & surf_edges, NgArray<int, PointIndex::BASE> & facepoint)
 {
-  HPREF_ELEMENT_TYPE type = HP_NONE;
+  // HPREF_ELEMENT_TYPE type = HP_NONE;
   
   // no singular
   // singular bottom
   // singular top
   
   // indices of bot,top-faces combinations
-  int index[6][2] = {{0,1},{1,0},{2,4},{4,2},{3,5},{5,3}}; 
-  int p[8]; 
-  const ELEMENT_FACE * elfaces  = MeshTopology::GetFaces1 (HEX);
-  const ELEMENT_EDGE * eledges = MeshTopology::GetEdges1 (HEX);
+  // int index[6][2] = {{0,1},{1,0},{2,4},{4,2},{3,5},{5,3}}; 
+  // int p[8]; 
+  // const ELEMENT_FACE * elfaces  = MeshTopology::GetFaces1 (HEX);
+  // const ELEMENT_EDGE * eledges = MeshTopology::GetEdges1 (HEX);
 
-  INDEX_3 fbot = { el.pnums[0], el.pnums[1], el.pnums[2] };
+  INDEX_4 fbot4 = { el.pnums[0], el.pnums[1], el.pnums[2], el.pnums[3] };
   INDEX_3 ftop = { el.pnums[4], el.pnums[5], el.pnums[6] };
-  fbot.Sort();
+  fbot4.Sort();
+  INDEX_3 fbot = { fbot4[0], fbot4[1], fbot4[2] };
   ftop.Sort();
   
   bool singbot = faces.Used(fbot);
@@ -1788,6 +1840,11 @@ HPREF_ELEMENT_TYPE ClassifyPyramid(HPRefElement & el, INDEX_2_HASHTABLE<int> & e
                                    NgBitArray & cornerpoint, NgBitArray & edgepoint, INDEX_3_HASHTABLE<int> & faces, INDEX_2_HASHTABLE<int> & face_edges, 
                                    INDEX_2_HASHTABLE<int> & surf_edges, NgArray<int, PointIndex::BASE> & facepoint)
 {
+  // *testout << "classify pyramid, pnums = ";
+  // for (int i = 0; i < 5; i++) *testout << el.pnums[i] << " ";
+  // *testout << endl;
+
+  
   HPREF_ELEMENT_TYPE type = HP_NONE;
   
   // implementation only for HP_PYRAMID
@@ -1810,6 +1867,7 @@ HPREF_ELEMENT_TYPE ClassifyPyramid(HPRefElement & el, INDEX_2_HASHTABLE<int> & e
    
   for(int m=0;m<4 && type == HP_NONE;m++) 
     {
+      *testout << "m = " << m << endl;
       int p[5] = {m%4, m%4+1, m%4+2, m%4+3, 4}; 
 
       for(int l=0;l<5;l++) 
@@ -1840,12 +1898,27 @@ HPREF_ELEMENT_TYPE ClassifyPyramid(HPRefElement & el, INDEX_2_HASHTABLE<int> & e
   
       for (int k=0;k<5;k++)
 	{
-	  INDEX_3 i3; 
-	  INDEX_4  i4 = INDEX_4(el.pnums[p[elfaces[k][0]-1]], el.pnums[p[elfaces[k][1]-1]], el.pnums[p[elfaces[k][2]-1]],
+	  INDEX_3 i3;
+          /*
+	  INDEX_4 i4 = INDEX_4(el.pnums[p[elfaces[k][0]-1]], el.pnums[p[elfaces[k][1]-1]], el.pnums[p[elfaces[k][2]-1]],
 				el.pnums[p[elfaces[k][3]-1]]); 
 	  i4.Sort();
 	  i3 = INDEX_3(i4.I1(), i4.I2(), i4.I3()); 
-	  
+	  */
+          if (k < 4)
+            {
+              i3 = INDEX_3(el.pnums[p[elfaces[k][0]-1]], el.pnums[p[elfaces[k][1]-1]], el.pnums[p[elfaces[k][2]-1]]);
+              i3.Sort();
+            }
+          else
+            {
+              INDEX_4 i4 = INDEX_4(el.pnums[p[elfaces[k][0]-1]], el.pnums[p[elfaces[k][1]-1]], el.pnums[p[elfaces[k][2]-1]],
+                                   el.pnums[p[elfaces[k][3]-1]]); 
+              i4.Sort();
+              i3 = INDEX_3(i4.I1(), i4.I2(), i4.I3()); 
+            }
+
+          
 	  if (faces.Used (i3))
 	    {
 	      
@@ -1855,7 +1928,19 @@ HPREF_ELEMENT_TYPE ClassifyPyramid(HPRefElement & el, INDEX_2_HASHTABLE<int> & e
 	    } 
 	  sface +=face_sing[k]; 
 	} 
-  
+
+      *testout << "point_sing: ";
+      for (int k = 0; k < 5; k++) *testout << point_sing[k] << " ";
+      *testout << endl;
+      
+      *testout << "edge_sing: ";
+      for (int k = 0; k < 4; k++) *testout << edge_sing[k] << " ";
+      *testout << endl;
+      
+      *testout << "face_sing: ";
+      for (int k = 0; k < 5; k++) *testout << face_sing[k] << " ";
+      *testout << endl;
+      
       if(!sface && !spoint && !sedge) return(HP_PYRAMID); 
       
       if(!sface && !sedge && point_sing[p[0]] == spoint) 
@@ -1866,7 +1951,12 @@ HPREF_ELEMENT_TYPE ClassifyPyramid(HPRefElement & el, INDEX_2_HASHTABLE<int> & e
 	type = HP_PYRAMID_EDGES; 
       
       if(sface && sface == face_sing[0] && spoint == point_sing[4] + 2)
-	type = HP_PYRAMID_1FB_0E_1VA; 
+        {
+          if (point_sing[4] == 1)
+            type = HP_PYRAMID_1FB_0E_0V;
+          else
+            type = HP_PYRAMID_1FB_0E_1VA;
+        }
       
       
       if(type != HP_NONE) 
