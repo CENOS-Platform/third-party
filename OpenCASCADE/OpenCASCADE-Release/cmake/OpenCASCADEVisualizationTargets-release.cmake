@@ -25,6 +25,16 @@ set_target_properties(TKV3d PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS TKV3d )
 list(APPEND _IMPORT_CHECK_FILES_FOR_TKV3d "${_IMPORT_PREFIX}/win64/vc14/lib/TKV3d.lib" "${_IMPORT_PREFIX}/win64/vc14/bin/TKV3d.dll" )
 
+# Import target "TKOpenGl" for configuration "Release"
+set_property(TARGET TKOpenGl APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(TKOpenGl PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/win64/vc14/lib/TKOpenGl.lib"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/win64/vc14/bin/TKOpenGl.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS TKOpenGl )
+list(APPEND _IMPORT_CHECK_FILES_FOR_TKOpenGl "${_IMPORT_PREFIX}/win64/vc14/lib/TKOpenGl.lib" "${_IMPORT_PREFIX}/win64/vc14/bin/TKOpenGl.dll" )
+
 # Import target "TKMeshVS" for configuration "Release"
 set_property(TARGET TKMeshVS APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(TKMeshVS PROPERTIES

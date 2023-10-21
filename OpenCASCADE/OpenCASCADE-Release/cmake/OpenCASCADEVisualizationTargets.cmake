@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget TKService TKV3d TKMeshVS TKIVtk)
+foreach(_expectedTarget TKService TKV3d TKOpenGl TKMeshVS TKIVtk)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -60,6 +60,13 @@ add_library(TKV3d SHARED IMPORTED)
 
 set_target_properties(TKV3d PROPERTIES
   INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKService;TKShHealing;TKTopAlgo;TKG2d;TKG3d;TKGeomBase;TKMesh;TKGeomAlgo;TKHLR;user32.lib;gdi32.lib;opengl32.lib"
+)
+
+# Create imported target TKOpenGl
+add_library(TKOpenGl SHARED IMPORTED)
+
+set_target_properties(TKOpenGl PROPERTIES
+  INTERFACE_LINK_LIBRARIES "TKernel;TKService;TKMath;opengl32.lib;user32.lib;gdi32.lib"
 )
 
 # Create imported target TKMeshVS
