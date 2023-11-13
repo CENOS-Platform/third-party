@@ -59,15 +59,15 @@ set_target_properties(netgen_libs PROPERTIES
 add_library(ngs_lapack INTERFACE IMPORTED)
 
 set_target_properties(ngs_lapack PROPERTIES
-  INTERFACE_LINK_LIBRARIES "E:/source/third-party-auto/Netgen-Release/lib/BLAS.lib"
+  INTERFACE_LINK_LIBRARIES "D:/source/third-party-auto12/Netgen-Release/lib/BLAS.lib"
 )
 
 # Create imported target netgen_python
 add_library(netgen_python INTERFACE IMPORTED)
 
 set_target_properties(netgen_python PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "C:/CENOS/third-party/python310/include"
-  INTERFACE_LINK_LIBRARIES "C:/CENOS/third-party/python310/libs/python310.lib"
+  INTERFACE_INCLUDE_DIRECTORIES "D:/source/cenos/backend/bin/include"
+  INTERFACE_LINK_LIBRARIES "D:/source/cenos/backend/bin/libs/python310.lib"
 )
 
 # Create imported target ngstd
