@@ -7,6 +7,12 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
+
+#include "diffop.hpp"
+#include "scalarfe.hpp"
+#include "bdbintegrator.hpp"
+#include "coefficient.hpp"
+
 namespace ngfem
 {
 
@@ -46,11 +52,25 @@ namespace ngfem
     // using DiffOp<DiffOpGradient<D, FEL> >::GenerateMatrix;
     static void GenerateMatrix (const FiniteElement & fel, 
                                 const MappedIntegrationPoint<D,D> & mip,
-                                SliceMatrix<double,ColMajor> mat, LocalHeap & lh)
+                                BareSliceMatrix<double,ColMajor> mat, LocalHeap & lh)
     {
       Cast(fel).CalcMappedDShape (mip, Trans(mat));
     }
+
+    template <typename SCALMIP>
+    static void GenerateMatrix (const FiniteElement & fel, 
+                                const MappedIntegrationPoint<D,D,SCALMIP> & mip,
+                                BareSliceMatrix<Complex,ColMajor> mat, LocalHeap & lh)
+    {
+      HeapReset hr(lh);
+      FlatMatrixFixWidth<D> dshape(fel.GetNDof(), lh);
+      Cast(fel).CalcDShape (mip.IP(), dshape);
+      mat = Trans (dshape * mip.GetJacobianInverse ());      
+      // mat = Trans (Cast(fel).GetDShape(mip.IP(),lh) * mip.GetJacobianInverse ());
+    }
+
     
+    /*
     template <typename SCALMIP, typename MAT>
     static void GenerateMatrix (const FiniteElement & fel, 
                                 const MappedIntegrationPoint<D,D,SCALMIP> & mip,
@@ -62,7 +82,7 @@ namespace ngfem
       mat = Trans (dshape * mip.GetJacobianInverse ());      
       // mat = Trans (Cast(fel).GetDShape(mip.IP(),lh) * mip.GetJacobianInverse ());
     }
-
+    */
     static int DimRef() { return D; } 
     
     template <typename IP, typename MAT>
@@ -82,7 +102,7 @@ namespace ngfem
     
     static void GenerateMatrixIR (const FiniteElement & fel, 
                                   const MappedIntegrationRule<D,D> & mir,
-                                  SliceMatrix<double,ColMajor> mat, LocalHeap & lh)
+                                  BareSliceMatrix<double,ColMajor> mat, LocalHeap & lh)
     {
       Cast(fel).CalcMappedDShape (mir, Trans(mat));
     }
@@ -199,7 +219,7 @@ namespace ngfem
     ///
     template <typename AFEL, typename MIP, typename MAT>
     static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-				MAT & mat, LocalHeap & lh)
+				MAT && mat, LocalHeap & lh)
     {
       // mat = Trans (mip.GetJacobianInverse ()) * Trans (static_cast<const FEL&>(fel).GetDShape(mip.IP(),lh));
       // HeapReset hr(lh);
@@ -259,7 +279,7 @@ namespace ngfem
     ///
     template <typename AFEL, typename MIP, typename MAT>
     static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-				MAT & mat, LocalHeap & lh)
+				MAT && mat, LocalHeap & lh)
     {
       // mat = Trans (mip.GetJacobianInverse ()) * 
       // Trans (static_cast<const FEL&>(fel).GetDShape(mip.IP(),lh));
@@ -388,18 +408,16 @@ namespace ngfem
     {
       Cast(fel).CalcShape (mir.IR(), mat);      
     }
-   
-    template <typename MIP, class TVX, class TVY>
-    static void Apply (const FiniteElement & fel, const MIP & mip,
-		       const TVX & x, TVY & y,
+    
+    static void Apply (const FiniteElement & fel, const BaseMappedIntegrationPoint & mip,
+		       BareSliceVector<Complex> x, BareVector<Complex> y,                       
 		       LocalHeap & lh) 
     {
-      HeapReset hr(lh);
-      y = Trans (Cast(fel).GetShape (mip.IP(), lh)) * x;
+      y(0) = Cast(fel).Evaluate(mip.IP(), x);      
     }
-
-    static void Apply (const FiniteElement & fel, const MappedIntegrationPoint<D,D> & mip,
-		       BareSliceVector<double> x, FlatVector<double> y,
+    
+    static void Apply (const FiniteElement & fel, const BaseMappedIntegrationPoint & mip,
+		       BareSliceVector<double> x, BareVector<double> y,
 		       LocalHeap & lh) 
     {
       y(0) = Cast(fel).Evaluate(mip.IP(), x);
@@ -448,7 +466,7 @@ namespace ngfem
 			    LocalHeap & lh) 
     {
       HeapReset hr(lh);
-      y.Range(0,fel.GetNDof()) = Cast(fel).GetShape (mip.IP(), lh) * x;
+      y.Range(0,fel.GetNDof()) = x(0) * Cast(fel).GetShape (mip.IP(), lh);
     }
 
 
@@ -459,7 +477,8 @@ namespace ngfem
 			      FlatMatrix<double> x, BareSliceVector<double> y,
 			      LocalHeap & lh)
     {
-      Cast(fel).EvaluateTrans (mir.IR(), FlatVector<> (mir.Size(), &x(0,0)), y);
+      // Cast(fel).EvaluateTrans (mir.IR(), FlatVector<> (mir.Size(), &x(0,0)), y);
+      Cast(fel).EvaluateTrans (mir.IR(), x.Col(0), y);
     }
 
     template <class MIR>
@@ -566,7 +585,7 @@ namespace ngfem
 
     template <typename AFEL, typename MIP, typename MAT>
     static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-				MAT & mat, LocalHeap & lh)
+				MAT && mat, LocalHeap & lh)
     {
       Cast(fel).CalcShape (mip.IP(), mat.Row(0));
     }
@@ -633,10 +652,22 @@ namespace ngfem
     {
       Cast(fel).Evaluate (mir.IR(), x, y.Row(0));
     }
+
+    static void ApplySIMDIR (const FiniteElement & fel, const SIMD_BaseMappedIntegrationRule & mir,
+                             BareSliceVector<Complex> x, BareSliceMatrix<SIMD<Complex>> y)
+    {
+      Cast(fel).Evaluate (mir.IR(), x, y.Row(0));
+    }
     
-    using DiffOp<DiffOpIdBoundary<D, FEL> >::AddTransSIMDIR;        
+    // using DiffOp<DiffOpIdBoundary<D, FEL> >::AddTransSIMDIR;        
     static void AddTransSIMDIR (const FiniteElement & fel, const SIMD_BaseMappedIntegrationRule & mir,
                                 BareSliceMatrix<SIMD<double>> y, BareSliceVector<double> x)
+    {
+      Cast(fel).AddTrans (mir.IR(), y.Row(0), x);
+    }    
+
+    static void AddTransSIMDIR (const FiniteElement & fel, const SIMD_BaseMappedIntegrationRule & mir,
+                                BareSliceMatrix<SIMD<Complex>> y, BareSliceVector<Complex> x)
     {
       Cast(fel).AddTrans (mir.IR(), y.Row(0), x);
     }    
@@ -722,7 +753,7 @@ namespace ngfem
     ///
     template <typename AFEL, typename MIP, typename MAT>
     static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-				MAT & mat, LocalHeap & lh)
+				MAT && mat, LocalHeap & lh)
     {
       HeapReset hr(lh);
       int nd = Cast(fel).GetNDof();
@@ -830,7 +861,7 @@ namespace ngfem
     ///
     template <typename AFEL, typename MIP, typename MAT>
     static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-				MAT & mat, LocalHeap & lh)
+				MAT && mat, LocalHeap & lh)
     {
       throw Exception("hesseboundary not implemented for 1D!");
     }
@@ -1425,7 +1456,7 @@ namespace ngfem
 	mat(i, i) = val;
     }  
   
-
+    
     template <typename FEL, typename MIP, class VECX, class VECY>
     void Apply (const FEL & fel, const MIP & mip,
 		const VECX & x, VECY && y, LocalHeap & lh) const
@@ -1454,7 +1485,7 @@ namespace ngfem
 
     template <typename MIP, typename MAT>
     static void GenerateMatrix (const FiniteElement & fel, const MIP & mip,
-				MAT & mat, LocalHeap & lh)
+				MAT && mat, LocalHeap & lh)
     {
       FlatVector<> shape = static_cast<const FEL&> (fel).GetShape (mip.IP(), lh);
       // Vec<D> nv = mip.GetNV();
@@ -1777,10 +1808,10 @@ namespace ngfem
 
     template <typename FEL, typename MIP, typename MAT>
     static void GenerateMatrix (const FEL & bfel, const MIP & mip,
-                                MAT & mat, LocalHeap & lh)
+                                MAT && mat, LocalHeap & lh)
     {
       auto & fel = static_cast<const VectorFiniteElement&> (bfel);
-      mat = 0.0;
+      mat.AddSize(DIM_DMAT, bfel.GetNDof()) = 0.0;
       for (int i = 0; i < DIM_SPC; i++)
         {
           auto & feli = static_cast<const BaseScalarFiniteElement&> (fel[i]);
@@ -1861,7 +1892,7 @@ namespace ngfem
 				MAT && mat, LocalHeap & lh)
     {
       Cast(fel).CalcShape (mip.IP(), mat.Row(0));
-      mat.Row(0) /= mip.GetMeasure();
+      mat.Row(0).Range(fel.GetNDof()) /= mip.GetMeasure();
     }
 #ifdef UNUSED
     template <typename MAT>
@@ -2007,7 +2038,7 @@ namespace ngfem
     
     template <typename FEL, typename MIP, typename MAT>
     static void GenerateMatrix (const FEL & bfel, const MIP & mip,
-                                MAT & mat, LocalHeap & lh)
+                                MAT && mat, LocalHeap & lh)
     {
       auto & fel = static_cast<const VectorFiniteElement&> (bfel);
       auto & feli = static_cast<const ScalarFiniteElement<DIM_SPC>&> (fel[0]);
@@ -2015,7 +2046,7 @@ namespace ngfem
       HeapReset hr(lh);
       FlatMatrix<> hmat(feli.GetNDof(), DIM_SPC, lh);
       feli.CalcMappedDShape (mip, hmat);
-      mat = 0.0;
+      mat.AddSize(DIM_DMAT, bfel.GetNDof()) = 0.0;
       for (int i = 0; i < DIM_SPC; i++)
         mat.Rows(DIM_SPC*i, DIM_SPC*(i+1)).Cols(fel.GetRange(i)) = Trans(hmat);
     }
@@ -2101,7 +2132,7 @@ namespace ngfem
     
     template <typename FEL, typename MIP, typename MAT>
     static void GenerateMatrix (const FEL & bfel, const MIP & mip,
-                                MAT & mat, LocalHeap & lh)
+                                MAT && mat, LocalHeap & lh)
     {
       auto & fel = static_cast<const VectorFiniteElement&> (bfel);
       auto & feli = static_cast<const ScalarFiniteElement<DIM_ELEMENT>&> (fel[0]);
@@ -2109,7 +2140,7 @@ namespace ngfem
       HeapReset hr(lh);
       FlatMatrix<> hmat(feli.GetNDof(), DIM_SPACE, lh);
       feli.CalcMappedDShape (mip, hmat);
-      mat = 0.0;
+      mat.AddSize(DIM_DMAT, fel.GetNDof()) = 0.0;
       for (int i = 0; i < DIM_SPC; i++)
         mat.Rows(DIM_SPC*i, DIM_SPC*(i+1)).Cols(fel.GetRange(i)) = Trans(hmat);
     }
@@ -2187,12 +2218,12 @@ namespace ngfem
     
     template <typename FEL, typename MIP, typename MAT>
     static void GenerateMatrix (const FEL & bfel, const MIP & mip,
-                                MAT & mat, LocalHeap & lh)
+                                MAT && mat, LocalHeap & lh)
     {
       auto & fel = static_cast<const VectorFiniteElement&> (bfel);
       auto & feli = static_cast<const ScalarFiniteElement<DIM_SPC>&> (fel[0]);
       
-      mat = 0.0;
+      mat.AddSize(1, bfel.GetNDof()) = 0.0;
       size_t n1 = feli.GetNDof();
       HeapReset hr(lh);
       FlatMatrix<> tmp(n1, DIM_SPC, lh);
@@ -2270,12 +2301,12 @@ namespace ngfem
     
     template <typename FEL, typename MIP, typename MAT>
     static void GenerateMatrix (const FEL & bfel, const MIP & mip,
-                                MAT & mat, LocalHeap & lh)
+                                MAT && mat, LocalHeap & lh)
     {
       auto & fel = static_cast<const VectorFiniteElement&> (bfel);
       auto & feli = static_cast<const ScalarFiniteElement<DIM_ELEMENT>&> (fel[0]);
       
-      mat = 0.0;
+      mat.AddSize(1, bfel.GetNDof()) = 0.0;
       size_t n1 = feli.GetNDof();
       HeapReset hr(lh);
       FlatMatrix<> tmp(n1, DIM_SPC, lh);

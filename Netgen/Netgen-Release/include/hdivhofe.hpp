@@ -9,14 +9,12 @@
 
 
 #include "thdivfe.hpp"
+#include "recursive_pol.hpp"
+#include "recursive_pol_trig.hpp"
+#include "hdivfe_utils.hpp"
 
 namespace ngfem
 {
-  
-
-
-
-
 
   template <int D>
   class HDivHighOrderNormalFiniteElement : public HDivNormalFiniteElement<D>
@@ -402,9 +400,9 @@ namespace ngfem
 
     /// calc normal components of facet shapes, ip has facet-nr
     virtual void CalcNormalShape (const IntegrationPoint & ip, 
-                                  SliceVector<> nshape) const override;
+                                  BareSliceVector<> nshape) const override;
 
-    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, SliceMatrix<> shape) const override;
+    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, BareSliceMatrix<> shape) const override;
 
     virtual tuple<int,int,int,int> GetNDofVEFC () const override;
 

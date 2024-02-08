@@ -7,6 +7,15 @@
 /* Date:   June 2018                                                 */
 /*********************************************************************/
 
+
+#include "finiteelement.hpp"
+#include "fe_interfaces.hpp"
+#include "hcurlfe.hpp"
+#include "hcurlfe_utils.hpp"
+#include "recursive_pol.hpp"
+#include "recursive_pol_trig.hpp"
+#include "recursive_pol_tet.hpp"
+
 namespace ngfem
 {
   
@@ -90,7 +99,7 @@ namespace ngfem
                                   BareSliceMatrix<SIMD<double>> values,
                                   BareSliceVector<> coefs) const = 0;
 
-    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, SliceMatrix<> shape) const = 0;
+    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, BareSliceMatrix<> shape) const = 0;
     virtual void CalcDualShape (const SIMD_BaseMappedIntegrationRule & bmir, BareSliceMatrix<SIMD<double>> shape) const = 0;
     virtual void EvaluateDual (const SIMD_BaseMappedIntegrationRule & bmir, BareSliceVector<> coefs, BareSliceMatrix<SIMD<double>> values) const = 0;
     virtual void AddDualTrans (const SIMD_BaseMappedIntegrationRule& bmir, BareSliceMatrix<SIMD<double>> values, BareSliceVector<double> coefs) const = 0;
@@ -831,9 +840,9 @@ namespace ngfem
 
 
     
-    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, SliceMatrix<> shape) const override
+    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, BareSliceMatrix<> shape) const override
     {
-      shape = 0.0;
+      shape.AddSize(ndof, sqr(bmip.DimSpace())) = 0.0;
       Switch<4-DIM>
         (bmip.DimSpace()-DIM,[this, &bmip, shape](auto CODIM)
          {

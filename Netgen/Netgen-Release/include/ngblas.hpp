@@ -29,7 +29,14 @@ namespace ngbla
   
   extern NGS_DLL_HEADER void SetVector (double val, FlatVector<double> vec) NETGEN_NOEXCEPT;
   extern NGS_DLL_HEADER void SetVector (Complex val, FlatVector<Complex> vec) NETGEN_NOEXCEPT;
-  extern NGS_DLL_HEADER void SetVector (double val, SliceVector<double> vec) NETGEN_NOEXCEPT;
+
+  extern NGS_DLL_HEADER void SetVector (double val, BareSliceVector<double> dest, size_t size) NETGEN_NOEXCEPT;
+  
+  INLINE void SetVector (double val, SliceVector<double> vec) NETGEN_NOEXCEPT
+  {
+    SetVector (val, vec, vec.Size());
+  }
+  
   extern NGS_DLL_HEADER void SetVector (Complex val, SliceVector<Complex> vec) NETGEN_NOEXCEPT;
   
 
@@ -92,7 +99,11 @@ namespace ngbla
   }
 
   extern NGS_DLL_HEADER void AddVector (double alpha, BareVector<const double> src, FlatVector<double> dest) NETGEN_NOEXCEPT;
-  extern NGS_DLL_HEADER void AddVector (double alpha, BareSliceVector<const double> src, SliceVector<double> dest) NETGEN_NOEXCEPT;
+  extern NGS_DLL_HEADER void AddVector (double alpha, BareSliceVector<const double> src, BareSliceVector<double> dest, size_t size) NETGEN_NOEXCEPT;
+  inline void AddVector (double alpha, BareSliceVector<const double> src, SliceVector<double> dest)
+  {
+    AddVector (alpha, src, dest, dest.Size());
+  }
 
 
 
@@ -619,11 +630,24 @@ namespace ngbla
   extern NGS_DLL_HEADER  
   void NgGEMV (Complex s, BareSliceMatrix<double,ord> a, FlatVector<const Complex> x, FlatVector<Complex> y) NETGEN_NOEXCEPT;
   
-  
+  /*
   template <bool ADD, ORDERING ord>
   extern NGS_DLL_HEADER  
   void NgGEMV (double s, BareSliceMatrix<double,ord> a, SliceVector<double> x, SliceVector<double> y) NETGEN_NOEXCEPT;
+  */
+  
+  template <bool ADD, ORDERING ord>
+  extern NGS_DLL_HEADER  
+  void NgGEMV (double s, BareSliceMatrix<double,ord> a, BareSliceVector<double> x, size_t sx,
+               BareSliceVector<double> y, size_t sy) NETGEN_NOEXCEPT;
+  
+  template <bool ADD, ORDERING ord>
+  INLINE void NgGEMV (double s, BareSliceMatrix<double,ord> a, SliceVector<double> x, SliceVector<double> y) NETGEN_NOEXCEPT
+  {
+    NgGEMV<ADD,ord> (s, a, x, x.Size(), y, y.Size());
+  }
 
+  
   template <bool ADD, ORDERING ord>
   extern NGS_DLL_HEADER  
   void NgGEMV (Complex s, BareSliceMatrix<double,ord> a, SliceVector<Complex> x, SliceVector<Complex> y) NETGEN_NOEXCEPT;
@@ -778,8 +802,8 @@ namespace ngbla
 
   // x += s*y
   template <typename OP, typename T, typename TS, typename TD, typename TB, typename TBS, typename TBD, typename TSCAL>
-  class assign_trait<OP, VectorView<T,TS,TD>, ScaleExpr<VectorView<TB,TBS,TBD>,TSCAL>, 
-                     enable_if_t<std::is_same_v<OP,typename MatExpr<VectorView<T,TS,TD>>::AsAdd> == true, int>>
+  class assign_trait<OP, VectorView<T,TS,TD>, ScaleExpr<VectorView<TB,TBS,TBD>,TSCAL>,
+                     enable_if_t<OP::IsAdd(), int>>
   {
     typedef VectorView<T,TS,TD> TVec;
     typedef VectorView<TB,TBS,TBD> TVecB;
@@ -787,10 +811,11 @@ namespace ngbla
     static inline auto & Assign (MatExpr<TVec> & self, const Expr<ScaleExpr<TVecB,TSCAL>> & v)
     {
       auto cs = CombinedSize (self.Spec().Size(), v.Spec().A().Size());
+      auto s = v.View().S();
+      if constexpr (!OP::IsPos()) s = -s;
       if constexpr (is_IC<decltype(cs)>())
         {
           Vec<cs,typename remove_const<TB>::type> tmp;
-          auto s = v.View().S();
           for (size_t i = 0; i<cs; i++)
             tmp[i] = v.Spec()[i];
           for (size_t i = 0; i<cs; i++)
@@ -798,26 +823,14 @@ namespace ngbla
         }
       else
         if constexpr (TVec::IsLinear() && TVecB::IsLinear())
-          AddVector(v.View().S(), BareVector<const TB>(v.View().A()), FlatVector<T>(self.Spec().Range(0,cs)));
+          AddVector(s, BareVector<const TB>(v.View().A()), FlatVector<T>(self.Spec().Range(0,cs)));
         else
-          AddVector(v.View().S(), BareSliceVector<const TB>(v.View().A()), SliceVector<T>(self.Spec().Range(0,cs)));
+          AddVector(s, BareSliceVector<const TB>(v.View().A()), SliceVector<T>(self.Spec().Range(0,cs)));
       return self.Spec();
     }
   };
   
 
-  
-
-  
-  /*
-      else if constexpr (std::is_same_v<TOP,typename MatExpr<T>::As> &&
-                         IsConvertibleToSliceVector<TB>() && 
-                         IsConvertibleToSliceVector<T>())
-        {
-          CopyVector(BareSliceVector(SliceVector(v.Spec())), SliceVector(self.Spec()));
-          return self.Spec();
-        }
-  */
 
 
   // matrix-vector
@@ -843,7 +856,7 @@ namespace ngbla
                          FlatVector<const TB>(prod.View().B().Range(0,w)),
                          FlatVector<T>(self.Spec().Range(0,h)));
       else
-        NgGEMV<ADD> (POS, make_BareSliceMatrix(prod.View().A()),
+        NgGEMV<ADD> (POS ? 1.0 : -1.0, make_BareSliceMatrix(prod.View().A()),
                      SliceVector<TB>(prod.View().B().Range(0,w)),
                      SliceVector<T>(self.Spec().Range(0,h)));
       return self.Spec();
@@ -1051,9 +1064,9 @@ namespace ngbla
       constexpr bool POS = std::is_same<OP,typename MatExpr<T>::As>::value || std::is_same<OP,typename MatExpr<T>::AsAdd>::value;
       
       auto veca = prod.Spec().A();
-      FlatMatrix mata(veca.Height(), 1, veca.Data());
+      FlatMatrix<> mata(veca.Height(), 1, veca.Data());
       auto vecb = prod.Spec().B().A();
-      FlatMatrix matb(1, vecb.Height(), vecb.Data());
+      FlatMatrix<> matb(1, vecb.Height(), vecb.Data());
       
       NgGEMM<ADD,POS> (make_SliceMatrix(mata),
                        make_SliceMatrix(matb),
@@ -1075,7 +1088,7 @@ namespace ngbla
 				double * pb, size_t db,
 				const BitArray & ba);
 
-    
+  extern string GetTimingHelpString();
   extern list<tuple<string,double>> Timing (int what, size_t n, size_t m, size_t k,
                                             bool lapack, bool doubleprec, size_t maxits);
 }

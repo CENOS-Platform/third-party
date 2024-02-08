@@ -7,6 +7,9 @@
 /* Date:   5. Jul. 2001                                              */
 /*********************************************************************/
 
+
+#include "finiteelement.hpp"
+
 namespace ngfem
 {
 
@@ -23,11 +26,17 @@ namespace ngfem
     INLINE BaseHDivFiniteElement (int andof, int aorder)
       : FiniteElement (andof, aorder) { ; }
 
+    /// compute shape
     virtual void CalcShape (const IntegrationPoint & ip, 
-			    SliceMatrix<> shape) const = 0;
+			    BareSliceMatrix<> shape) const = 0;
 
+    /// compute div of shape
     virtual void CalcDivShape (const IntegrationPoint & ip,
-			       SliceVector<> divshape) const = 0;
+			       BareSliceVector<> divshape) const = 0;
+
+    /// calc normal components of facet shapes, ip has facet-nr
+    virtual void CalcNormalShape (const IntegrationPoint & ip, 
+                                  BareSliceVector<> nshape) const = 0;
   };
 
   template <int D>
@@ -37,39 +46,42 @@ namespace ngfem
     enum { DIM = D };
 
   public:
+    using BaseHDivFiniteElement::BaseHDivFiniteElement;
+    /*
     ///
     INLINE HDivFiniteElement (int andof, int aorder)
       : BaseHDivFiniteElement (andof, aorder) { ; } 
 
     ///
     INLINE HDivFiniteElement () { ; }
-
+    */
+    
     ///
     HD virtual ~HDivFiniteElement () { ; }
 
     /// 
     virtual string ClassName() const;
 
-    /// compute shape
+    /*
     virtual void CalcShape (const IntegrationPoint & ip,
-			    SliceMatrix<> shape) const = 0;
-
-    /// compute div of shape
+			    BareSliceMatrix<> shape) const = 0;
+    */
+    
     virtual void CalcDivShape (const IntegrationPoint & ip,
-			       SliceVector<> divshape) const;
-
+			       BareSliceVector<> divshape) const;
+    
     /// calc normal components of facet shapes, ip has facet-nr
     virtual void CalcNormalShape (const IntegrationPoint & ip, 
-                                  SliceVector<> nshape) const;
+                                  BareSliceVector<> nshape) const;
 
     /// compute shape
     virtual void CalcMappedShape (const BaseMappedIntegrationPoint & bmip,
-                                  SliceMatrix<> shape) const;
+                                  BareSliceMatrix<> shape) const;
 
     virtual void CalcMappedShape (const SIMD<MappedIntegrationPoint<DIM,DIM>> & mip,
 				  BareSliceMatrix<SIMD<double>> shape) const;
 
-    virtual void CalcMappedShape (const BaseMappedIntegrationRule & bmir, SliceMatrix<> shapes) const;
+    virtual void CalcMappedShape (const BaseMappedIntegrationRule & bmir, BareSliceMatrix<> shapes) const;
 
     virtual void CalcMappedShape (const SIMD_BaseMappedIntegrationRule & mir, 
                                   BareSliceMatrix<SIMD<double>> shapes) const;
@@ -79,7 +91,7 @@ namespace ngfem
 
     /// compute div of shape
     virtual void CalcMappedDivShape (const MappedIntegrationPoint<DIM,DIM> & sip,
-				     SliceVector<> divshape) const;
+				     BareSliceVector<> divshape) const;
 
     virtual void CalcMappedDivShape (const SIMD_BaseMappedIntegrationRule & mir, 
                                      BareSliceMatrix<SIMD<double>> divshapes) const;
@@ -103,31 +115,12 @@ namespace ngfem
 
     
     virtual void Evaluate (const IntegrationRule & ir, FlatVector<double> coefs, 
-			   FlatMatrixFixWidth<D> vals) const;
-    /*
-    {
-      MatrixFixWidth<D> shape(ndof);
-      for (int i = 0; i < ir.GetNIP(); i++)
-	{
-	  CalcShape (ir[i], shape);
-	  vals.Row(i) = Trans(shape) * coefs;
-	}
-    }
-    */
+			   BareSliceMatrix<> vals) const;
+
     virtual void EvaluateTrans (const IntegrationRule & ir, 
-                                FlatMatrixFixWidth<D> vals,
+                                BareSliceMatrix<> vals,
                                 FlatVector<double> coefs) const;
-    /*
-    {
-      MatrixFixWidth<D> shape(ndof);
-      coefs = 0;
-      for (int i = 0; i < ir.GetNIP(); i++)
-	{
-	  CalcShape (ir[i], shape);
-          coefs += shape * vals.Row(i);
-	}
-    }
-    */
+
     virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir, BareSliceVector<> coefs,
                            BareSliceMatrix<SIMD<double>> values) const;
     virtual void AddTrans (const SIMD_BaseMappedIntegrationRule & ir, BareSliceMatrix<SIMD<double>> values,
@@ -138,9 +131,7 @@ namespace ngfem
                               BareSliceVector<> coefs) const;
     
     virtual void GetFacetDofs(int i, Array<int> & dnums) const;
-    // { cout  << " GetFacetDofs for nothing " << endl; dnums.SetSize(0);}; 
-
-    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, SliceMatrix<> shape) const;
+    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, BareSliceMatrix<> shape) const;
 
   protected:
 

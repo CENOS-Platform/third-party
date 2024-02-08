@@ -7,12 +7,16 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
+
+#include "fespace.hpp"
+#include <specialelement.hpp>
+
 namespace ngcomp
 {
-
   class LinearForm;
   class Preconditioner;
 
+  
   /** 
       A bilinear-form.
       A bilinear-form provides the system matrix. 

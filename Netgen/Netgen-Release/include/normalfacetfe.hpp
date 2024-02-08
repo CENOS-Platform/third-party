@@ -8,8 +8,10 @@
 /*********************************************************************/
 
 
-#include <fem.hpp>
+// #include <fem.hpp>
 #include "thdivfe.hpp"
+#include "recursive_pol.hpp"
+#include <cassert>
 
 namespace ngfem 
 {
@@ -161,7 +163,7 @@ namespace ngfem
     virtual void CalcShape (const IntegrationPoint & ip, int facet, SliceMatrix<> shape) const;
 
     using TBASE::CalcDualShape;
-    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, SliceMatrix<> shape) const override;
+    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, BareSliceMatrix<> shape) const override;
 
     virtual int GetNExtraShapes( int facet) const {return 0;}
     virtual void CalcExtraShape (const IntegrationPoint & ip, int facet, FlatMatrixFixWidth<ET_T::DIM> xshape) const {xshape = 0.0;}

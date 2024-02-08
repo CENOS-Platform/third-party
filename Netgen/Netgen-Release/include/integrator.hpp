@@ -8,6 +8,10 @@
 /*********************************************************************/
 
 
+// #include "elementtransformation.hpp"
+#include "finiteelement.hpp"
+#include "diffop.hpp"
+
 namespace ngfem
 {
 
@@ -1498,6 +1502,25 @@ namespace ngfem
       throw Exception ("FacetLinearFormIntegrator can not assemble volumetric element matrices!");
     }
     
+    virtual void
+    CalcFacetVector (const FiniteElement & volumefel1, int LocalFacetNr1,
+			 const ElementTransformation & eltrans1, FlatArray<int> & ElVertices1,
+			 const FiniteElement & volumefel2, int LocalFacetNr2,
+			 const ElementTransformation & eltrans2, FlatArray<int> & ElVertices2,
+			 FlatVector<double> elvec,
+			 LocalHeap & lh) const{ 
+      throw Exception ("FacetLinearFormIntegrator::CalcFacetVector for inner facets not implemented!");
+    }
+    
+    virtual void 
+    CalcFacetVector (const FiniteElement & volumefel1, int LocalFacetNr1,
+			 const ElementTransformation & eltrans1, FlatArray<int> & ElVertices1,
+			 const FiniteElement & volumefel2, int LocalFacetNr2,
+			 const ElementTransformation & eltrans2, FlatArray<int> & ElVertices2,	 
+			 FlatVector<Complex> elvec,
+			 LocalHeap & lh) const{ 
+      throw Exception ("FacetLinearFormIntegrator::CalcFacetVector<Complex> for inner facets not implemented!");
+    }
 
     virtual void
     CalcFacetVector (const FiniteElement & volumefel, int LocalFacetNr,
@@ -1731,7 +1754,7 @@ namespace ngfem
     virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & mip,
-		SliceMatrix<double,ColMajor> mat,   
+		BareSliceMatrix<double,ColMajor> mat,   
 		LocalHeap & lh) const override
     {
       throw Exception ("CalcFluxDifferentialOperator::CalcMatrix not available");
@@ -1740,7 +1763,7 @@ namespace ngfem
     virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & bmip,
-		SliceMatrix<Complex,ColMajor> mat, 
+		BareSliceMatrix<Complex,ColMajor> mat, 
 		LocalHeap & lh) const override
     {
       throw Exception ("CalcFluxDifferentialOperator::CalcMatrix not available");
@@ -1749,7 +1772,7 @@ namespace ngfem
     virtual void
     CalcMatrix (const FiniteElement & fel,
                 const BaseMappedIntegrationRule & mir,
-		SliceMatrix<double,ColMajor> mat,   
+		BareSliceMatrix<double,ColMajor> mat,   
 		LocalHeap & lh) const override
     {
       throw Exception ("CalcFluxDifferentialOperator::CalcMatrix not available");
@@ -1758,7 +1781,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationRule & mir,
-		SliceMatrix<Complex,ColMajor> mat,   
+		BareSliceMatrix<Complex,ColMajor> mat,   
 		LocalHeap & lh) const override
     {
       throw Exception ("CalcFluxDifferentialOperator::CalcMatrix not available");

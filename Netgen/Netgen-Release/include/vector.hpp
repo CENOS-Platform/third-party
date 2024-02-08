@@ -161,7 +161,13 @@ namespace ngbla
     INLINE VectorView (size_t as, LocalHeap & lh) 
       :  data(lh.Alloc<T> (as)), size(as), dist(IC<1>()) { }
 
-    
+    template <typename EXPR>
+    INLINE VectorView(LocalHeapExpr<EXPR>&& lhe)
+      : VectorView(lhe.Height(), lhe.GetLocalHeap())
+    {
+      *this = lhe.A();
+    }
+
     /// put FlatVector over fixed size vector
 
     template <int S>
@@ -309,6 +315,7 @@ namespace ngbla
 
     INLINE auto Range (size_t first, size_t next) const
     {
+      NETGEN_CHECK_RANGE(next,first,Size()+1);
       return VectorView<T,size_t,TDIST> (next-first, dist, data+first*dist);
     }    
     
@@ -327,7 +334,8 @@ namespace ngbla
 
     INLINE auto Slice(size_t first, size_t dist2) const
     {
-      return VectorView<T,decltype(declval<TS>()/size_t()), decltype(declval<TDIST>()*size_t())> (size/dist2, dist2*dist, Addr(first));
+      // return VectorView<T,decltype(declval<TS>()/size_t()), decltype(declval<TDIST>()*size_t())> (size/dist2, dist2*dist, Addr(first));
+      return VectorView<T,decltype(declval<TS>()/size_t()), decltype(declval<TDIST>()*size_t())> ( (size-first+dist2-1)/dist2, dist2*dist, Addr(first));
     }
     
     INLINE auto operator+(int i) const { return VectorView(size-i, dist, data+i*dist); }
@@ -337,6 +345,7 @@ namespace ngbla
     INLINE auto AsMatrix (size_t h, size_t w) const
     {
       // todo: checking
+      static_assert(std::is_same<TDIST,IC<1>>());
       return FlatMatrix<T> (h,w, data);
     }
 
@@ -1162,30 +1171,6 @@ namespace ngstd
   }
 }
 
-
-/*
-#ifdef PARALLEL
-namespace ngcore
-{
-  template<int S, typename T>
-  class MPI_typetrait<ngbla::Vec<S, T> >
-  {
-  public:
-    /// gets the MPI datatype
-    static MPI_Datatype MPIType () 
-    { 
-      static MPI_Datatype MPI_T = 0;
-      if (!MPI_T)
-	{
-	  MPI_Type_contiguous ( S, MPI_typetrait<T>::MPIType(), &MPI_T);
-	  MPI_Type_commit ( &MPI_T );
-	}
-      return MPI_T;
-    }
-  };
-}
-#endif
-*/
 
 namespace ngcore
 {

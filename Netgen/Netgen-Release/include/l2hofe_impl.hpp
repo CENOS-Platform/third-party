@@ -8,6 +8,7 @@
 /*********************************************************************/
 
 
+#include "l2hofe.hpp"
 
 namespace ngfem
 {
@@ -117,7 +118,7 @@ namespace ngfem
 
   template <ELEMENT_TYPE ET, class SHAPES, class BASE>
   void L2HighOrderFE<ET,SHAPES,BASE> :: 
-  EvaluateTrans (const IntegrationRule & ir, FlatVector<> values, BareSliceVector<> coefs) const
+  EvaluateTrans (const IntegrationRule & ir, BareSliceVector<> values, BareSliceVector<> coefs) const
   {
 #ifndef __CUDA_ARCH__
     int classnr =  ET_trait<ET>::GetClassNr (vnums);
@@ -150,7 +151,7 @@ namespace ngfem
 
   template <ELEMENT_TYPE ET, class SHAPES, class BASE>
   void L2HighOrderFE<ET,SHAPES,BASE> :: 
-  EvaluateGradTrans (const IntegrationRule & ir, FlatMatrixFixWidth<DIM> values, BareSliceVector<> coefs) const
+  EvaluateGradTrans (const IntegrationRule & ir, BareSliceMatrix<> values, BareSliceVector<> coefs) const
     {
 #ifndef __CUDA_ARCH__
       int classnr =  ET_trait<ET>::GetClassNr (vnums);

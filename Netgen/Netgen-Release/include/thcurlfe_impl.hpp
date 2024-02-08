@@ -2,6 +2,8 @@
 #define FILE_THCURLFE_IMPL
 
 
+#include "thcurlfe.hpp"
+#include "recursive_pol.hpp" // for SBLambda
 
 namespace ngfem
 {
@@ -15,7 +17,7 @@ namespace ngfem
   
   template <ELEMENT_TYPE ET, typename SHAPES, typename BASE>
   void T_HCurlHighOrderFiniteElement<ET,SHAPES,BASE> :: 
-  CalcShape (const IntegrationPoint & ip, SliceMatrix<> shape) const
+  CalcShape (const IntegrationPoint & ip, BareSliceMatrix<> shape) const
   {
     this->T_CalcShape (GetTIPGrad<DIM>(ip), 
                        SBLambda ([shape](size_t i, auto s)
@@ -24,7 +26,7 @@ namespace ngfem
 
   template <ELEMENT_TYPE ET, typename SHAPES, typename BASE>
   void T_HCurlHighOrderFiniteElement<ET, SHAPES,BASE> :: 
-  CalcCurlShape (const IntegrationPoint & ip, SliceMatrix<> shape) const
+  CalcCurlShape (const IntegrationPoint & ip, BareSliceMatrix<> shape) const
   {
     this->T_CalcShape (GetTIPGrad<DIM>(ip), 
                        SBLambda ([shape](size_t i, auto s) 
@@ -36,7 +38,7 @@ namespace ngfem
   template <ELEMENT_TYPE ET, typename SHAPES, typename BASE>
   void T_HCurlHighOrderFiniteElement<ET, SHAPES, BASE> :: 
   CalcMappedShape (const BaseMappedIntegrationPoint & bmip,
-                   SliceMatrix<> shape) const
+                   BareSliceMatrix<> shape) const
   {
     Switch<4-DIM>
       (bmip.DimSpace()-DIM,[this,&bmip,shape](auto CODIM)
@@ -53,7 +55,7 @@ namespace ngfem
   template <ELEMENT_TYPE ET, typename SHAPES, typename BASE>
   void T_HCurlHighOrderFiniteElement<ET,SHAPES,BASE> :: 
   CalcMappedShape (const BaseMappedIntegrationRule & bmir, 
-                   SliceMatrix<> shapes) const
+                   BareSliceMatrix<> shapes) const
   {
     Switch<4-DIM>
       (bmir.DimSpace()-DIM,[this,&bmir,shapes](auto CODIM)
@@ -110,7 +112,7 @@ namespace ngfem
   template <ELEMENT_TYPE ET, typename SHAPES, typename BASE>
   void T_HCurlHighOrderFiniteElement<ET,SHAPES,BASE> :: 
   CalcMappedCurlShape (const BaseMappedIntegrationPoint & bmip,
-                       SliceMatrix<> curlshape) const
+                       BareSliceMatrix<> curlshape) const
   {
     auto & mip = static_cast<const MappedIntegrationPoint<DIM,DIM>&> (bmip);
 
@@ -125,8 +127,8 @@ namespace ngfem
 
   template <ELEMENT_TYPE ET, typename SHAPES, typename BASE>
   void T_HCurlHighOrderFiniteElement<ET,SHAPES,BASE> :: 
-  CalcMappedCurlShape (const MappedIntegrationRule<DIM,DIM> & mir, 
-                       SliceMatrix<> curlshape) const
+  CalcMappedCurlShape (const BaseMappedIntegrationRule & mir, 
+                       BareSliceMatrix<> curlshape) const
   {
     for (int i = 0; i < mir.Size(); i++)
       CalcMappedCurlShape (mir[i], 
@@ -177,7 +179,7 @@ namespace ngfem
 
   template <ELEMENT_TYPE ET, typename SHAPES, typename BASE>
   void T_HCurlHighOrderFiniteElement<ET,SHAPES,BASE> :: 
-  EvaluateCurl (const IntegrationRule & ir, BareSliceVector<> coefs, FlatMatrixFixWidth<DIM_CURL_(DIM)> curl) const
+  EvaluateCurl (const IntegrationRule & ir, BareSliceVector<> coefs, BareSliceMatrix<> curl) const
   {
     LocalHeapMem<10000> lhdummy("evalcurl-heap");
     for (int i = 0; i < ir.Size(); i++)

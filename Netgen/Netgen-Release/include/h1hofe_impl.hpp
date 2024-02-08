@@ -7,7 +7,9 @@
 /* Date:   6. Feb. 2003                                              */
 /*********************************************************************/
 
-#include "recursive_pol_tet.hpp"
+#include "recursive_pol.hpp"
+#include "h1hofe.hpp"
+
 
 namespace ngfem
 {
@@ -43,7 +45,8 @@ namespace ngfem
     template<typename Tx, typename TFA>  
     INLINE void T_CalcDualShape (const TIP<DIM,Tx> ip, TFA & shape) const
     { throw Exception ("T_dual shape not implemented, H1Ho"+ToString(ET)); }      
-    
+
+    /*
     void CalcDualShape2 (const BaseMappedIntegrationPoint & mip, SliceVector<> shape) const
     {
       double imeas = 1.0/mip.GetMeasure();
@@ -51,7 +54,8 @@ namespace ngfem
       T_CalcDualShape (GetTIP<DIM>(mip.IP()), SBLambda ( [&](int j, double val) { shape(j) = imeas * val; }));
       // throw Exception ("dual shape not implemented, H1Ho");
     }
-
+    */
+    
     bool GetDiagDualityMassInverse2 (FlatVector<> diag) const { return false; }
   };
 
@@ -65,11 +69,18 @@ namespace ngfem
     shape[0] = Tx(1.0);
   }
 
+  template<> template<typename Tx, typename TFA>  
+  void H1HighOrderFE_Shape<ET_POINT> :: T_CalcDualShape (TIP<0,Tx> ip, TFA & shape) const
+  {
+    shape[0] = Tx(1.0);
+  }
+  /*
   template<>
   inline void H1HighOrderFE_Shape<ET_POINT> ::CalcDualShape2 (const BaseMappedIntegrationPoint & mip, SliceVector<> shape) const
   {
     shape[0] = 1.0;
   }
+  */
   
   /* *********************** Segment  **********************/  
 
@@ -426,6 +437,7 @@ namespace ngfem
   }
 #endif
 
+#ifdef NONE
   template<>
   inline void H1HighOrderFE_Shape<ET_QUAD> ::CalcDualShape2 (const BaseMappedIntegrationPoint & mip, SliceVector<> shape) const
   {
@@ -467,7 +479,8 @@ namespace ngfem
                     }));
       }
   }
-
+#endif
+  
 
   /* *********************** Tetrahedron  **********************/
 
@@ -746,7 +759,23 @@ namespace ngfem
       }
   }
 
+  template<> template<typename Tx, typename TFA>  
+  void H1HighOrderFE_Shape<ET_PRISM> :: T_CalcDualShape (TIP<3,Tx> ip, TFA & shape) const
+  {
+    // auto & ip = mip.IP();
+    // shape = 0.0;
 
+    if(order > 1)
+      throw Exception("H1Ho prism dual shapes only implemented for order==1!");
+
+    if(ip.vb == BBBND)
+      {
+	shape[ip.facetnr] = 1;
+	return;
+      }
+  }
+  
+#ifdef NONE
   template<>
   inline void H1HighOrderFE_Shape<ET_PRISM> ::
   CalcDualShape2 (const BaseMappedIntegrationPoint & mip, SliceVector<> shape) const
@@ -762,7 +791,7 @@ namespace ngfem
         shape[i] = (i == ip.FacetNr()) ? 1 : 0;
 
   }
-
+#endif
  
 
   /* *********************** Hex  **********************/

@@ -11,17 +11,26 @@
 #include <nginterface_v2.hpp>
 #include <core/ranges.hpp>
 
+#include <elementtopology.hpp>
+
 namespace ngfem
 {
-  class ElementTransformation;
   class IntegrationPoint;
+  class CoefficientFunction;
+  class ElementTransformation;
 }
 
 
 
 namespace ngcomp
 {
+  class PML_Transformation;
+  
+  using ngcore::INT;
   using netgen::Ng_Node;
+  using ngfem::ELEMENT_TYPE;
+  
+  using namespace ngfem;
   
   class MeshAccess;
   class Ngs_Element;
@@ -244,7 +253,7 @@ namespace ngcomp
     DynamicTable<size_t> neighbours[4][4];
     friend class Region;
   public:
-    Signal<> updateSignal;
+    SimpleSignal updateSignal;
 
     /// for achiving ...
     MeshAccess ();

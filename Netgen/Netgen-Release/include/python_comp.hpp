@@ -4,7 +4,10 @@
 #include <python_ngstd.hpp>
 #include <python_linalg.hpp>
 
-#include "comp.hpp"
+// #include "comp.hpp"
+
+#include "gridfunction.hpp"
+#include "periodic.hpp"
 
 namespace pybind11
 {
@@ -56,28 +59,14 @@ namespace ngcomp
 
   inline void connect_auto_update(FESpace* fes) {
     fes->ConnectAutoUpdate();
-    /*
-    if (fes->weak_from_this().expired())
-      throw Exception("Given pointer is not managed by a shared ptr.");
-    if (fes->DoesAutoUpdate())
-      fes->GetMeshAccess()->updateSignal.Connect(fes, [fes]()
-                                                 {
-                                                   fes->Update();
-                                                   fes->FinalizeUpdate();
-                                                 });
-    */
-  }
-  
-  inline void connect_auto_update(GridFunction* gf) {
-    gf->ConnectAutoUpdate();
-    /*
-    if (gf->weak_from_this().expired())
-      throw Exception("Given pointer is not managed by a shared ptr.");
-    if (gf->DoesAutoUpdate())
-      gf->GetFESpace()->updateSignal.Connect(gf, [gf](){ gf->Update(); });
-    */
   }
 
+  /*
+  inline void connect_auto_update(GridFunction* gf) {
+    gf->ConnectAutoUpdate();
+  }
+  */
+  
   template <typename FES, typename BASE=FESpace>
   auto ExportFESpace (py::module & m, string pyname, bool module_local = false)
   {

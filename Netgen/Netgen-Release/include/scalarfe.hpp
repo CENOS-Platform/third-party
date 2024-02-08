@@ -7,18 +7,23 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
+#include "finiteelement.hpp"
+#include "fe_interfaces.hpp"
+
 namespace ngfem
 {
   
   class BaseScalarFiniteElement : public FiniteElement 
   {
   public:
-    // using FiniteElement::FiniteElement;
+    using FiniteElement::FiniteElement;
 
+    /*
     INLINE BaseScalarFiniteElement () { ; } 
     INLINE BaseScalarFiniteElement (int andof, int aorder)
       : FiniteElement (andof, aorder) { ; }
-
+    */
+    
     /// the name
     NGS_DLL_HEADER
     virtual string ClassName() const override;
@@ -74,12 +79,31 @@ namespace ngfem
     virtual void CalcMappedDShape (const SIMD_BaseMappedIntegrationRule & mir, 
                                    BareSliceMatrix<SIMD<double>> dshapes) const;
 
+
+    /**
+       returns second derivatives in point ip.
+       returns stored values for valid ip.IPNr(), else computes values
+    */
+    virtual const FlatMatrix<> GetDDShape (const IntegrationPoint & ip, LocalHeap & lh) const = 0;
+
+    /// compute dshape, matrix: ndof x (spacedim spacedim)
+    NGS_DLL_HEADER virtual void CalcDDShape (const IntegrationPoint & ip, 
+                                             BareSliceMatrix<> ddshape) const = 0;
+    
+    /// compute dshape, matrix: ndof x (spacedim spacedim)
+    NGS_DLL_HEADER virtual void CalcMappedDDShape (const BaseMappedIntegrationPoint & mip, 
+                                                   BareSliceMatrix<> ddshape) const = 0;
+
+
+
+
     
     /**
        Evaluates function in integration point ip.
        Vector x provides coefficient vector.
      */
     HD NGS_DLL_HEADER virtual double Evaluate (const IntegrationPoint & ip, BareSliceVector<> x) const;
+    HD NGS_DLL_HEADER virtual Complex Evaluate (const IntegrationPoint & ip, BareSliceVector<Complex> x) const;    
 
 
     /**
@@ -99,15 +123,29 @@ namespace ngfem
        Evaluate function in points of integrationrule ir, transpose operation.
        Vector x provides coefficient vector.
      */
-    HD NGS_DLL_HEADER virtual void EvaluateTrans (const IntegrationRule & ir, FlatVector<> values, BareSliceVector<> coefs) const;
+    HD NGS_DLL_HEADER virtual void EvaluateTrans (const IntegrationRule & ir, BareSliceVector<> values, BareSliceVector<> coefs) const;
     HD NGS_DLL_HEADER virtual void AddTrans (const SIMD_IntegrationRule & ir, BareVector<SIMD<double>> values, BareSliceVector<> coefs) const;
     HD NGS_DLL_HEADER virtual void AddTrans (const SIMD_IntegrationRule & ir, BareSliceMatrix<SIMD<double>> values, SliceMatrix<> coefs) const;
     HD NGS_DLL_HEADER virtual void AddTrans (const SIMD_IntegrationRule & ir, BareVector<SIMD<Complex>> values, BareSliceVector<Complex> coefs) const;
 
+    /**
+       Evaluate gradient in points of integrationrule ir.
+       Vector x provides coefficient vector.
+     */
+    HD NGS_DLL_HEADER virtual void EvaluateGrad (const IntegrationRule & ir, BareSliceVector<> coefs, BareSliceMatrix<> values) const = 0;
+    
+    
     HD NGS_DLL_HEADER virtual void EvaluateGrad (const SIMD_BaseMappedIntegrationRule & ir, BareSliceVector<> coefs, BareSliceMatrix<SIMD<double>> values) const;
     HD NGS_DLL_HEADER virtual void EvaluateGrad (const SIMD_BaseMappedIntegrationRule & ir, BareSliceVector<Complex> coefs, BareSliceMatrix<SIMD<Complex>> values) const;
     // needed for ALE-trafo
     HD NGS_DLL_HEADER virtual void EvaluateGrad (const SIMD_IntegrationRule & ir, BareSliceVector<> coefs, BareSliceMatrix<SIMD<double>> values) const;
+
+    /**
+       Evaluate gradient in points of integrationrule ir, transpose operation.
+       Vector x provides coefficient vector.
+     */
+    HD NGS_DLL_HEADER virtual void EvaluateGradTrans (const IntegrationRule & ir, BareSliceMatrix<> values, BareSliceVector<> coefs) const = 0;
+    HD NGS_DLL_HEADER virtual void EvaluateGradTrans (const IntegrationRule & ir, SliceMatrix<> values, SliceMatrix<> coefs) const = 0;
     HD NGS_DLL_HEADER virtual void AddGradTrans (const SIMD_BaseMappedIntegrationRule & ir, BareSliceMatrix<SIMD<double>> values,
                                                  BareSliceVector<> coefs) const;
     /// input du1/dx du1/dy du1/dz du2/dx ...
@@ -116,7 +154,7 @@ namespace ngfem
                                                  SliceMatrix<> coefs) const;
 
 
-    NGS_DLL_HEADER virtual void CalcDualShape (const BaseMappedIntegrationPoint & mip, SliceVector<> shape) const;
+    NGS_DLL_HEADER virtual void CalcDualShape (const BaseMappedIntegrationPoint & mip, BareSliceVector<> shape) const;
     NGS_DLL_HEADER virtual void AddDualTrans (const IntegrationRule & ir, BareSliceVector<double> values, BareSliceVector<> coefs) const;
     NGS_DLL_HEADER virtual void AddDualTrans (const SIMD_IntegrationRule & ir, BareVector<SIMD<double>> values, BareSliceVector<> coefs) const;
     
@@ -165,7 +203,7 @@ namespace ngfem
        returns second derivatives in point ip.
        returns stored values for valid ip.IPNr(), else computes values
     */
-    const FlatMatrix<> GetDDShape (const IntegrationPoint & ip, LocalHeap & lh) const
+    const FlatMatrix<> GetDDShape (const IntegrationPoint & ip, LocalHeap & lh) const override
     {
       FlatMatrix<> ddshape(ndof, D*D, lh);
       CalcDDShape (ip, ddshape);
@@ -174,11 +212,11 @@ namespace ngfem
 
     /// compute dshape, matrix: ndof x (spacedim spacedim)
     NGS_DLL_HEADER virtual void CalcDDShape (const IntegrationPoint & ip, 
-                                             BareSliceMatrix<> ddshape) const;
+                                             BareSliceMatrix<> ddshape) const override;
     
     /// compute dshape, matrix: ndof x (spacedim spacedim)
     NGS_DLL_HEADER virtual void CalcMappedDDShape (const BaseMappedIntegrationPoint & mip, 
-                                                   BareSliceMatrix<> ddshape) const;
+                                                   BareSliceMatrix<> ddshape) const override;
 
 
 
@@ -194,15 +232,15 @@ namespace ngfem
        Evaluate gradient in points of integrationrule ir.
        Vector x provides coefficient vector.
      */
-    HD NGS_DLL_HEADER virtual void EvaluateGrad (const IntegrationRule & ir, BareSliceVector<> coefs, BareSliceMatrix<> values) const;
+    HD NGS_DLL_HEADER void EvaluateGrad (const IntegrationRule & ir, BareSliceVector<> coefs, BareSliceMatrix<> values) const override;
     
     /**
        Evaluate gradient in points of integrationrule ir, transpose operation.
        Vector x provides coefficient vector.
      */
-    HD NGS_DLL_HEADER virtual void EvaluateGradTrans (const IntegrationRule & ir, FlatMatrixFixWidth<D> values, BareSliceVector<> coefs) const;
+    HD NGS_DLL_HEADER void EvaluateGradTrans (const IntegrationRule & ir, BareSliceMatrix<> values, BareSliceVector<> coefs) const override;
 
-    HD NGS_DLL_HEADER virtual void EvaluateGradTrans (const IntegrationRule & ir, SliceMatrix<> values, SliceMatrix<> coefs) const;
+    HD NGS_DLL_HEADER void EvaluateGradTrans (const IntegrationRule & ir, SliceMatrix<> values, SliceMatrix<> coefs) const override;
 
     NGS_DLL_HEADER virtual void Interpolate (const ElementTransformation & trafo, 
                                              const class CoefficientFunction & func, SliceMatrix<> coefs,
@@ -276,27 +314,20 @@ namespace ngfem
 
 
 
-#ifdef FILE_SCALARFE_CPP
-#define SCALARFE_EXTERN
-#else
-#define SCALARFE_EXTERN extern
+  extern template class ScalarFiniteElement<0>;
+  extern template class ScalarFiniteElement<1>;
+  extern template class ScalarFiniteElement<2>;
+  extern template class ScalarFiniteElement<3>;
 
-  SCALARFE_EXTERN template class ScalarFiniteElement<0>;
-  SCALARFE_EXTERN template class ScalarFiniteElement<1>;
-  SCALARFE_EXTERN template class ScalarFiniteElement<2>;
-  SCALARFE_EXTERN template class ScalarFiniteElement<3>;
-
-  SCALARFE_EXTERN template class DGFiniteElement<ET_POINT>;
-  SCALARFE_EXTERN template class DGFiniteElement<ET_SEGM>;
-  SCALARFE_EXTERN template class DGFiniteElement<ET_TRIG>;
-  SCALARFE_EXTERN template class DGFiniteElement<ET_QUAD>;
-  SCALARFE_EXTERN template class DGFiniteElement<ET_TET>;
-  SCALARFE_EXTERN template class DGFiniteElement<ET_PRISM>;
-  SCALARFE_EXTERN template class DGFiniteElement<ET_PYRAMID>;
-  SCALARFE_EXTERN template class DGFiniteElement<ET_HEXAMID>;
-  SCALARFE_EXTERN template class DGFiniteElement<ET_HEX>;
-
-#endif
+  extern template class DGFiniteElement<ET_POINT>;
+  extern template class DGFiniteElement<ET_SEGM>;
+  extern template class DGFiniteElement<ET_TRIG>;
+  extern template class DGFiniteElement<ET_QUAD>;
+  extern template class DGFiniteElement<ET_TET>;
+  extern template class DGFiniteElement<ET_PRISM>;
+  extern template class DGFiniteElement<ET_PYRAMID>;
+  extern template class DGFiniteElement<ET_HEXAMID>;
+  extern template class DGFiniteElement<ET_HEX>;
 }
 
 #endif

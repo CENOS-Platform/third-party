@@ -7,6 +7,10 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
+
+#include "scalarfe.hpp"
+
+
 namespace ngfem
 {
 
@@ -69,7 +73,7 @@ namespace ngfem
     HD NGS_DLL_HEADER virtual void Evaluate (const IntegrationRule & ir, SliceMatrix<> coefs, BareSliceMatrix<> values) const override;
 
     HD NGS_DLL_HEADER virtual void EvaluateTrans (const IntegrationRule & ir, 
-                                                  FlatVector<> vals, 
+                                                  BareSliceVector<> vals, 
                                                   BareSliceVector<double> coefs) const override;
     
     HD NGS_DLL_HEADER virtual void AddTrans (const SIMD_IntegrationRule & ir,
@@ -96,7 +100,7 @@ namespace ngfem
                                                  BareSliceMatrix<SIMD<double>> values) const override;
 
     HD NGS_DLL_HEADER virtual void EvaluateGradTrans (const IntegrationRule & ir, 
-                                                      FlatMatrixFixWidth<DIM> vals, 
+                                                      BareSliceMatrix<> vals, 
                                                       BareSliceVector<double> coefs) const override;
 
     HD NGS_DLL_HEADER virtual void EvaluateGradTrans (const IntegrationRule & ir, 
@@ -128,15 +132,14 @@ namespace ngfem
     NGS_DLL_HEADER virtual void CalcMappedDDShape (const BaseMappedIntegrationPoint & mip, 
                                                    BareSliceMatrix<> ddshape) const override;
     
-#endif
-
     // NGS_DLL_HEADER virtual void GetPolOrders (FlatArray<PolOrder<DIM> > orders) const;
-
-    NGS_DLL_HEADER 
-    virtual void CalcDualShape (const BaseMappedIntegrationPoint & mip, SliceVector<> shape) const override;
-
+    
     NGS_DLL_HEADER virtual void AddDualTrans (const IntegrationRule & ir, BareSliceVector<double> values, BareSliceVector<> coefs) const override;
     NGS_DLL_HEADER virtual void AddDualTrans (const SIMD_IntegrationRule & ir, BareVector<SIMD<double>> values, BareSliceVector<> coefs) const override;    
+#endif
+
+    NGS_DLL_HEADER 
+    virtual void CalcDualShape (const BaseMappedIntegrationPoint & mip, BareSliceVector<> shape) const override;
 
     
     NGS_DLL_HEADER virtual bool GetDiagDualityMassInverse (FlatVector<> diag) const override;
@@ -164,7 +167,8 @@ namespace ngfem
     }
 
     bool GetDiagDualityMassInverse2 (FlatVector<> diag) const { return false; }
-    
+
+    /*
     void CalcDualShape2 (const BaseMappedIntegrationPoint & mip, SliceVector<> shape) const
     {
       // throw Exception (string("dual shape not implemented for element ")+typeid(*this).name());
@@ -173,6 +177,7 @@ namespace ngfem
       static_cast<const FEL*> (this)->        
         T_CalcDualShape (GetTIP<DIM>(mip.IP()), SBLambda ( [&](int j, double val) { shape(j) = imeas * val; }));
     }
+    */
     
   };
 
@@ -230,21 +235,8 @@ namespace ngfem
   extern template class  ScalarDummyFE<ET_PYRAMID>;
   extern template class  ScalarDummyFE<ET_HEXAMID>;
   extern template class  ScalarDummyFE<ET_HEX>;
+
 }
-
-
-namespace ngbla
-{
-  template <int DIM, typename SCAL>
-  auto GetGradient (const AutoDiff<DIM,SCAL> & ad)
-  {
-    Vec<DIM,SCAL> grad;
-    for (int i = 0; i < DIM; i++)
-      grad(i) = ad.DValue(i);
-    return grad;
-  }
-}
-
 
 
 #endif

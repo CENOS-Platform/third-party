@@ -7,16 +7,13 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
-namespace ngcomp
-{
-  class MeshAccess;
-}
+
+#include "elementtopology.hpp"  // for VorB
+
+namespace ngcomp { class MeshAccess; }
+
 namespace ngfem
 {
-
-
-
-
   template <int DIM, typename T>
   class TIP;
   
@@ -371,7 +368,7 @@ namespace ngfem
     NGS_DLL_HEADER FlatVector<> GetPoint() const;
     FlatMatrix<> GetJacobian() const;
 
-    // implemented in elementtransforamtion.hpp
+    // implemented in elementtransformation.hpp
     INLINE int DimElement() const; // { return eltrans->ElementDim(); }
     INLINE int DimSpace() const; // { return eltrans->SpaceDim(); } 
     
@@ -684,7 +681,7 @@ namespace ngfem
     { ; }
 
     INLINE NGS_DLL_HEADER IntegrationRule (size_t asize, double (*pts)[3], double * weights);
-
+    
     // make it polymorphic
     HD virtual ~IntegrationRule() { ; }
 
@@ -2359,6 +2356,11 @@ namespace ngfem
     
     SIMD_IntegrationRule (size_t asize, SIMD<IntegrationPoint> * pip)
       : Array<SIMD<IntegrationPoint>> (asize, pip), nip(asize*SIMD<IntegrationPoint>::Size()) { }
+
+    INLINE SIMD_IntegrationRule Range (size_t first, size_t next) const
+    {
+      return SIMD_IntegrationRule (next-first, &(*this)[first]);
+    }
 
     size_t GetNIP() const { return nip; } // Size()*SIMD<double>::Size(); }
     void SetNIP(size_t _nip) { nip = _nip; }

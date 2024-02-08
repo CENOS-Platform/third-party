@@ -9,9 +9,23 @@
 
 #include <core/register_archive.hpp>
 
+#include <finiteelement.hpp>
+#include <diffop.hpp>
+#include <symbolicintegrator.hpp>   // for ProxyFunction
+#include <la.hpp>
+
+#include "ngsobject.hpp"
+
+namespace ngmg
+{
+  class Prolongation;
+}
+
+
 namespace ngcomp
 {
-
+  using namespace ngla;
+  
   /*
     Finite Element Space
   */
@@ -214,7 +228,7 @@ ANY                  1 1 1 1 | 15
     
   public:
     string type;
-    Signal<> updateSignal;
+    SimpleSignal updateSignal;
     /**
        Constructor.
        Used flags are: \\
@@ -697,7 +711,6 @@ ANY                  1 1 1 1 | 15
 
     virtual int GetRelOrder() const
     { 
-      cout << "virtual GetRelOrder called for FiniteElementSpace, not available ! " << endl; 
       return 0; 
     } 
 
@@ -850,91 +863,7 @@ ANY                  1 1 1 1 | 15
 			       VorB vb, 
 			       LocalHeap & clh, 
 			       const function<void(FESpace::Element,LocalHeap&)> & func);
-  /*
-  template <typename TFUNC>
-  inline void IterateElements (const FESpace & fes, 
-                               VorB vb, 
-                               LocalHeap & clh, 
-                               const TFUNC & func)
-  {
-    IterateElements1 (fes, vb, clh, func);
-  }
-  */
-  
-  /*
-  template <typename TFUNC>
-  inline void IterateElements (const FESpace & fes, 
-                               VorB vb, 
-                               LocalHeap & clh, 
-                               const TFUNC & func)
-  {
-    
-#pragma omp parallel 
-    {
-
-#pragma omp single
-      {
-        const Table<int> & element_coloring = fes.ElementColoring(vb);
-
-        for (FlatArray<int> els_of_col : element_coloring)
-          {
-
-            for (int i = 0; i < els_of_col.Size(); i++)
-              {
-#pragma omp task
-                {
-                  LocalHeap lh = clh.Split();
-                  Array<int> temp_dnums;
-                  FESpace::Element el(fes, ElementId (vb, els_of_col[i]), temp_dnums);
-                  func (el, lh);
-                }
-              }
-
-#pragma omp taskwait
-          }
-      }
-
-    }
-
-  }
-  */
-
-
-
-
-
-
-
-
-
-#ifdef OLD_REMOVED_FOR_CLANG
-  template <typename TFUNC>
-  inline void IterateElementsInsideParallel (const FESpace & fes, 
-                                             VorB vb, 
-                                             LocalHeap & lh, 
-                                             const TFUNC & func)
-  {
-    const Table<int> & element_coloring = fes.ElementColoring(vb);
-    
-    Array<int> temp_dnums;
-
-    // lh.ClearValues();
-    
-    for (FlatArray<int> els_of_col : element_coloring)
-      
-#pragma omp for schedule(dynamic)
-      for (int i = 0; i < els_of_col.Size(); i++)
-        {
-          HeapReset hr(lh);
-          FESpace::Element el(fes, ElementId (vb, els_of_col[i]), temp_dnums);
-          func (el, lh);
-        }
-    // cout << "lh, used size = " << lh.UsedSize() << endl;
-  }
-#endif
-
-
-
+ 
 
 
   /**
