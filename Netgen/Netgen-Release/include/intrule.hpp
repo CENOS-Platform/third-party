@@ -764,7 +764,7 @@ namespace ngfem
 
   public:
     NGS_DLL_HEADER IntegrationRuleTP (const ElementTransformation & eltrans,
-                                      INT<D> order, bool compute_duffy = true, bool compute_points = true); 
+                                      IVec<D> order, bool compute_duffy = true, bool compute_points = true); 
 
     // tensor product rule for a facet
     NGS_DLL_HEADER IntegrationRuleTP (ELEMENT_TYPE eltype, FlatArray<int> sort, 
@@ -2342,9 +2342,9 @@ namespace ngfem
     inline SIMD_IntegrationRule (ELEMENT_TYPE eltype, int order);
     SIMD_IntegrationRule (const SIMD_IntegrationRule & ir) = delete;
     SIMD_IntegrationRule (SIMD_IntegrationRule && ir) = default;
-    SIMD_IntegrationRule (const IntegrationRule & ir);
-    SIMD_IntegrationRule (const IntegrationRule & ir, LocalHeap & lh);
-    SIMD_IntegrationRule (int nip, LocalHeap & lh);
+    NGS_DLL_HEADER SIMD_IntegrationRule (const IntegrationRule & ir);
+    NGS_DLL_HEADER SIMD_IntegrationRule (const IntegrationRule & ir, LocalHeap & lh);
+    NGS_DLL_HEADER SIMD_IntegrationRule (int nip, LocalHeap & lh);
     NGS_DLL_HEADER ~SIMD_IntegrationRule ()
     {
       delete [] mem_to_delete;
