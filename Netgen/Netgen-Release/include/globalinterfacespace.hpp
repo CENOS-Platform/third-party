@@ -1,6 +1,9 @@
 #ifndef NGSOLVE_GLOBALINTERFACESPACE_HPP
 #define NGSOLVE_GLOBALINTERFACESPACE_HPP
 
+
+#include "fespace.hpp"
+
 namespace ngcomp
 {
   class GlobalInterfaceSpace : public FESpace
@@ -20,7 +23,7 @@ namespace ngcomp
 
       void CalcMatrix (const FiniteElement & bfel,
                        const BaseMappedIntegrationPoint & mip,
-                       SliceMatrix<double,ColMajor> mat,
+                       BareSliceMatrix<double,ColMajor> mat,
                        LocalHeap & lh) const override;
     };
 
@@ -33,7 +36,7 @@ namespace ngcomp
 
       void CalcMatrix (const FiniteElement & bfel,
                        const BaseMappedIntegrationPoint & mip,
-                       SliceMatrix<double,ColMajor> mat,
+                       BareSliceMatrix<double,ColMajor> mat,
                        LocalHeap & lh) const override;
     };
 
@@ -46,7 +49,7 @@ namespace ngcomp
 
       void CalcMatrix (const FiniteElement & fel,
                        const BaseMappedIntegrationPoint & mip,
-                       SliceMatrix<double,ColMajor> mat,
+                       BareSliceMatrix<double,ColMajor> mat,
                        LocalHeap & lh) const override;
     };
 

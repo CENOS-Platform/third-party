@@ -7,6 +7,7 @@
 /* Date:   2020                                                      */
 /*********************************************************************/
 
+#include "fespace.hpp"
 
 namespace ngcomp
 {
@@ -18,7 +19,7 @@ namespace ngcomp
 
     int rel_order;
 
-    Array<INT<2> > order_facet;
+    Array<IVec<2> > order_facet;
     Array<bool> fine_facet;
 
     int ndof;
@@ -66,7 +67,7 @@ namespace ngcomp
     ///
     // virtual void GetVertexNumbers(int elnr, Array<int>& vnums) const;
     ///
-    virtual INT<2> GetFacetOrder(int fnr) const;
+    virtual IVec<2> GetFacetOrder(int fnr) const;
 
     virtual int GetFirstFacetDof(int fanr) const;
 

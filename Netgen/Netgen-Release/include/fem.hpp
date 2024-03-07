@@ -14,7 +14,6 @@
 #include <bla.hpp>
 
 
-
 /**
    namespace for finite elements.
    
@@ -30,7 +29,6 @@ namespace ngfem
 {
   using namespace std;
   using namespace ngstd;
-  using ngcore::INT;
   using namespace ngbla;
 }
 
@@ -38,7 +36,6 @@ namespace ngfem
 #include "elementtopology.hpp"
 #include "intrule.hpp"
 
-#include "generic_recpol.hpp"
 #include "recursive_pol.hpp"
 #include "recursive_pol_trig.hpp"
 // #include "recursive_pol_tet.hpp"
@@ -51,7 +48,7 @@ namespace ngfem
 #include "elementtransformation.hpp"
 
 
-// #include "h1lofe.hpp"
+#include "h1lofe.hpp"
 #include "h1hofe.hpp"
 #include "l2hofe.hpp"
 #include "nodalhofe.hpp"
@@ -60,12 +57,12 @@ namespace ngfem
 #include "hcurlfe.hpp"
 #include "thcurlfe.hpp"
 
-// #include "hdivhofe.hpp"
+#include "hdivhofe.hpp"
 #include "hcurlhofe.hpp" 
 
 
 #include "facetfe.hpp" 
-#include "vectorfacetfe.hpp"
+#include "tangentialfacetfe.hpp"
 
 
 #include "specialelement.hpp"
@@ -79,12 +76,12 @@ namespace ngfem
 #include "bdbequations.hpp"
 #include "hcurl_equations.hpp"
 #include "hdiv_equations.hpp"
-#include "elasticity_equations.hpp"
+// #include "elasticity_equations.hpp"
 #include "symbolicintegrator.hpp"
-#include "tensorproductintegrator.hpp"
+// #include "tensorproductintegrator.hpp"
 // #include "pml.hpp" 
 
 // using ngfem::ELEMENT_TYPE;
-#include "tpdiffop.hpp"
-#include "tpintrule.hpp"
+// #include "tpdiffop.hpp"
+// #include "tpintrule.hpp"
 #endif

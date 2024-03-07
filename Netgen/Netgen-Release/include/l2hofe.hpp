@@ -11,6 +11,7 @@
 #include "tscalarfe.hpp"
 #include "precomp.hpp"
 
+#include "recursive_pol.hpp"
 
 namespace ngfem
 {
@@ -55,16 +56,16 @@ namespace ngfem
     using DGFiniteElement<ET>::vnums;
 
 
-    INT<DIM> order_inner; 
+    IVec<DIM> order_inner; 
 
 #ifndef __CUDA_ARCH__
     typedef PrecomputedShapesContainer<PrecomputedScalShapes<DIM> > TPRECOMP;
     static TPRECOMP precomp;
 
-    typedef HashTable<INT<2>, Matrix<>*> TPRECOMP_TRACE;
+    typedef HashTable<IVec<2>, Matrix<>*> TPRECOMP_TRACE;
     static TPRECOMP_TRACE precomp_trace;
 
-    typedef HashTable<INT<2>, Matrix<>*> TPRECOMP_GRAD;
+    typedef HashTable<IVec<2>, Matrix<>*> TPRECOMP_GRAD;
     static TPRECOMP_GRAD precomp_grad;
 #endif
 
@@ -88,7 +89,7 @@ namespace ngfem
     { for (int i = 0; i < N_VERTEX; i++) vnums[i] = avnums[i]; }
 
     /// different orders in different directions
-    virtual void SetOrder (INT<DIM> p) override { order_inner = p; }
+    virtual void SetOrder (IVec<DIM> p) override { order_inner = p; }
 
     virtual void ComputeNDof() override
     {
@@ -116,13 +117,13 @@ namespace ngfem
 
     using BASE::Evaluate;
     HD NGS_DLL_HEADER virtual void Evaluate (const IntegrationRule & ir, BareSliceVector<double> coefs, FlatVector<double> vals) const;
-    HD NGS_DLL_HEADER virtual void EvaluateTrans (const IntegrationRule & ir, FlatVector<> values, BareSliceVector<> coefs) const override;
+    HD NGS_DLL_HEADER virtual void EvaluateTrans (const IntegrationRule & ir, BareSliceVector<> values, BareSliceVector<> coefs) const override;
 
     using BASE::EvaluateGrad;    
     HD NGS_DLL_HEADER virtual void EvaluateGrad (const IntegrationRule & ir, BareSliceVector<> coefs, FlatMatrixFixWidth<DIM> values) const;
 
     using BASE::EvaluateGradTrans;
-    HD NGS_DLL_HEADER virtual void EvaluateGradTrans (const IntegrationRule & ir, FlatMatrixFixWidth<DIM> values, BareSliceVector<> coefs) const override;
+    HD NGS_DLL_HEADER virtual void EvaluateGradTrans (const IntegrationRule & ir, BareSliceMatrix<> values, BareSliceVector<> coefs) const override;
 
     NGS_DLL_HEADER virtual void GetGradient (FlatVector<> coefs, FlatMatrixFixWidth<DIM> grad) const override;
     NGS_DLL_HEADER virtual void GetGradientTrans (FlatMatrixFixWidth<DIM> grad, FlatVector<> coefs) const override;

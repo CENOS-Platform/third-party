@@ -97,7 +97,7 @@ namespace ngfem
       {
         for (int i = 0; i < 3; i++)
           {
-            INT<2> e = ET_trait<ET_TRIG>::GetEdgeSort (i, vnums);
+            IVec<2> e = ET_trait<ET_TRIG>::GetEdgeSort (i, vnums);
 
             //Nedelec low order edge shape function 
             shape[i] = uDv_minus_vDu (lam[e[0]], lam[e[1]]);
@@ -129,7 +129,7 @@ namespace ngfem
     
     if (pd > 1) 
       {
-        INT<4> fav = ET_trait<ET_TRIG>::GetFaceSort (0, vnums);
+        IVec<4> fav = ET_trait<ET_TRIG>::GetFaceSort (0, vnums);
 
  	// rotated gradients:
 	//if(!only_ho_div)
@@ -217,7 +217,7 @@ template <typename MIP, typename TFA>
             if (i == facetnr)
               {
 
-                INT<2> e = GetEdgeSort (i, vnums);
+                IVec<2> e = GetEdgeSort (i, vnums);
                 T xi = lam[e[1]]-lam[e[0]];
                 Vec<2,T> tauref = pnts[e[1]] - pnts[e[0]];
                 
@@ -292,7 +292,7 @@ template <typename MIP, typename TFA>
           int p = order_facet[i][0]; 
           // int es = edges[i][0], ee = edges[i][1];
           // if (vnums[es] > vnums[ee]) swap (es, ee);
-          INT<2> e = GetVertexOrientedEdge (i);	  
+          IVec<2> e = GetVertexOrientedEdge (i);	  
 
           Tx xi  = sigma[e[1]]-sigma[e[0]];
           Tx lam_e = lami[e[1]]+lami[e[0]]; 
@@ -315,8 +315,8 @@ template <typename MIP, typename TFA>
     else
       ii = 0;
     
-    // INT<2> p = order_face[0]; // (order_cell[0],order_cell[1]);
-    INT<2> p (order_inner[0], order_inner[1]); // (order_cell[0],order_cell[1]);
+    // IVec<2> p = order_face[0]; // (order_cell[0],order_cell[1]);
+    IVec<2> p (order_inner[0], order_inner[1]); // (order_cell[0],order_cell[1]);
     int fmax = 0; 
     for (int j = 1; j < 4; j++)
       if (vnums[j] > vnums[fmax])
@@ -459,10 +459,10 @@ template <typename MIP, typename TFA>
               for (int k = 0; k <= pc-2-i-j; k++)
                 {
                   // grad v  x  grad (uw)
-                  shape[ii++] = Du_Cross_Dv<3> (adpol2[j], adpol1[i]*adpol3[k]);
+                  shape[ii++] = Du_Cross_Dv (adpol2[j], adpol1[i]*adpol3[k]);
         
                   // grad w  x  grad (uv)
-                  shape[ii++] = Du_Cross_Dv<3> (adpol3[k], adpol1[i]*adpol2[j]);
+                  shape[ii++] = Du_Cross_Dv (adpol3[k], adpol1[i]*adpol2[j]);
                 }     
 
 
@@ -470,7 +470,7 @@ template <typename MIP, typename TFA>
           // ned = lami[0] * nabla(lami[3]) - lami[3] * nabla(lami[0]) 
           for (int j= 0; j <= pc-2; j++)
             for (int k = 0; k <= pc-2-j; k++)
-              shape[ii++] = curl_uDvw_minus_Duvw<3> (lami[0], lami[3], adpol2[j]*adpol3[k]);
+              shape[ii++] = curl_uDvw_minus_Duvw (lami[0], lami[3], adpol2[j]*adpol3[k]);
         }
 
         if (!ho_div_free)
@@ -544,7 +544,7 @@ template <typename MIP, typename TFA>
             int p = order_facet[i][0];
 	    if (i == facetnr)
               {
-		INT<4> fav = GetFaceSort (i, vnums);
+		IVec<4> fav = GetFaceSort (i, vnums);
                 T xi = lam[fav[0]]-lam[fav[2]];
                 T eta = lam[fav[1]]-lam[fav[2]];
                 Vec<3,T> tauref1 = pnts[fav[1]] - pnts[fav[0]];
@@ -654,7 +654,7 @@ template <typename MIP, typename TFA>
 	if(vnums[fav[1]] > vnums[fav[2]]) swap(fav[1],fav[2]);
 	if(vnums[fav[0]] > vnums[fav[1]]) swap(fav[0],fav[1]); 	  	
 	
-	shape[i] = wDu_Cross_Dv<3> (lami[fav[0]], lami[fav[1]], muz[fav[0]]);
+	shape[i] = wDu_Cross_Dv (lami[fav[0]], lami[fav[1]], muz[fav[0]]);
 
 	Tx xi = lami[fav[1]]-lami[fav[0]];
 	Tx eta = lami[fav[2]];
@@ -688,20 +688,20 @@ template <typename MIP, typename TFA>
             // jac.EvalScaledMult(p-1, eta-sum, 1-zeta, eta, adpol2);
             jac.EvalMult(p-1, eta-sum, eta, adpol2);
             for (int l = 0; l <= p-1-k; l++)
-              shape[ii++] = Du_Cross_Dv<3> (adpol2[l]*muz[fav[2]], adpol1[k]);
+              shape[ii++] = Du_Cross_Dv (adpol2[l]*muz[fav[2]], adpol1[k]);
           }
         
         IntegratedJacobiPolynomialAlpha jac(3);
         // jac.EvalScaledMult(p-1, eta-sum, 1-zeta, eta, adpol2);
         jac.EvalMult(p-1, eta-sum, eta, adpol2);
         for (int j = 0; j <= p-1; j++)
-          shape[ii++] = curl_uDvw_minus_Duvw<3> (lami[fav[0]], lami[fav[1]], adpol2[j]*muz[fav[2]]);
+          shape[ii++] = curl_uDvw_minus_Duvw (lami[fav[0]], lami[fav[1]], adpol2[j]*muz[fav[2]]);
       }    
     
     // quad faces
     for (int i = 2; i < 5; i++)
       {
-	INT<2> p = order_facet[i];
+	IVec<2> p = order_facet[i];
 	 
 	int fmax = 0;
 	for (int j = 1; j < 4; j++)
@@ -729,37 +729,37 @@ template <typename MIP, typename TFA>
 
 	double fac = (vnums[faces[i][fz]] > vnums[faces[i][ftrig]]) ? 1 : -1;
 
-	shape[i] = uDvDw_minus_DuvDw<3> (lami[faces[i][fmax]],
-					 lami[faces[i][ftrig]], -0.5*fac*zeta);
+	shape[i] = uDvDw_minus_DuvDw (lami[faces[i][fmax]],
+                                      lami[faces[i][ftrig]], -0.5*fac*zeta);
 					    
 
 	if (vnums[f1] < vnums[f2])
 	  {
 	    for (int k = 0; k <= p[0]-1; k++)
 	      for (int j = 0; j <= p[1]-1; j++, ii++)
-		shape[ii] = Du_Cross_Dv<3> (adpolxy1[k], -2*adpolz[j]);
+		shape[ii] = Du_Cross_Dv (adpolxy1[k], -2*adpolz[j]);
 	  }
 	else
 	  {
 	    for (int j = 0; j <= p[1]-1; j++)
 	      for (int k = 0; k <= p[0]-1; k++, ii++)
-		shape[ii] = Du_Cross_Dv<3> (adpolxy1[k],  2*adpolz[j]);
+		shape[ii] = Du_Cross_Dv (adpolxy1[k],  2*adpolz[j]);
 	  }
 	  
 
         if (vnums[f1] < vnums[f2])
           {
             for (int j= 0; j <= p[0]-1; j++, ii++)
-	      shape[ii] = Du_Cross_Dv<3> (adpolxy1[j], zeta);
+	      shape[ii] = Du_Cross_Dv (adpolxy1[j], zeta);
             for(int j=0; j<= p[1]-1;j++,ii++)
-	      shape[ii] = curl_uDvw_minus_Duvw<3> (lami[f1], lami[f], 2*adpolz[j]);
+	      shape[ii] = curl_uDvw_minus_Duvw (lami[f1], lami[f], 2*adpolz[j]);
           }  
         else
           {
             for(int j = 0; j <= p[0]-1; j++,ii++)
-	      shape[ii] = curl_uDvw_minus_Duvw<3> (lami[f1], lami[f], 2*adpolz[j]);
+	      shape[ii] = curl_uDvw_minus_Duvw (lami[f1], lami[f], 2*adpolz[j]);
             for (int j= 0; j <= p[1]-1; j++, ii++)
-	      shape[ii] = Du_Cross_Dv<3> (adpolxy1[j], zeta);
+	      shape[ii] = Du_Cross_Dv (adpolxy1[j], zeta);
           }   
       }    
 
@@ -774,20 +774,20 @@ template <typename MIP, typename TFA>
 	for(int i=0;i<=p-1;i++)
 	  for(int j=0;j<=p-1-i;j++)
 	    for(int k=0;k<=pz-1;k++)
-	      shape[ii++] = Du_Cross_Dv<3> (adpolxy1[i],adpolxy2[j]*adpolz[k]);
+	      shape[ii++] = Du_Cross_Dv (adpolxy1[i],adpolxy2[j]*adpolz[k]);
 
 	for(int i=0;i<=p-1;i++)
 	  for(int j=0;j<=p-1-i;j++)
 	    for(int k=0;k<=pz-1;k++)
-	      shape[ii++] = curl_uDvw_minus_Duvw<3> (adpolxy1[i],adpolxy2[j],adpolz[k]);
+	      shape[ii++] = curl_uDvw_minus_Duvw (adpolxy1[i],adpolxy2[j],adpolz[k]);
 
 	for(int j=0;j<=p-1;j++) 
 	  for (int k=0;k<=pz-1;k++) 
-            shape[ii++] = curl_uDvw_minus_Duvw<3> (x,y, adpolxy2[j]*adpolz[k]);
+            shape[ii++] = curl_uDvw_minus_Duvw (x,y, adpolxy2[j]*adpolz[k]);
 
     	for(int i = 0; i <= p-1; i++) 
 	  for(int j = 0; j <= p-1-i; j++) 
-            shape[ii++] = curl_uDvw_minus_Duvw<3> (z,1-z, adpolxy1[i]*adpolxy2[j]);
+            shape[ii++] = curl_uDvw_minus_Duvw (z,1-z, adpolxy1[i]*adpolxy2[j]);
 
         if (!ho_div_free)
           {  // not yet verified
@@ -806,14 +806,14 @@ template <typename MIP, typename TFA>
             for (int i = 0; i <= p; i++)
               for (int j = 0; j <= p-i; j++)
                 for (int k = 0; k < pz; k++)
-                  shape[ii++] = wDu_Cross_Dv<3> ((x-y)*adpolxy1[i], x*adpolxy2[j], z*(1-z)*adpolz[k]);
+                  shape[ii++] = wDu_Cross_Dv ((x-y)*adpolxy1[i], x*adpolxy2[j], z*(1-z)*adpolz[k]);
 
             for (int i = 0; i < p; i++)
               for (int j = 0; j < p-i; j++)
-                shape[ii++] = wDu_Cross_Dv<3> (z, x*y*adpolxy1[i], (1-x-y)*adpolxy2[j]);
+                shape[ii++] = wDu_Cross_Dv (z, x*y*adpolxy1[i], (1-x-y)*adpolxy2[j]);
 
             for (int i = 0; i < p; i++)
-              shape[ii++] = wDu_Cross_Dv<3> (z, x, y*(1-x-y)*adpolxy1[i]);
+              shape[ii++] = wDu_Cross_Dv (z, x, y*(1-x-y)*adpolxy1[i]);
 
 
             /*
@@ -846,13 +846,13 @@ template <typename MIP, typename TFA>
     const FACE * faces = ElementTopology::GetFaces (ET_HEX);
     for (int i = 0; i < 6; i++)
       {
-	INT<2> p = order_facet[i];
+	IVec<2> p = order_facet[i];
 
 	Tx lam_f(0);
 	for (int j = 0; j < 4; j++)
 	  lam_f += lami[faces[i][j]];
 
-        INT<4> f = GetFaceSort (i, vnums);	  
+        IVec<4> f = GetFaceSort (i, vnums);	  
         Tx xi  = sigma[f[0]]-sigma[f[1]];
         Tx eta = sigma[f[0]]-sigma[f[3]];
 
@@ -978,7 +978,7 @@ template <typename MIP, typename TFA>
   template<>
   void HDivHighOrderFE<ET_TRIG> :: 
   CalcNormalShape (const IntegrationPoint & ip, 
-                   SliceVector<> nshape) const
+                   BareSliceVector<> nshape) const
   {
     // Vector<> nshape1(nshape.Size());
     // HDivFiniteElement<2>::CalcNormalShape (ip, nshape1);
@@ -986,9 +986,9 @@ template <typename MIP, typename TFA>
     int fnr = ip.FacetNr();
     double lam[] = { ip(0), ip(1), 1-ip(0)-ip(1) };
 
-    INT<2> e0 = ET_trait<ET_TRIG>::GetEdge (fnr);
+    IVec<2> e0 = ET_trait<ET_TRIG>::GetEdge (fnr);
     double fac = vnums[e0[0]] > vnums[e0[1]] ? 1 : -1;
-    INT<2> e = ET_trait<ET_TRIG>::GetEdgeSort (fnr, vnums);
+    IVec<2> e = ET_trait<ET_TRIG>::GetEdgeSort (fnr, vnums);
     AutoDiff<1> xi (lam[e[1]]-lam[e[0]], 0);
     
     ArrayMem<AutoDiff<1>,10> adpol1(order);
@@ -1011,7 +1011,7 @@ template <typename MIP, typename TFA>
   template<>
   void HDivHighOrderFE<ET_QUAD> :: 
   CalcNormalShape (const IntegrationPoint & ip, 
-                   SliceVector<> nshape) const
+                   BareSliceVector<> nshape) const
   {
     // Vector<> nshape1(nshape.Size());
     // HDivFiniteElement<2>::CalcNormalShape (ip, nshape1);
@@ -1019,9 +1019,9 @@ template <typename MIP, typename TFA>
     int fnr = ip.FacetNr();
     double lam[] = { (1-ip(0))*(1-ip(1)), ip(0)*(1-ip(1)), ip(0)*ip(1),(1-ip(0))*ip(1) };
 
-    INT<2> e0 = ET_trait<ET_QUAD>::GetEdge (fnr);
+    IVec<2> e0 = ET_trait<ET_QUAD>::GetEdge (fnr);
     double fac = vnums[e0[0]] > vnums[e0[1]] ? 1 : -1;
-    INT<2> e = ET_trait<ET_QUAD>::GetEdgeSort (fnr, vnums);
+    IVec<2> e = ET_trait<ET_QUAD>::GetEdgeSort (fnr, vnums);
     AutoDiff<1> xi (lam[e[1]]-lam[e[0]], 0);
     
     ArrayMem<AutoDiff<1>,10> adpol1(order);
@@ -1045,7 +1045,7 @@ template <typename MIP, typename TFA>
   template<>
   void HDivHighOrderFE<ET_TET> :: 
   CalcNormalShape (const IntegrationPoint & ip, 
-                   SliceVector<> nshape) const
+                   BareSliceVector<> nshape) const
   {
     // Vector<> nshape1(nshape.Size());
     // HDivFiniteElement<3>::CalcNormalShape (ip, nshape1);
@@ -1053,7 +1053,7 @@ template <typename MIP, typename TFA>
     int fnr = ip.FacetNr();
     double lam[] = { ip(0), ip(1), ip(2), 1-ip(0)-ip(1)-ip(2) };
     
-    INT<4> face = ET_trait<ET_TET>::GetFace(fnr);
+    IVec<4> face = ET_trait<ET_TET>::GetFace(fnr);
     
     IntegrationPoint ip2d(lam[face[0]], lam[face[1]], lam[face[2]]);
     ArrayMem<int,3> vnumsf(3);
@@ -1062,7 +1062,7 @@ template <typename MIP, typename TFA>
     HDivHighOrderNormalTrig<> trig(order_facet[fnr][0]);
     trig.SetVertexNumbers (vnumsf);
 
-    VectorMem<20> tmp(nshape.Size());
+    VectorMem<20> tmp(ndof); // nshape.Size());
     trig.CalcShape (ip2d, tmp);
     nshape = -tmp;
     // cout << "nshape1 = " << endl << nshape1 << endl;
@@ -1073,18 +1073,18 @@ template <typename MIP, typename TFA>
 
   template <ELEMENT_TYPE ET>
   void HDivHighOrderFE<ET> ::
-	  CalcNormalShape(const IntegrationPoint & ip,
-	  SliceVector<> nshape) const
+  CalcNormalShape(const IntegrationPoint & ip,
+                  BareSliceVector<> nshape) const
   {
-	  cout << "HDivHOFE, calcnormalshape not overloaded" << endl;
+    cout << "HDivHOFE, calcnormalshape not overloaded" << endl;
   }
   
 
   template <ELEMENT_TYPE ET>
   void HDivHighOrderFE<ET> ::
-  CalcDualShape (const BaseMappedIntegrationPoint & bmip, SliceMatrix<> shape) const
+  CalcDualShape (const BaseMappedIntegrationPoint & bmip, BareSliceMatrix<> shape) const
   {
-    shape = 0.0;
+    shape.AddSize(this->ndof, bmip.DimSpace()) = 0.0;
     Switch<4-DIM>
       (bmip.DimSpace()-DIM,[this,&bmip,shape](auto CODIM)
        {

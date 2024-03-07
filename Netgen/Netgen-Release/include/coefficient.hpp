@@ -7,12 +7,39 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
+#include <bla.hpp>
+#include "code_generation.hpp"
+
+#include "intrule.hpp"
+#include "elementtransformation.hpp"
+
 namespace ngfem
 {
+  
+  /*
+    type to determine (non)zero propagation of arithmetic expressions,
+    formerly bool was used instead
+   */
+  class NonZero
+  {
+    bool nz;
+  public:
+    constexpr NonZero () : nz(false) { }
+    constexpr NonZero (bool _nz) : nz(_nz) { };
+    NonZero & operator= (const NonZero &) = default;
+    NonZero & operator= (bool _nz) { nz = _nz; return *this; }
+    constexpr operator bool() const { return nz; }
+
+    constexpr NonZero operator+ (const NonZero & nz2) const { return nz || nz2.nz; }
+    constexpr NonZero operator- (const NonZero & nz2) const { return nz || nz2.nz; }
+    constexpr NonZero operator* (const NonZero & nz2) const { return nz && nz2.nz; }
+    NonZero & operator+= (const NonZero & nz2) { nz = nz || nz2.nz; return *this; }
+    NonZero & operator*= (const NonZero & nz2) { nz = nz && nz2.nz; return *this; }        
+  };
+
   /** 
       coefficient functions
   */
-  
   class NGS_DLL_HEADER CoefficientFunction : public enable_shared_from_this<CoefficientFunction>
   {
   private:
@@ -25,6 +52,7 @@ namespace ngfem
     string description;
     bool is_variable = false;  // variables cannot be optimized away (e.g. for differentiation)
   public:
+    static std::true_type shallow_archive;
     typedef std::map<shared_ptr<CoefficientFunction>, shared_ptr<CoefficientFunction>> T_DJC; // DiffJacobi Cache type
     // default constructor for archive
     CoefficientFunction() = default;
@@ -222,11 +250,11 @@ namespace ngfem
                                  FlatVector<bool> nonzero_dderiv) const;
     */
     virtual void NonZeroPattern (const class ProxyUserData & ud,
-                                 FlatVector<AutoDiffDiff<1,bool>> nonzero) const;
+                                 FlatVector<AutoDiffDiff<1,NonZero>> nonzero) const;
 
     virtual void NonZeroPattern (const class ProxyUserData & ud,
-                                 FlatArray<FlatVector<AutoDiffDiff<1,bool>>> input,
-                                 FlatVector<AutoDiffDiff<1,bool>> values) const
+                                 FlatArray<FlatVector<AutoDiffDiff<1,NonZero>>> input,
+                                 FlatVector<AutoDiffDiff<1,NonZero>> values) const
     {
       cout << string("nonzero in-out not overloaded for type")+typeid(*this).name() << endl;
       /*
@@ -429,16 +457,16 @@ namespace ngfem
     */
 
     virtual void NonZeroPattern (const class ProxyUserData & ud,
-                                 FlatVector<AutoDiffDiff<1,bool>> values) const override
+                                 FlatVector<AutoDiffDiff<1,NonZero>> values) const override
     {
-      values = AutoDiffDiff<1,bool> (true);
+      values = AutoDiffDiff<1,NonZero> (true);
     }
 
     virtual void NonZeroPattern (const class ProxyUserData & ud,
-                                 FlatArray<FlatVector<AutoDiffDiff<1,bool>>> input,
-                                 FlatVector<AutoDiffDiff<1,bool>> values) const override
+                                 FlatArray<FlatVector<AutoDiffDiff<1,NonZero>>> input,
+                                 FlatVector<AutoDiffDiff<1,NonZero>> values) const override
     {
-      values = AutoDiffDiff<1,bool> (true);
+      values = AutoDiffDiff<1,NonZero> (true);
     }
     
     virtual shared_ptr<CoefficientFunction>
@@ -585,7 +613,7 @@ namespace ngfem
     using BASE::T_DJC;
   public:
     ///
-    ConstantCoefficientFunction() = default;
+    // ConstantCoefficientFunction() = default;
     ConstantCoefficientFunction (double aval);
     ///
     virtual ~ConstantCoefficientFunction ();
@@ -593,10 +621,14 @@ namespace ngfem
 
     void DoArchive (Archive & archive) override
     {
+      /*
       BASE::DoArchive(archive);
       archive & val;
+      */
     }
 
+    auto GetCArgs() const { return tuple { val }; }
+    
     using BASE::Evaluate;
     // virtual bool ElementwiseConstant () const override { return true; }
     
@@ -628,111 +660,28 @@ namespace ngfem
                        BareSliceMatrix<T,ORD> values) const
     { T_Evaluate (ir, values); }
 
-    /*
-    virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir, FlatArray<AFlatMatrix<double>*> input,
-                           AFlatMatrix<double> values) const override
-    { values = val; }
-
-    virtual void EvaluateDeriv (const SIMD_BaseMappedIntegrationRule & ir,
-                                AFlatMatrix<> result, AFlatMatrix<> deriv) const override
-    {
-      result = val;
-      deriv = 0.0;
-    }
-    
-    virtual void EvaluateDeriv (const SIMD_BaseMappedIntegrationRule & ir,
-                                FlatArray<AFlatMatrix<>*> input, FlatArray<AFlatMatrix<>*> dinput,
-                                AFlatMatrix<> result, AFlatMatrix<> deriv) const override
-    {
-      result = val;
-      deriv = 0.0;
-    }
-
-    virtual void EvaluateDDeriv (const SIMD_BaseMappedIntegrationRule & ir,
-                                 FlatArray<AFlatMatrix<>*> input, FlatArray<AFlatMatrix<>*> dinput,
-                                 FlatArray<AFlatMatrix<>*> ddinput,
-                                 AFlatMatrix<> result, AFlatMatrix<> deriv,
-                                 AFlatMatrix<> dderiv) const override
-    {
-      result = val;
-      deriv = 0.0;
-      dderiv = 0.0;
-    }
-    */
-    
-    
     virtual void PrintReport (ostream & ost) const override;
     virtual string GetDescription () const override;
     
     virtual void GenerateCode(Code &code, FlatArray<int> inputs, int index) const override; 
-
-    /*
-    virtual void NonZeroPattern (const class ProxyUserData & ud, FlatVector<bool> nonzero) const
-    {
-      nonzero(0) = (val != 0.0);
-    }
-    */
-
-    /*
-    virtual void NonZeroPattern (const class ProxyUserData & ud,
-                                 FlatVector<bool> nonzero,
-                                 FlatVector<bool> nonzero_deriv,
-                                 FlatVector<bool> nonzero_dderiv) const override
-    {
-      nonzero(0) = (val != 0.0);
-      nonzero_deriv = 0.0;
-      nonzero_dderiv = 0.0;
-    }
-    */
     
     virtual void NonZeroPattern (const class ProxyUserData & ud,
-                                 FlatVector<AutoDiffDiff<1,bool>> values) const override
+                                 FlatVector<AutoDiffDiff<1,NonZero>> values) const override
     {
-      values = AutoDiffDiff<1,bool> (val != 0.0);
+      values = AutoDiffDiff<1,NonZero> (val != 0.0);
     }
 
     virtual void NonZeroPattern (const class ProxyUserData & ud,
-                                 FlatArray<FlatVector<AutoDiffDiff<1,bool>>> input,
-                                 FlatVector<AutoDiffDiff<1,bool>> values) const override
+                                 FlatArray<FlatVector<AutoDiffDiff<1,NonZero>>> input,
+                                 FlatVector<AutoDiffDiff<1,NonZero>> values) const override
     {
-      values = AutoDiffDiff<1,bool> (val != 0.0);
+      values = AutoDiffDiff<1,NonZero> (val != 0.0);
     }
 
     virtual shared_ptr<CoefficientFunction>
       DiffJacobi (const CoefficientFunction * var, T_DJC & cache) const override;
   };
 
-
-
-  /// The coefficient is constant everywhere
-  class NGS_DLL_HEADER ConstantCoefficientFunctionC : public CoefficientFunction
-  {
-    ///
-    Complex val;
-  public:
-    ConstantCoefficientFunctionC() = default;
-    ConstantCoefficientFunctionC (Complex aval);
-    virtual ~ConstantCoefficientFunctionC ();
-
-    void DoArchive(Archive& ar) override
-    {
-      CoefficientFunction::DoArchive(ar);
-      ar & val;
-    }
-
-    double Evaluate (const BaseMappedIntegrationPoint & ip) const override;
-    Complex EvaluateComplex (const BaseMappedIntegrationPoint & ip) const override;
-
-    void Evaluate (const BaseMappedIntegrationPoint & mip, FlatVector<Complex> values) const override;
-    void Evaluate (const BaseMappedIntegrationRule & ir, BareSliceMatrix<Complex> values) const override;
-    void Evaluate (const SIMD_BaseMappedIntegrationRule & ir,
-                           BareSliceMatrix<SIMD<Complex>> values) const override;
-    
-    void PrintReport (ostream & ost) const override;
-    void GenerateCode(Code &code, FlatArray<int> inputs, int index) const override;
-    virtual shared_ptr<CoefficientFunction>
-      DiffJacobi (const CoefficientFunction * var, T_DJC & cache) const override;
-  };
 
 
   /// The coefficient is constant everywhere
@@ -743,13 +692,14 @@ namespace ngfem
     SCAL val;
   public:
     ///
-    ParameterCoefficientFunction() = default;
+    // ParameterCoefficientFunction() = default;
     ParameterCoefficientFunction (SCAL aval);
     ///
     virtual ~ParameterCoefficientFunction ();
     ///
     void DoArchive (Archive& ar) override;
-
+    auto GetCArgs() const { return tuple { val }; }
+    
     using CoefficientFunction::Evaluate;
     double Evaluate (const BaseMappedIntegrationPoint & ip) const override;
     void Evaluate (const BaseMappedIntegrationRule & ir, BareSliceMatrix<double> values) const override;
@@ -833,12 +783,12 @@ namespace ngfem
     { cf->EvaluateDeriv(ir, result, deriv); }
 
     void NonZeroPattern (const class ProxyUserData & ud,
-                         FlatVector<AutoDiffDiff<1,bool>> nonzero) const override
+                         FlatVector<AutoDiffDiff<1,NonZero>> nonzero) const override
     { cf->NonZeroPattern(ud, nonzero); }
 
     void NonZeroPattern (const class ProxyUserData & ud,
-                         FlatArray<FlatVector<AutoDiffDiff<1,bool>>> input,
-                         FlatVector<AutoDiffDiff<1,bool>> values) const override
+                         FlatArray<FlatVector<AutoDiffDiff<1,NonZero>>> input,
+                         FlatVector<AutoDiffDiff<1,NonZero>> values) const override
     { cf->NonZeroPattern(ud, input, values); }
 
     void TraverseTree (const function<void(CoefficientFunction&)> & func) override
@@ -851,66 +801,8 @@ namespace ngfem
   };
   
 
-  /// The coefficient is constant in every sub-domain
-  class NGS_DLL_HEADER DomainConstantCoefficientFunction  
-    : public T_CoefficientFunction<DomainConstantCoefficientFunction, CoefficientFunctionNoDerivative>
-  {
-    ///
-    Array<double> val;
-    typedef T_CoefficientFunction<DomainConstantCoefficientFunction, CoefficientFunctionNoDerivative> BASE;    
-  public:
-    ///
-    DomainConstantCoefficientFunction (const Array<double> & aval);
-    ///
-    virtual int NumRegions () override { return val.Size(); }
-    ///
-    virtual ~DomainConstantCoefficientFunction ();
-    ///
-      using T_CoefficientFunction<DomainConstantCoefficientFunction, CoefficientFunctionNoDerivative>::Evaluate;
-      using CoefficientFunction::Evaluate;
-    virtual double Evaluate (const BaseMappedIntegrationPoint & ip) const override; 
-    virtual void Evaluate (const BaseMappedIntegrationRule & ir, BareSliceMatrix<double> values) const override;
-    virtual void Evaluate (const BaseMappedIntegrationRule & ir, BareSliceMatrix<Complex> values) const override;
 
-    // virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir, AFlatMatrix<double> values) const;
-    // virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir, BareSliceMatrix<SIMD<double>> values) const;
-
-    template <typename MIR, typename T, ORDERING ORD>
-      void T_Evaluate (const MIR & ir, BareSliceMatrix<T,ORD> values) const;
-    template <typename MIR, typename T, ORDERING ORD>
-      void T_Evaluate (const MIR & ir,
-                       FlatArray<BareSliceMatrix<T,ORD>> input,                       
-                       BareSliceMatrix<T,ORD> values) const
-    { T_Evaluate (ir, values); }
-    
-
-    
-    virtual double EvaluateConst () const override { return val[0]; }
-    double operator[] (int i) const { return val[i]; }
-
-    virtual void GenerateCode(Code &code, FlatArray<int> inputs, int index) const override;
-    virtual void DoArchive (Archive & archive) override
-    {
-        CoefficientFunction::DoArchive(archive);
-        archive & val;
-    }
-    
-  protected:
-    void CheckRange (int elind) const
-    {
-      if (elind < 0 || elind >= val.Size())
-        {
-          ostringstream ost;
-          ost << "DomainConstantCoefficientFunction: Element index "
-              << elind << " out of range 0 - " << val.Size()-1 << endl;
-          throw Exception (ost.str());
-        }
-    }
-  };
-
-
-
-
+#ifdef OLD
   ///
   // template <int DIM>
   class NGS_DLL_HEADER DomainVariableCoefficientFunction : public CoefficientFunction
@@ -965,7 +857,10 @@ namespace ngfem
 
     virtual void GenerateCode(Code &code, FlatArray<int> inputs, int index) const;
   };
+#endif
 
+
+#ifdef OLD
   ///
   template <int DIM>
   class NGS_DLL_HEADER DomainInternalCoefficientFunction : public CoefficientFunction
@@ -1002,10 +897,10 @@ namespace ngfem
     }
   
   };
+#endif
 
 
-
-
+#ifdef OLD
 
   /**
      coefficient function that is defined in every integration point.
@@ -1130,8 +1025,10 @@ namespace ngfem
     }
   
   };
+#endif
 
 
+#ifdef OLD
   /// Coefficient function that depends (piecewise polynomially) on a parameter
   class PolynomialCoefficientFunction : public CoefficientFunction
   {
@@ -1157,11 +1054,11 @@ namespace ngfem
 
     virtual double EvaluateConst () const;
   };
-
+#endif
 
 
   //////////////////
-
+#ifdef OLD
   class FileCoefficientFunction : public CoefficientFunction
   {
   private:
@@ -1206,6 +1103,7 @@ namespace ngfem
     void Reset(void);
 
   };
+#endif
 
 
 
@@ -1229,7 +1127,7 @@ namespace ngfem
   typedef  T_CoefficientFunction<cl_UnaryOpCF<OP>> BASE;
   using typename BASE::T_DJC;
 public:
-  cl_UnaryOpCF() = default;
+  // cl_UnaryOpCF() = default;
   cl_UnaryOpCF (shared_ptr<CoefficientFunction> ac1, 
                 OP alam, string aname="undefined")
     : BASE(ac1->Dimension(),
@@ -1243,10 +1141,10 @@ public:
 
   virtual void DoArchive (Archive & archive) override
   {
-    BASE::DoArchive(archive);
-    archive.Shallow(c1) & name & lam;
+    BASE::DoArchive(archive);  // for reshape
+    // archive.Shallow(c1) & name & lam;
   }
-
+  auto GetCArgs() const { return tuple { c1, lam, name }; }
   /*
   virtual string GetDescription () const override
   {
@@ -1408,10 +1306,10 @@ public:
   */
 
   virtual void NonZeroPattern (const class ProxyUserData & ud,
-                               FlatVector<AutoDiffDiff<1,bool>> values) const override                               
+                               FlatVector<AutoDiffDiff<1,NonZero>> values) const override                               
   {
     size_t dim = this->Dimension();    
-    Vector<AutoDiffDiff<1,bool>> v1(dim);
+    Vector<AutoDiffDiff<1,NonZero>> v1(dim);
     c1->NonZeroPattern(ud, v1);
     for (int i = 0; i < values.Size(); i++)
       {
@@ -1433,8 +1331,8 @@ public:
 
   
   virtual void NonZeroPattern (const class ProxyUserData & ud,
-                               FlatArray<FlatVector<AutoDiffDiff<1,bool>>> input,
-                               FlatVector<AutoDiffDiff<1,bool>> values) const override
+                               FlatArray<FlatVector<AutoDiffDiff<1,NonZero>>> input,
+                               FlatVector<AutoDiffDiff<1,NonZero>> values) const override
   {
     auto v1 = input[0];
     if (name == "-"  || name == " ") // "-" actually not used that way
@@ -1729,10 +1627,10 @@ public:
   */
 
   virtual void NonZeroPattern (const class ProxyUserData & ud,
-                               FlatVector<AutoDiffDiff<1,bool>> values) const override
+                               FlatVector<AutoDiffDiff<1,NonZero>> values) const override
   {
     size_t dim = Dimension();    
-    Vector<AutoDiffDiff<1,bool>> v1(dim), v2(dim);
+    Vector<AutoDiffDiff<1,NonZero>> v1(dim), v2(dim);
     c1->NonZeroPattern(ud, v1);
     c2->NonZeroPattern(ud, v2);
     for (int i = 0; i < values.Size(); i++)
@@ -1751,8 +1649,8 @@ public:
   }
   
   virtual void NonZeroPattern (const class ProxyUserData & ud,
-                               FlatArray<FlatVector<AutoDiffDiff<1,bool>>> input,
-                               FlatVector<AutoDiffDiff<1,bool>> values) const override
+                               FlatArray<FlatVector<AutoDiffDiff<1,NonZero>>> input,
+                               FlatVector<AutoDiffDiff<1,NonZero>> values) const override
   {
     auto v1 = input[0];
     auto v2 = input[1];
@@ -1782,6 +1680,7 @@ public:
     DiffShapeCF() : ConstantCoefficientFunction(1) {
       SetVariable();
     }
+    ~DiffShapeCF() override;
     Array<shared_ptr<CoefficientFunction>> Eulerian_gridfunctions;
   };
 
@@ -1800,7 +1699,8 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
 }
 
 
-
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction>
+  MakeConstantCoefficientFunction (Complex c);
 
   NGS_DLL_HEADER shared_ptr<CoefficientFunction>
   MakeComponentCoefficientFunction (shared_ptr<CoefficientFunction> c1, int comp);

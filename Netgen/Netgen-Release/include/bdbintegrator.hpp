@@ -9,6 +9,8 @@
 
 // #include "fastmat.hpp"
 
+#include "integrator.hpp"
+
 namespace ngfem
 {
 
@@ -1016,11 +1018,11 @@ public:
 			    FlatMatrix<TSCAL> elmat,
 			    LocalHeap & lh) const
   {
-    static Timer timer (string ("Elementmatrix, ") + Name(), NoTracing);
-    static Timer timer2 (string ("Elementmatrix, ") + Name() + ", Lapack", NoTracing, NoTiming);
-    RegionTimer reg (timer);
+    // static Timer timer (string ("Elementmatrix, ") + Name(), NoTracing);
+    // static Timer timer2 (string ("Elementmatrix, ") + Name() + ", Lapack", NoTracing, NoTiming);
+    // RegionTimer reg (timer);
 
-    try
+    // try
       {
 	// const FEL & fel = static_cast<const FEL&> (bfel);
 	int ndof = fel.GetNDof();
@@ -1049,7 +1051,7 @@ public:
 	    bdbmat.Cols(i*DIM_DMAT, (i+1)*DIM_DMAT) = Trans (dmat * bmat);
 	  }
 
-	RegionTimer reg2 (timer2);
+	// RegionTimer reg2 (timer2);
 
 	if (ndof < 20)
 	  {
@@ -1061,10 +1063,10 @@ public:
 	else
 	  elmat = bbmat * Trans(bdbmat) | Lapack;
 
-	timer.AddFlops (long(elmat.Height())*long(elmat.Width())*bbmat.Width());
+	// timer.AddFlops (long(elmat.Height())*long(elmat.Width())*bbmat.Width());
       } 
     
-
+      /*
     catch (Exception & e)
       {
 	e.Append (string ("in CalcElementMatrix - lapack, type = ") + typeid(*this).name() + "\n");
@@ -1076,6 +1078,7 @@ public:
 	e2.Append (string ("\nin CalcElementMatrix - lapack, type = ") + typeid(*this).name() + "\n");
 	throw e2;
       }
+      */
   }
 
 #endif

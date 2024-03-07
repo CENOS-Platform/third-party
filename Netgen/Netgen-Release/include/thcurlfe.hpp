@@ -7,6 +7,10 @@
 /* Date:   5. Sep. 2013                                              */
 /*********************************************************************/
 
+
+
+#include "hcurlfe.hpp"
+
 namespace ngfem
 {
 
@@ -40,16 +44,16 @@ namespace ngfem
 
     
     virtual void CalcShape (const IntegrationPoint & ip, 
-                            SliceMatrix<> shape) const override;
+                            BareSliceMatrix<> shape) const override;
 
     virtual void CalcCurlShape (const IntegrationPoint & ip, 
-                                SliceMatrix<> curlshape) const override;
+                                BareSliceMatrix<> curlshape) const override;
 #ifndef FASTCOMPILE
     
     virtual void CalcMappedShape (const BaseMappedIntegrationPoint & mip,
-                                  SliceMatrix<> shape) const override;
+                                  BareSliceMatrix<> shape) const override;
 
-    virtual void CalcMappedShape (const BaseMappedIntegrationRule & bmir, SliceMatrix<> shapes) const override;
+    virtual void CalcMappedShape (const BaseMappedIntegrationRule & bmir, BareSliceMatrix<> shapes) const override;
 
     virtual void CalcMappedShape (const SIMD<BaseMappedIntegrationPoint> & bmip,
                                   BareSliceMatrix<SIMD<double>> shape) const override;
@@ -58,10 +62,10 @@ namespace ngfem
                                   BareSliceMatrix<SIMD<double>> shapes) const override;
 
     virtual void CalcMappedCurlShape (const BaseMappedIntegrationPoint & mip,
-                                      SliceMatrix<> curlshape) const override;
+                                      BareSliceMatrix<> curlshape) const override;
 
-    virtual void CalcMappedCurlShape (const MappedIntegrationRule<DIM,DIM> & mir, 
-                                      SliceMatrix<> curlshape) const override;
+    virtual void CalcMappedCurlShape (const BaseMappedIntegrationRule & mir, 
+                                      BareSliceMatrix<> curlshape) const override;
 
     virtual void CalcMappedCurlShape (const SIMD_BaseMappedIntegrationRule & mir, 
                                       BareSliceMatrix<SIMD<double>> curlshapes) const override;
@@ -72,8 +76,9 @@ namespace ngfem
                        LocalHeap & lh) const override;
 
     NGS_DLL_HEADER virtual void 
-    EvaluateCurl (const IntegrationRule & ir, BareSliceVector<> coefs, FlatMatrixFixWidth<DIM_CURL_(DIM)> curl) const override;
-    
+    EvaluateCurl (const IntegrationRule & ir, BareSliceVector<> coefs, BareSliceMatrix<> curl) const override;
+
+    using BASE::Evaluate;
     NGS_DLL_HEADER virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir, BareSliceVector<> coefs, BareSliceMatrix<SIMD<double>> values) const override;
     
     NGS_DLL_HEADER virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir, BareSliceVector<Complex> coefs, BareSliceMatrix<SIMD<Complex>> values) const override;        

@@ -9,9 +9,20 @@
 /*********************************************************************/
 
 
+
+#include "elementtopology.hpp"
+#include "intrule.hpp"
+#include "elementtransformation.hpp"
+
+#include "fe_interfaces.hpp"
+
 namespace ngfem
 {
+  // template <int N, typename T = int>
+  // using INT = IVec<N,T>;
 
+
+  
   /** 
       Base class finite element.
       Represents a reference element.
@@ -21,8 +32,6 @@ namespace ngfem
   class NGS_DLL_HEADER FiniteElement
   {
   protected:
-    /// element geometry (trig, quad, ...)
-    // ELEMENT_TYPE eltype;
     /// number of degrees of freedom
     int ndof;
     /// polynomial order
@@ -263,25 +272,14 @@ namespace ngfem
   };
 
 
-  
-
-
-#ifdef FILE_FINITEELEMENT_CPP
-#define FINITEELEMENT_EXTERN
-#else
-#define FINITEELEMENT_EXTERN extern
-#endif
-
-
-  FINITEELEMENT_EXTERN template class DummyFE<ET_POINT>;
-  FINITEELEMENT_EXTERN template class DummyFE<ET_SEGM>;
-  FINITEELEMENT_EXTERN template class DummyFE<ET_TRIG>;
-  FINITEELEMENT_EXTERN template class DummyFE<ET_QUAD>;
-
-  FINITEELEMENT_EXTERN template class DummyFE<ET_TET>;
-  FINITEELEMENT_EXTERN template class DummyFE<ET_PRISM>;
-  FINITEELEMENT_EXTERN template class DummyFE<ET_PYRAMID>;
-  FINITEELEMENT_EXTERN template class DummyFE<ET_HEX>;
+  extern template class DummyFE<ET_POINT>;
+  extern template class DummyFE<ET_SEGM>;
+  extern template class DummyFE<ET_TRIG>;
+  extern template class DummyFE<ET_QUAD>;
+  extern template class DummyFE<ET_TET>;
+  extern template class DummyFE<ET_PRISM>;
+  extern template class DummyFE<ET_PYRAMID>;
+  extern template class DummyFE<ET_HEX>;
 }
 
 

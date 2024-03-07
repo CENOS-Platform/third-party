@@ -7,6 +7,7 @@
 /* Date:   6. Feb. 2003                                              */
 /*********************************************************************/
 
+#include "tscalarfe.hpp"
 
 namespace ngfem
 {
@@ -52,10 +53,10 @@ namespace ngfem
     std::array<TORDER, N_EDGE> order_edge; 
 
     /// order of face shapes
-    std::array<INT<2,TORDER>, N_FACE> order_face; 
+    std::array<IVec<2,TORDER>, N_FACE> order_face; 
 
     /// order of internal shapes (3d only)
-    std::array<INT<3,TORDER>, N_CELL > order_cell;
+    std::array<IVec<3,TORDER>, N_CELL > order_cell;
     
     bool nodalp2 = false;
 
@@ -72,7 +73,6 @@ namespace ngfem
     INLINE H1HighOrderFE (int aorder)
     { 
       ndof = PolDimension (aorder);
-      cout << "h1horder ctor, ndof = " << ndof << endl;
       for (int i = 0; i < N_VERTEX; i++) this->SetVertexNumber(i,i);
       for (int i = 0; i < N_EDGE; i++) order_edge[i] = aorder;
       for (int i = 0; i < N_FACE; i++) order_face[i] = aorder;   
@@ -96,10 +96,10 @@ namespace ngfem
     { for (int i = 0; i < N_FACE; i++) order_face[i] = of[i]; }
 
     /// set anisotropic face order for face nr
-    void SetOrderFace (int nr, INT<2> order) { order_face[nr] = order; }
+    void SetOrderFace (int nr, IVec<2> order) { order_face[nr] = order; }
 
     /// set anisotropic cell order
-    void SetOrderCell (INT<3> oi)  { order_cell[0] = oi; }
+    void SetOrderCell (IVec<3> oi)  { order_cell[0] = oi; }
 
     /// compute the element space dimension
     void ComputeNDof()
@@ -164,24 +164,24 @@ namespace ngfem
   H1HOFE_EXTERN template class H1HighOrderFE<ET_POINT>;
   extern template class H1HighOrderFE<ET_SEGM>;
   extern template class H1HighOrderFE<ET_TRIG>;
-  H1HOFE_EXTERN template class H1HighOrderFE<ET_QUAD>;
+  extern template class H1HighOrderFE<ET_QUAD>;
 
-  H1HOFE_EXTERN template class H1HighOrderFE<ET_TET>;
-  H1HOFE_EXTERN template class H1HighOrderFE<ET_PRISM>;
-  H1HOFE_EXTERN template class H1HighOrderFE<ET_PYRAMID>;
+  extern template class H1HighOrderFE<ET_TET>;
+  extern template class H1HighOrderFE<ET_PRISM>;
+  extern template class H1HighOrderFE<ET_PYRAMID>;
   H1HOFE_EXTERN template class H1HighOrderFE<ET_HEXAMID>;
-  H1HOFE_EXTERN template class H1HighOrderFE<ET_HEX>;
+  extern template class H1HighOrderFE<ET_HEX>;
 
   H1HOFE_EXTERN template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_POINT>, ET_POINT>;
   extern template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_SEGM>, ET_SEGM>;
   extern template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_TRIG>, ET_TRIG>;
-  H1HOFE_EXTERN template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_QUAD>, ET_QUAD>;
+  extern template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_QUAD>, ET_QUAD>;
 
-  H1HOFE_EXTERN template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_TET>, ET_TET>;
-  H1HOFE_EXTERN template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_PRISM>, ET_PRISM>;
-  H1HOFE_EXTERN template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_PYRAMID>, ET_PYRAMID>;
+  extern template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_TET>, ET_TET>;
+  extern template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_PRISM>, ET_PRISM>;
+  extern template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_PYRAMID>, ET_PYRAMID>;
   H1HOFE_EXTERN template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_HEXAMID>, ET_HEXAMID>;
-  H1HOFE_EXTERN template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_HEX>, ET_HEX>;
+  extern template class T_ScalarFiniteElement<H1HighOrderFE_Shape<ET_HEX>, ET_HEX>;
 }
 
 

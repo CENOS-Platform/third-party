@@ -8,6 +8,7 @@
 /*********************************************************************/
 
 #include <core/register_archive.hpp>
+#include "finiteelement.hpp"
 
 namespace ngfem
 {
@@ -28,7 +29,7 @@ namespace ngfem
     static string Name() { return typeid(DiffOp<DOP>()).name(); }
     static constexpr bool SUPPORT_PML = false;
     // static Array<int> GetDimensions() { return Array<int> ( { DOP::DIM_DMAT } ); };
-    static INT<1> GetDimensions() { return { DOP::DIM_DMAT }; };
+    static IVec<1> GetDimensions() { return { DOP::DIM_DMAT }; };
     static bool SupportsVB (VorB checkvb) { return int(DOP::DIM_SPACE)-int(DOP::DIM_ELEMENT) == int(checkvb); }
 
 
@@ -56,7 +57,7 @@ namespace ngfem
     {
       for (size_t i = 0; i < mir.Size(); i++)
         {
-          auto submat = mat.Rows(i*DOP::DIM_DMAT, (i+1)*DOP::DIM_DMAT);
+          auto submat = mat.Rows(i*DOP::DIM_DMAT, (i+1)*DOP::DIM_DMAT).Cols(DOP::DIM*fel.GetNDof());
           DOP::GenerateMatrix (fel, mir[i], submat, lh);
         }
     }
@@ -240,7 +241,7 @@ namespace ngfem
       vsdim = dim;
     }
     /// destructor
-    NGS_DLL_HEADER virtual ~DifferentialOperator ();
+    NGS_DLL_HEADER virtual ~DifferentialOperator () = default;
 
     virtual void DoArchive(Archive & ar) { ; }
 
@@ -250,7 +251,7 @@ namespace ngfem
     optional<FlatMatrix<>> GetVSEmbedding() const { return vsembedding; }
     
     ///
-    virtual string Name() const { return typeid(*this).name(); }
+    NGS_DLL_HEADER virtual string Name() const; // { return typeid(*this).name(); }
     /// dimension of range
     int Dim() const { return dim; }
     int VSDim() const { return vsdim; }
@@ -278,25 +279,25 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & mip,
-		SliceMatrix<double,ColMajor> mat,   
+		BareSliceMatrix<double,ColMajor> mat,   
 		LocalHeap & lh) const;
 
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & bfel,
 		const BaseMappedIntegrationPoint & bmip,
-		SliceMatrix<Complex,ColMajor> mat, 
+		BareSliceMatrix<Complex,ColMajor> mat, 
 		LocalHeap & lh) const;
 
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationRule & mir,
-		SliceMatrix<double,ColMajor> mat,   
+		BareSliceMatrix<double,ColMajor> mat,   
 		LocalHeap & lh) const;
 
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationRule & mir,
-		SliceMatrix<Complex,ColMajor> mat,   
+		BareSliceMatrix<Complex,ColMajor> mat,   
 		LocalHeap & lh) const;
     
     NGS_DLL_HEADER virtual void
@@ -436,7 +437,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
                 const IntegrationPoint & ip,
-                SliceMatrix<double,ColMajor> mat,
+                BareSliceMatrix<double,ColMajor> mat,
                 LocalHeap & lh) const;
     
     NGS_DLL_HEADER virtual void
@@ -444,12 +445,9 @@ namespace ngfem
                               SliceMatrix<double> trans,
                               LocalHeap & lh) const;
     
-    virtual shared_ptr<CoefficientFunction> DiffShape (shared_ptr<CoefficientFunction> proxy,
+    NGS_DLL_HEADER virtual shared_ptr<CoefficientFunction> DiffShape (shared_ptr<CoefficientFunction> proxy,
                                                        shared_ptr<CoefficientFunction> dir,
-                                                       bool Eulerian = false) const
-    {
-      throw Exception (string("shape derivative not implemented for DifferentialOperator")+typeid(*this).name());
-    }
+                                                       bool Eulerian = false) const;
 
     NGS_DLL_HEADER virtual list<tuple<string,double>> Timing (const FiniteElement & fel, const BaseMappedIntegrationRule & mir) const;
   };
@@ -493,7 +491,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & mip,
-		SliceMatrix<double,ColMajor> mat, 
+		BareSliceMatrix<double,ColMajor> mat, 
 		LocalHeap & lh) const override;    
 
     NGS_DLL_HEADER virtual void
@@ -602,7 +600,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & mip,
-		SliceMatrix<double,ColMajor> mat, 
+		BareSliceMatrix<double,ColMajor> mat, 
 		LocalHeap & lh) const override;    
 
     NGS_DLL_HEADER virtual void
@@ -655,7 +653,8 @@ namespace ngfem
                                                bool Eulerian) const override;
   };
 
-  
+
+
   // like BlockDifferentialOperator, but element is CompoundFE here
   class VectorDifferentialOperator : public DifferentialOperator
   {
@@ -696,7 +695,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & mip,
-		SliceMatrix<double,ColMajor> mat, 
+		BareSliceMatrix<double,ColMajor> mat, 
 		LocalHeap & lh) const override;    
 
     NGS_DLL_HEADER virtual void
@@ -710,7 +709,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
                 const IntegrationPoint & ip,
-                SliceMatrix<double,ColMajor> mat,
+                BareSliceMatrix<double,ColMajor> mat,
                 LocalHeap & lh) const override;
     
     NGS_DLL_HEADER virtual void
@@ -791,7 +790,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & mip,
-		SliceMatrix<double,ColMajor> mat, 
+		BareSliceMatrix<double,ColMajor> mat, 
 		LocalHeap & lh) const override;
 
     NGS_DLL_HEADER virtual void
@@ -841,7 +840,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & mip,
-		SliceMatrix<double,ColMajor> mat, 
+		BareSliceMatrix<double,ColMajor> mat, 
 		LocalHeap & lh) const override;    
 
     NGS_DLL_HEADER virtual void
@@ -900,7 +899,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & mip,
-		SliceMatrix<double,ColMajor> mat, 
+		BareSliceMatrix<double,ColMajor> mat, 
 		LocalHeap & lh) const override;    
 
     NGS_DLL_HEADER virtual void
@@ -970,7 +969,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & mip,
-		SliceMatrix<double,ColMajor> mat, 
+		BareSliceMatrix<double,ColMajor> mat, 
 		LocalHeap & lh) const override;    
 
     NGS_DLL_HEADER virtual void
@@ -998,6 +997,273 @@ namespace ngfem
   };
 
   
+
+
+
+
+
+  class CompoundDifferentialOperator : public DifferentialOperator
+  {
+    shared_ptr<DifferentialOperator> diffop;
+    int comp;
+  public:
+    CompoundDifferentialOperator (shared_ptr<DifferentialOperator> adiffop, 
+                                  int acomp)
+      : DifferentialOperator(adiffop->Dim(), adiffop->BlockDim(),
+                             adiffop->VB(), adiffop->DiffOrder()),
+        diffop(adiffop), comp(acomp)
+    {
+      // dimensions = adiffop->Dimensions();
+      SetDimensions ( adiffop->Dimensions() );
+      if (auto vsemb = diffop->GetVSEmbedding(); vsemb)
+        SetVectorSpaceEmbedding (*vsemb);
+    }
+  
+    virtual ~CompoundDifferentialOperator () = default;
+    shared_ptr<DifferentialOperator> BaseDiffOp() const { return diffop; } 
+    int Component () const { return comp; }
+    virtual bool SupportsVB (VorB checkvb) const override { return diffop->SupportsVB(checkvb); }
+  
+    shared_ptr<DifferentialOperator> GetTrace() const override
+    {
+      if (auto diffoptrace = diffop->GetTrace())
+        return make_shared<CompoundDifferentialOperator> (diffoptrace, comp);
+      else
+        return nullptr;
+    }
+  
+    virtual bool operator== (const DifferentialOperator & diffop2) const override
+    {
+      const CompoundDifferentialOperator * do2 =
+        dynamic_cast<const CompoundDifferentialOperator*> (&diffop2);
+      if (do2 && do2->Component() == Component())
+        return *diffop == *(do2->diffop);
+      return false;
+    }
+
+  
+    virtual string Name() const override { return diffop->Name(); }
+
+    virtual IntRange UsedDofs(const FiniteElement & bfel) const override
+    {
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      size_t base = BlockDim() * fel.GetRange(comp).First();
+      IntRange r1 = diffop->UsedDofs(fel[comp]);
+      return r1+base;
+    }
+  
+    NGS_DLL_HEADER virtual void
+    CalcMatrix (const FiniteElement & bfel,
+                const BaseMappedIntegrationPoint & mip,
+                BareSliceMatrix<double,ColMajor> mat, 
+                LocalHeap & lh) const override
+    {
+      mat.AddSize(Dim(), bfel.GetNDof()) = 0;
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->CalcMatrix (fel[comp], mip, mat.Cols(r), lh);
+    }
+  
+    NGS_DLL_HEADER virtual void
+    CalcMatrixVS (const FiniteElement & bfel,
+                  const BaseMappedIntegrationPoint & mip,
+                  SliceMatrix<double,ColMajor> mat, 
+                  LocalHeap & lh) const override
+    {
+      mat.AddSize(Dim(), bfel.GetNDof()) = 0;
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->CalcMatrixVS (fel[comp], mip, mat.Cols(r), lh);
+    }
+
+    NGS_DLL_HEADER virtual void
+    CalcMatrix (const FiniteElement & bfel,
+                const BaseMappedIntegrationPoint & mip,
+                BareSliceMatrix<Complex,ColMajor> mat, 
+                LocalHeap & lh) const override
+    {
+      mat.AddSize(Dim(), bfel.GetNDof()) = 0;
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->CalcMatrix (fel[comp], mip, mat.Cols(r), lh);
+    }
+
+    NGS_DLL_HEADER virtual void
+    CalcMatrix (const FiniteElement & bfel,
+                const BaseMappedIntegrationRule & mir,
+                BareSliceMatrix<double,ColMajor> mat, 
+                LocalHeap & lh) const override
+    {
+      mat.AddSize(Dim()*mir.Size(), bfel.GetNDof()) = 0;
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->CalcMatrix (fel[comp], mir, mat.Cols(r), lh);
+    }
+  
+    NGS_DLL_HEADER virtual void
+    CalcMatrix (const FiniteElement & bfel,
+                const BaseMappedIntegrationRule & mir,
+                BareSliceMatrix<Complex,ColMajor> mat,   
+                LocalHeap & lh) const override
+    {
+      mat.AddSize(Dim(), bfel.GetNDof()) = 0;
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->CalcMatrix (fel[comp], mir, mat.Cols(r), lh);
+    }
+
+    NGS_DLL_HEADER virtual void
+    CalcMatrix (const FiniteElement & bfel,
+                const SIMD_BaseMappedIntegrationRule & mir,
+                BareSliceMatrix<SIMD<double>> mat) const override
+    {
+      // mat = 0;   // take care: unused elements not zerod !!!!
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = Dim() * BlockDim() * fel.GetRange(comp);
+      diffop->CalcMatrix (fel[comp], mir, mat.Rows(r));
+    }
+  
+    NGS_DLL_HEADER virtual void
+    Apply (const FiniteElement & bfel,
+           const BaseMappedIntegrationPoint & mip,
+           BareSliceVector<double> x, 
+           FlatVector<double> flux,
+           LocalHeap & lh) const override
+    {
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->Apply (fel[comp], mip, x.Range(r), flux, lh);
+    }
+
+    NGS_DLL_HEADER virtual void
+    Apply (const FiniteElement & bfel,
+           const BaseMappedIntegrationPoint & mip,
+           BareSliceVector<Complex> x, 
+           FlatVector<Complex> flux,
+           LocalHeap & lh) const override
+    {
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->Apply (fel[comp], mip, x.Range(r), flux, lh);
+    }
+
+
+    virtual void
+    Apply (const FiniteElement & bfel,
+           const SIMD_BaseMappedIntegrationRule & bmir,
+           BareSliceVector<double> x, 
+           BareSliceMatrix<SIMD<double>> flux) const override
+    {
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->Apply (fel[comp], bmir, x.Range(r), flux);
+    }
+
+    virtual void
+    Apply (const FiniteElement & bfel,
+           const SIMD_BaseMappedIntegrationRule & bmir,
+           BareSliceVector<Complex> x, 
+           BareSliceMatrix<SIMD<Complex>> flux) const override
+    {
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->Apply (fel[comp], bmir, x.Range(r), flux);
+    }
+
+
+  
+    NGS_DLL_HEADER virtual void
+    ApplyTrans (const FiniteElement & bfel,
+                const BaseMappedIntegrationPoint & mip,
+                FlatVector<double> flux,
+                BareSliceVector<double> x, 
+                LocalHeap & lh) const override
+    {
+      x.Range(0,bfel.GetNDof()) = 0;
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->ApplyTrans (fel[comp], mip, flux, x.Range(r), lh);
+    }
+
+    NGS_DLL_HEADER virtual void
+    ApplyTrans (const FiniteElement & bfel,
+                const BaseMappedIntegrationPoint & mip,
+                FlatVector<Complex> flux,
+                BareSliceVector<Complex> x, 
+                LocalHeap & lh) const override
+    {
+      x.Range(0,BlockDim()*bfel.GetNDof()) = 0;
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->ApplyTrans (fel[comp], mip, flux, x.Range(r), lh);
+    }
+
+    NGS_DLL_HEADER virtual void
+    AddTrans (const FiniteElement & bfel,
+              const SIMD_BaseMappedIntegrationRule & bmir,
+              BareSliceMatrix<SIMD<double>> flux,
+              BareSliceVector<double> x) const override
+    {
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->AddTrans (fel[comp], bmir, flux, x.Range(r));
+    }
+  
+    NGS_DLL_HEADER virtual void
+    AddTrans (const FiniteElement & bfel,
+              const SIMD_BaseMappedIntegrationRule & bmir,
+              BareSliceMatrix<SIMD<Complex>> flux,
+              BareSliceVector<Complex> x) const override
+    {
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      diffop->AddTrans (fel[comp], bmir, flux, x.Range(r));
+    }
+  
+  
+    /// calculates matrix on reference element
+
+    NGS_DLL_HEADER virtual int DimRef() const override
+    {
+      return BlockDim()*diffop->DimRef();
+    }
+  
+    NGS_DLL_HEADER virtual void
+    CalcMatrix (const FiniteElement & bfel,
+                const IntegrationPoint & ip,
+                BareSliceMatrix<double,ColMajor> mat,
+                LocalHeap & lh) const override
+    {
+      const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      IntRange r = BlockDim() * fel.GetRange(comp);
+      mat.AddSize(DimRef(), bfel.GetNDof())  = 0.0;
+      diffop->CalcMatrix (fel[comp], ip, mat.Cols(r), lh);
+    }
+  
+  
+    NGS_DLL_HEADER virtual void
+    CalcTransformationMatrix (const BaseMappedIntegrationPoint & mip,
+                              SliceMatrix<double> trans,
+                              LocalHeap & lh) const override
+    {
+      diffop->CalcTransformationMatrix(mip, trans, lh);
+    }
+  
+  
+    virtual shared_ptr<CoefficientFunction>
+    DiffShape (shared_ptr<CoefficientFunction> proxy,
+               shared_ptr<CoefficientFunction> dir, bool Eulerian) const override
+    {
+      return diffop->DiffShape(proxy,dir,Eulerian);
+    }
+  };
+
+
+
+
+
+
+
   
 
   /**
@@ -1040,19 +1306,19 @@ namespace ngfem
     virtual void
     CalcMatrix (const FiniteElement & bfel,
 		const BaseMappedIntegrationPoint & bmip,
-		SliceMatrix<double,ColMajor> mat, 
+		BareSliceMatrix<double,ColMajor> mat, 
 		LocalHeap & lh) const override;
 
     virtual void
     CalcMatrix (const FiniteElement & bfel,
 		const BaseMappedIntegrationPoint & bmip,
-		SliceMatrix<Complex,ColMajor> mat, 
+		BareSliceMatrix<Complex,ColMajor> mat, 
 		LocalHeap & lh) const override;
 
     virtual void
     CalcMatrix (const FiniteElement & bfel,
 		const BaseMappedIntegrationRule & bmir,
-		SliceMatrix<double,ColMajor> mat, 
+		BareSliceMatrix<double,ColMajor> mat, 
 		LocalHeap & lh) const override;
 
     virtual void
@@ -1060,7 +1326,6 @@ namespace ngfem
 		const SIMD_BaseMappedIntegrationRule & mir,
 		BareSliceMatrix<SIMD<double>> mat) const override;
     
-#ifndef FASTCOMPILE
     virtual void
     Apply (const FiniteElement & bfel,
 	   const BaseMappedIntegrationPoint & bmip,
@@ -1068,6 +1333,7 @@ namespace ngfem
 	   FlatVector<double> flux,
 	   LocalHeap & lh) const override;
 
+#ifndef FASTCOMPILE
     virtual void
     Apply (const FiniteElement & bfel,
 	   const BaseMappedIntegrationRule & bmir,
@@ -1150,7 +1416,7 @@ namespace ngfem
     virtual void
     CalcMatrix (const FiniteElement & fel,
                 const IntegrationPoint & ip,
-                SliceMatrix<double,ColMajor> mat,
+                BareSliceMatrix<double,ColMajor> mat,
                 LocalHeap & lh) const override;
     
     virtual void

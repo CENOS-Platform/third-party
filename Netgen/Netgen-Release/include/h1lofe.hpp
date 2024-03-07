@@ -7,6 +7,8 @@
 /* Date:   29. Jun. 2009                                              */
 /*********************************************************************/
 
+#include "tscalarfe.hpp"
+#include "coefficient.hpp"
 
 #ifdef FILE_H1LOFE_CPP
 #define H1LOFE_EXTERN
