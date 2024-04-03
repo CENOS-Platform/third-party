@@ -59,22 +59,23 @@ set_target_properties(netgen_libs PROPERTIES
 add_library(ngs_lapack INTERFACE IMPORTED)
 
 set_target_properties(ngs_lapack PROPERTIES
-  INTERFACE_LINK_LIBRARIES "E:/source/third-party-auto/Netgen-Release/lib/BLAS.lib"
+  INTERFACE_INCLUDE_DIRECTORIES "D:/source/cenos/backend/third-party/python/Library/include"
+  INTERFACE_LINK_LIBRARIES "D:/source/cenos/backend/third-party/python/Library/lib/mkl_rt.lib"
 )
 
 # Create imported target netgen_python
 add_library(netgen_python INTERFACE IMPORTED)
 
 set_target_properties(netgen_python PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "C:/CENOS/third-party/python310/include"
-  INTERFACE_LINK_LIBRARIES "C:/CENOS/third-party/python310/libs/python310.lib"
+  INTERFACE_INCLUDE_DIRECTORIES "D:/source/cenos/backend/third-party/python/include"
+  INTERFACE_LINK_LIBRARIES "D:/source/cenos/backend/third-party/python/libs/python310.lib"
 )
 
 # Create imported target ngstd
 add_library(ngstd INTERFACE IMPORTED)
 
 set_target_properties(ngstd PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "HAVE_NETGEN_SOURCES;USE_TIMEOFDAY;TCL;LAPACK;NGS_PYTHON;USE_UMFPACK"
+  INTERFACE_COMPILE_DEFINITIONS "HAVE_NETGEN_SOURCES;USE_TIMEOFDAY;TCL;LAPACK;USE_PARDISO;NGS_PYTHON;USE_UMFPACK"
   INTERFACE_COMPILE_OPTIONS "/std:c++17;-DMAX_SYS_DIM=3"
   INTERFACE_LINK_LIBRARIES "netgen_libs;\$<LINK_ONLY:>"
 )
