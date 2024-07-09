@@ -47,14 +47,14 @@ namespace ngfem
     TSCAL T_Integrate (const ngcomp::MeshAccess & ma,
                        FlatVector<TSCAL> element_wise);
 
-    virtual double Integrate (const ngcomp::MeshAccess & ma,
+    NGS_DLL_HEADER virtual double Integrate (const ngcomp::MeshAccess & ma,
                               FlatVector<double> element_wise);
 
-    virtual Complex Integrate (const ngcomp::MeshAccess & ma,
+    NGS_DLL_HEADER virtual Complex Integrate (const ngcomp::MeshAccess & ma,
                                FlatVector<Complex> element_wise);
     
-    virtual shared_ptr<BilinearFormIntegrator> MakeBilinearFormIntegrator() const;
-    virtual shared_ptr<LinearFormIntegrator> MakeLinearFormIntegrator() const;
+    NGS_DLL_HEADER virtual shared_ptr<BilinearFormIntegrator> MakeBilinearFormIntegrator() const;
+    NGS_DLL_HEADER virtual shared_ptr<LinearFormIntegrator> MakeLinearFormIntegrator() const;
   };
   
   inline Integral operator* (double fac, const Integral & cf)
@@ -86,6 +86,40 @@ namespace ngfem
 
     auto begin() const { return icfs.begin(); }
     auto end() const { return icfs.end(); }
+
+    shared_ptr<SumOfIntegrals>
+    Replace (std::map<shared_ptr<CoefficientFunction>, shared_ptr<CoefficientFunction>> replace)
+
+    {
+      auto repl = make_shared<SumOfIntegrals>();
+      CoefficientFunction::T_Transform transform;
+      transform.replace = replace;
+      for (auto & icf : icfs)
+        repl->icfs += make_shared<Integral> (icf->cf->Transform(transform), icf->dx);
+      return repl;
+    }
+
+    Array<shared_ptr<ProxyFunction>> GetProxies (bool trialproxies)
+    {
+      Array<shared_ptr<ProxyFunction>> proxies;
+
+      for (auto & icf : icfs)
+        icf->cf->TraverseTree
+          ( [&] (CoefficientFunction & nodecf)
+          {
+            auto proxy = dynamic_pointer_cast<ProxyFunction> ((&nodecf)->shared_from_this());
+            if (proxy) 
+              {
+                if (proxy->IsTrialFunction() == trialproxies)
+                  {
+                    if (!proxies.Contains(proxy))
+                      proxies.Append(proxy);
+                  }
+              }
+          });
+
+      return proxies;
+    }
     
     shared_ptr<SumOfIntegrals>
     Diff (shared_ptr<CoefficientFunction> var,

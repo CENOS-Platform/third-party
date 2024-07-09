@@ -278,14 +278,20 @@ namespace ngfem
 
     bool IsVariable() const { return is_variable; }
     void SetVariable (bool var = true) { is_variable = var; }
-    
+
+    struct T_Transform {
+      std::map<shared_ptr<CoefficientFunction>, shared_ptr<CoefficientFunction>> replace;
+      std::map<shared_ptr<CoefficientFunction>, shared_ptr<CoefficientFunction>> cache;
+    };
+    virtual shared_ptr<CoefficientFunction> Transform (T_Transform & transformation) const;
+
     virtual shared_ptr<CoefficientFunction>
       Diff (const CoefficientFunction * var, shared_ptr<CoefficientFunction> dir) const;
     // returns Jacobi-matrix (possible as higher order tensor)
     virtual shared_ptr<CoefficientFunction>
       DiffJacobi (const CoefficientFunction * var, T_DJC & cache) const;
 
-
+    
     virtual shared_ptr<CoefficientFunction> Operator (const string & name) const;
     virtual shared_ptr<CoefficientFunction> Operator (shared_ptr<class DifferentialOperator> diffop) const;
     
@@ -1171,6 +1177,19 @@ public:
           .Assign( Var(inputs[0], i, c1->Dimensions()).Func(name), false);
   }
 
+  shared_ptr<CoefficientFunction>
+  Transform(CoefficientFunction::T_Transform& transformation) const override
+  {
+    auto thisptr = const_pointer_cast<CoefficientFunction>(this->shared_from_this());
+    if(transformation.cache.count(thisptr))
+      return transformation.cache[thisptr];
+    if(transformation.replace.count(thisptr))
+      return transformation.replace[thisptr];
+    auto newcf = make_shared<cl_UnaryOpCF>(c1->Transform(transformation), lam, name);
+    transformation.cache[thisptr] = newcf;
+    return newcf;
+  }
+
   virtual void TraverseTree (const function<void(CoefficientFunction&)> & func) override
   {
     c1->TraverseTree (func);
@@ -1392,6 +1411,19 @@ public:
       archive.Shallow(c1).Shallow(c2) & opname;
   }
 
+  shared_ptr<CoefficientFunction>
+  Transform(CoefficientFunction::T_Transform& transformation) const override
+  {
+    auto thisptr = const_pointer_cast<CoefficientFunction>(this->shared_from_this());
+    if(transformation.cache.count(thisptr))
+      return transformation.cache[thisptr];
+    if(transformation.replace.count(thisptr))
+      return transformation.replace[thisptr];
+    auto newcf = make_shared<cl_BinaryOpCF<OP>>(c1->Transform(transformation), c2->Transform(transformation), lam, opname);
+    transformation.cache[thisptr] = newcf;
+    return newcf;
+  }
+
   virtual string GetDescription () const override
   {
     return string("binary operation '")+opname+"'";
@@ -1583,7 +1615,7 @@ public:
   virtual shared_ptr<CoefficientFunction>
   Operator (const string & name) const override
   { throw Exception ("binarycf "+opname+" does not provide Operator"); }
-  
+
   virtual shared_ptr<CoefficientFunction>
   Diff (const CoefficientFunction * var, shared_ptr<CoefficientFunction> dir) const override
   { throw Exception ("binarycf "+opname+" does not provide a derivative"); }
@@ -1931,7 +1963,8 @@ shared_ptr<CompiledCoefficientFunctionInterface> Compile (shared_ptr<Coefficient
 
   
   NGS_DLL_HEADER
-  shared_ptr<CoefficientFunction> NormalVectorCF (int dim);
+  shared_ptr<CoefficientFunction> NormalVectorCF
+  (int dim, optional<BitArray> inverted_faces=nullopt);
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> TangentialVectorCF (int dim, bool consistent);
   NGS_DLL_HEADER

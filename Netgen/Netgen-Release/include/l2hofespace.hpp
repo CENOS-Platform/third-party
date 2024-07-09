@@ -19,15 +19,6 @@ namespace ngcomp
   class NGS_DLL_HEADER L2HighOrderFESpace : public FESpace
   {
   protected:
-    /*
-      ----> baseclass
-    // Number of Elements
-    int nel;
-    // Degrees of Freedom 
-    int ndof;
-    // Levels 
-    Array<int> ndlevel;
-    */
       
     // if order is relative to mesh order 
     bool var_order;
@@ -232,9 +223,10 @@ namespace ngcomp
   };
 
 
-  class VectorL2FESpace : public CompoundFESpace
+  class NGS_DLL_HEADER VectorL2FESpace : public CompoundFESpace
   {
     bool piola = false;
+    bool piola2 = false;  // piola mapping with vertex oriended coordinates (new for prolongation)
     bool covariant = false;
   public:
     VectorL2FESpace (shared_ptr<MeshAccess> ama, const Flags & flags, bool checkflags = false);
