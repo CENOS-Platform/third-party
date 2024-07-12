@@ -1,6 +1,10 @@
 #ifndef NETGEN_BOUNDARYLAYER_HPP
 #define NETGEN_BOUNDARYLAYER_HPP
 
+#include <core/array.hpp>
+#include <mystdlib.h>
+#include <meshing.hpp>
+
 namespace netgen
 {
 
@@ -27,6 +31,24 @@ public:
   Array<size_t> project_boundaries;
 };
 
+struct SpecialBoundaryPoint {
+  struct GrowthGroup {
+    Array<int> faces;
+    Vec<3> growth_vector;
+    Array<PointIndex> new_points;
+
+    GrowthGroup(FlatArray<int> faces_, FlatArray<Vec<3>> normals);
+    GrowthGroup(const GrowthGroup &) = default;
+    GrowthGroup() = default;
+
+  };
+  // std::map<int, Vec<3>> normals;
+  Array<GrowthGroup> growth_groups;
+
+  SpecialBoundaryPoint( const std::map<int, Vec<3>> & normals );
+  SpecialBoundaryPoint() = default;
+};
+
 DLL_HEADER void GenerateBoundaryLayer (Mesh & mesh,
                                        const BoundaryLayerParameters & blp);
 
@@ -38,7 +60,6 @@ class BoundaryLayerTool
     BoundaryLayerTool(Mesh & mesh_, const BoundaryLayerParameters & params_);
     void Perform();
 
-  protected:
     Mesh & mesh;
     MeshTopology & topo;
     BoundaryLayerParameters params;
@@ -51,14 +72,19 @@ class BoundaryLayerTool
     Array<int> new_mat_nrs;
     BitArray moved_surfaces;
     int np, nseg, nse, ne;
-    double height;
+    double total_height;
 
     bool have_single_segments;
     Array<Segment> segments, new_segments;
+    Array<Array<PointIndex>, PointIndex> mapto;
+    Array<PointIndex, PointIndex> mapfrom;
 
     Array<double> surfacefacs;
     Array<int> si_map;
     Array<double, PointIndex> limits;
+
+    std::map<PointIndex, SpecialBoundaryPoint> special_boundary_points;
+    std::map<PointIndex, std::tuple<Vec<3>*, double>> growth_vector_map;
 
     // major steps called in Perform()
     void CreateNewFaceDescriptors();
@@ -76,12 +102,6 @@ class BoundaryLayerTool
     void SetDomInOutSides();
     void AddSegments();
     void FixVolumeElements();
-
-    // utility functions
-    array<Point<3>, 2> GetMappedSeg( PointIndex pi );
-    ArrayMem<Point<3>, 4> GetFace( SurfaceElementIndex sei );
-    ArrayMem<Point<3>, 4> GetMappedFace( SurfaceElementIndex sei );
-    ArrayMem<Point<3>, 4> GetMappedFace( SurfaceElementIndex sei, int face );
 
     Vec<3> getNormal(const Element2d & el)
     {

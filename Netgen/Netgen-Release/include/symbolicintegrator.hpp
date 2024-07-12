@@ -38,7 +38,10 @@ protected:
   shared_ptr<CoefficientFunction> boundary_values; // for DG - apply
 
   SymbolTable<shared_ptr<DifferentialOperator>> additional_diffops;
-  mutable SymbolTable<weak_ptr<ProxyFunction>> additional_proxies;  
+  mutable SymbolTable<weak_ptr<ProxyFunction>> additional_proxies;
+
+  mutable weak_ptr<ProxyFunction> dt;
+  mutable shared_ptr<ProxyFunction> anti_dt;
   // int dim;
 public:
   NGS_DLL_HEADER ProxyFunction (shared_ptr<ngcomp::FESpace> afes,
@@ -69,7 +72,12 @@ public:
 
   NGS_DLL_HEADER shared_ptr<ProxyFunction> Deriv() const;
   NGS_DLL_HEADER shared_ptr<ProxyFunction> Trace() const;
+  
+  NGS_DLL_HEADER shared_ptr<ProxyFunction> Dt() const;  
+  NGS_DLL_HEADER shared_ptr<ProxyFunction> AntiDt() const;
+  NGS_DLL_HEADER int OrderDt() const;    
 
+  
   NGS_DLL_HEADER shared_ptr<ProxyFunction> Other(shared_ptr<CoefficientFunction> _boundary_values) const;
 
   NGS_DLL_HEADER const shared_ptr<CoefficientFunction> & BoundaryValues() const { return boundary_values; } 
@@ -232,6 +240,7 @@ public:
     */
   }
 
+  
   virtual shared_ptr<CoefficientFunction>
   Diff (const CoefficientFunction * var, shared_ptr<CoefficientFunction> dir) const override;
 };
@@ -791,10 +800,7 @@ public:
     CalcElementMatrix (const FiniteElement & fel,
 		       const ElementTransformation & trafo, 
 		       FlatMatrix<double> elmat,
-		       LocalHeap & lh) const
-    {
-      cout << "SymbolicEnergy :: CalcMatrix not implemented" << endl;
-    }
+		       LocalHeap & lh) const;
 
     virtual void 
     CalcLinearizedElementMatrix (const FiniteElement & fel,

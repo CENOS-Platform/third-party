@@ -13,11 +13,17 @@
 #include "archive.hpp"
 #include "flags.hpp"
 #include "ngcore_api.hpp"
-#include "profiler.hpp"
+#include "ng_mpi.hpp"
+
 namespace py = pybind11;
 
 namespace ngcore
 {
+#ifdef PARALLEL
+  NGCORE_API extern bool (*NG_MPI_CommFromMPI4Py)(py::handle, NG_MPI_Comm &);
+  NGCORE_API extern py::handle (*NG_MPI_CommToMPI4Py)(NG_MPI_Comm);
+#endif // PARALLEL
+
   namespace detail
   {
     template<typename T>
@@ -31,6 +37,16 @@ namespace ngcore
       static constexpr bool value = decltype(check((T*) nullptr))::value;
     };
   } // namespace detail
+
+#ifdef PARALLEL
+  struct mpi4py_comm {
+    mpi4py_comm() = default;
+    mpi4py_comm(NG_MPI_Comm value) : value(value) {}
+    operator NG_MPI_Comm () { return value; }
+
+    NG_MPI_Comm value;
+  };
+#endif  // PARALLEL
 } // namespace ngcore
 
 
@@ -38,6 +54,27 @@ namespace ngcore
 // automatic conversion of python list to Array<>
 namespace pybind11 {
 namespace detail {
+
+#ifdef PARALLEL
+template <> struct type_caster<ngcore::mpi4py_comm> {
+  public:
+  PYBIND11_TYPE_CASTER(ngcore::mpi4py_comm, _("mpi4py_comm"));
+
+    // Python -> C++
+    bool load(handle src, bool) {
+      return ngcore::NG_MPI_CommFromMPI4Py(src, value.value);
+    }
+
+    // C++ -> Python
+    static handle cast(ngcore::mpi4py_comm src,
+                       return_value_policy /* policy */,
+                       handle /* parent */)
+    {
+      // Create an mpi4py handle
+      return ngcore::NG_MPI_CommToMPI4Py(src.value);
+    }
+};
+#endif //  PARALLEL
 
 template <typename Type, typename Value> struct ngcore_list_caster {
     using value_conv = make_caster<Value>;
@@ -259,7 +296,8 @@ namespace ngcore
   }
 
   template <typename T>
-  py::object makePyTuple (FlatArray<T> ar)
+  // py::object makePyTuple (FlatArray<T> ar)
+  py::object makePyTuple (const BaseArrayObject<T> & ar)
   {
     py::tuple res(ar.Size());
     for (auto i : Range(ar))
