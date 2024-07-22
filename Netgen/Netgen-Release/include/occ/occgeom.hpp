@@ -420,8 +420,8 @@ namespace netgen
     //bool FastProject (int surfi, Point<3> & ap, double& u, double& v) const;
   };
 
-  void Identify(const ListOfShapes & me, const ListOfShapes & you, string name, Identifications::ID_TYPE type, Transformation<3> trafo);
-  void Identify(const TopoDS_Shape & me, const TopoDS_Shape & you, string name, Identifications::ID_TYPE type, std::optional<std::variant<gp_Trsf, gp_GTrsf>> opt_trafo);
+  DLL_HEADER void Identify(const ListOfShapes & me, const ListOfShapes & you, string name, Identifications::ID_TYPE type, Transformation<3> trafo);
+  DLL_HEADER void Identify(const TopoDS_Shape & me, const TopoDS_Shape & you, string name, Identifications::ID_TYPE type, std::optional<std::variant<gp_Trsf, gp_GTrsf>> opt_trafo);
    
 
   void PrintContents (OCCGeometry * geom);
@@ -516,11 +516,13 @@ namespace netgen
                       if(from.IsSame(from_mapped) && to.IsSame(to_mapped))
                         continue;
   
-                      Transformation<3> trafo_mapped = ident.trafo;
+                      if(!ident.trafo) continue;
+                      Transformation<3> trafo_mapped = *ident.trafo;
+
                       if(trafo)
                       {
                           Transformation<3> trafo_temp;
-                          trafo_temp.Combine(ident.trafo, trafo_inv);
+                          trafo_temp.Combine(*ident.trafo, trafo_inv);
                           trafo_mapped.Combine(*trafo, trafo_temp);
                       }
   

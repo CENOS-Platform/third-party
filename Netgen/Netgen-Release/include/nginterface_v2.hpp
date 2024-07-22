@@ -9,6 +9,7 @@
 /**************************************************************************/
 
 #include "mydefs.hpp"
+#include <core/mpi_wrapper.hpp>
 
 /*
   C++ interface to Netgen
@@ -159,6 +160,7 @@ namespace netgen
     FlatArray<T_FACE2> faces;    
     Ng_Facets facets;
     bool is_curved;
+    int8_t newest_vertex;
   };
 
   
