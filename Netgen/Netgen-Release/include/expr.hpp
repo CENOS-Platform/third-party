@@ -14,13 +14,46 @@
 #include <ngs_stdcpp_include.hpp>  // for INLINE
 #include "complex_wrapper.hpp"
 
+
+#if defined(NETGEN_ENABLE_CHECK_RANGE) && !defined(__CUDA_ARCH__)
+#define NETGEN_CHECK_SHAPE(a,b) \
+  { if(a.Shape() != b.Shape()) \
+      ngcore::ThrowException(__FILE__ ":" NETGEN_CORE_NGEXEPTION_STR(__LINE__) "\t: shapes don't match"); }
+#else // defined(NETGEN_ENABLE_CHECK_RANGE) && !defined(__CUDA_ARCH__)
+#define NETGEN_CHECK_SHAPE(a,b)
+#endif // defined(NETGEN_ENABLE_CHECK_RANGE) && !defined(__CUDA_ARCH__)
+
+
+template <typename T>
+struct SafeIndex
+{
+  T i;
+  SafeIndex(T ai) : i(ai) { };
+  operator T() const { return i; }
+  auto operator++() { return ++i; }
+  auto operator++(int) { return i++; }
+};
+
+template <typename T>
+struct IsSafe<SafeIndex<T>> {
+  constexpr operator bool() const { return true; } };
+
+/*
+namespace std {
+  template <typename T>  
+  struct is_integral<SafeIndex<T>> {
+    static constexpr bool value = true;
+  };
+}
+*/
+
 namespace ngbla
 {
   using namespace std;
   using namespace ngcore;
   using namespace ngstd;
 
-
+  
   enum ORDERING { ColMajor, RowMajor };
 
 
@@ -210,7 +243,6 @@ namespace ngbla
 
 
 
-
   /**
      Expr is the base class for all matrix template expressions.
      Barton and Nackman Trick for template polymorphism, function Spec.
@@ -267,23 +299,23 @@ namespace ngbla
 
   
   INLINE constexpr auto CombinedSize(undefined_size s1, undefined_size s2) {
-    NETGEN_CHECK_SAME(s1, s2); return s1; }
+    NETGEN_CHECK_SAME(size_t(s1), size_t(s2)); return s1; }
   INLINE constexpr auto CombinedSize(undefined_size s1, size_t s2) {
-    NETGEN_CHECK_SAME(s1, s2); return s2; }  
+    NETGEN_CHECK_SAME(size_t(s1), size_t(s2)); return s2; }  
   INLINE constexpr auto CombinedSize(size_t s1, undefined_size s2) {
-    NETGEN_CHECK_SAME(s1, s2); return s1; }  
+    NETGEN_CHECK_SAME(size_t(s1), size_t(s2)); return s1; }  
   INLINE constexpr auto CombinedSize(size_t s1, size_t s2) {
-    NETGEN_CHECK_SAME(s1, s2); return s1; }
+    NETGEN_CHECK_SAME(size_t(s1), size_t(s2)); return s1; }
   template <int S1> INLINE constexpr auto CombinedSize(IC<S1> s1, undefined_size s2) {
-    NETGEN_CHECK_SAME(s1, s2); return s1; }  
+    NETGEN_CHECK_SAME(size_t(s1), size_t(s2)); return s1; }  
   template <int S1> INLINE constexpr auto CombinedSize(IC<S1> s1, size_t s2) {
-    NETGEN_CHECK_SAME(s1, s2); return s1; }  
+    NETGEN_CHECK_SAME(size_t(s1), size_t(s2)); return s1; }  
   template <int S1, int S2> INLINE constexpr auto CombinedSize(IC<S1> s1, IC<S2> s2) {
-    NETGEN_CHECK_SAME(s1, s2); return s1; }  
+    NETGEN_CHECK_SAME(size_t(s1), size_t(s2)); return s1; }  
   template <int S2> INLINE constexpr auto CombinedSize(undefined_size s1, IC<S2> s2) {
-    NETGEN_CHECK_SAME(s1, s2); return s2; }  
+    NETGEN_CHECK_SAME(size_t(s1), size_t(s2)); return s2; }  
   template <int S2> INLINE constexpr auto CombinedSize(size_t s1, IC<S2> s2) {
-     NETGEN_CHECK_SAME(s1, s2); return s2; }  
+     NETGEN_CHECK_SAME(size_t(s1), size_t(s2)); return s2; }  
 
   template <typename T1, typename T2>
   INLINE constexpr auto CombinedSize(tuple<T1> tup1, tuple<T2> tup2)
@@ -457,16 +489,16 @@ namespace ngbla
   public:
     static INLINE T & Assign (MatExpr<T> & self, const Expr<TB> & v)
     {
-      NETGEN_CHECK_RANGE(self.Height(), v.Height(), v.Height()+1);
-      NETGEN_CHECK_RANGE(self.Width(), v.Width(), v.Width()+1);
-      NETGEN_CHECK_SHAPE(self.Spec(), v);
+      // NETGEN_CHECK_RANGE(self.Height(), v.Height(), v.Height()+1);
+      // NETGEN_CHECK_RANGE(self.Width(), v.Width(), v.Width()+1);
+      // NETGEN_CHECK_SHAPE(self.Spec(), v);
 
 
       auto src = v.View();
       decltype(auto) dest = self.ViewRW();
 
-      auto h = CombinedSize (src.Height(), dest.Height());
-      auto w = CombinedSize (src.Width(), dest.Width());
+      auto h = CombinedSize (src.Height(), dest.Height()); // checks if same
+      auto w = CombinedSize (src.Width(), dest.Width());   // checks if same
       
       if (T::COL_MAJOR)
         {
@@ -483,14 +515,14 @@ namespace ngbla
 	  if (T::IsLinear())
 	    {
 	      auto hw = h*w;
-              for (auto i : Range(hw))  
+              for (SafeIndex<size_t> i : Range(hw))  
                 TOP()(dest(i), src(i));
 	    }
 	  else
 	    {
               if (w > 0)
-                for (size_t i = 0, k = 0; i < h; i++)
-                  for (size_t j = 0; j < w; j++, k++)
+                for (SafeIndex<size_t> i = 0, k = 0; i < h; i++)
+                  for (SafeIndex<size_t> j = 0; j < w; j++, k++)
                     TOP() (dest(i,j), src(k));
 	    }
 	}
@@ -499,13 +531,13 @@ namespace ngbla
           if (w > 0)
             {
               if (T::IsLinear())
-                for (size_t i = 0, k = 0; i < h; i++)
-                  for (size_t j = 0; j < w; j++, k++)
+                for (SafeIndex<size_t> i = 0, k = 0; i < h; i++)
+                  for (SafeIndex<size_t> j = 0; j < w; j++, k++)
                     TOP() (dest(k), src(i,j));                    
               else
                 {
-                  for (size_t i = 0; i < h; i++)
-                    for (size_t j = 0; j < w; j++)
+                  for (SafeIndex<size_t> i = 0; i < h; i++)
+                    for (SafeIndex<size_t> j = 0; j < w; j++)
                       TOP() (dest(i,j), src(i,j));                        
                 }
             }
@@ -706,125 +738,6 @@ namespace ngbla
 
 
 
-
-
-
-#ifdef OLD
-  /**
-     The base class for matrices.
-     Constant-Means-Constat-Pointer
-     matrix-values may be changed by const methods
-  */
-  template <class T>
-  class CMCPMatExpr : public MatExpr<T>
-  {
-  public:
-    // int Height() const { return Spec().T::Height(); }
-    // int Width() const { return Spec().T::Width(); }
-
-    INLINE CMCPMatExpr () { ; }
-
-    using MatExpr<T>::Spec;
-    using MatExpr<T>::Height;
-    using MatExpr<T>::Width;
-
-    // T & Spec() { return static_cast<T&> (*this); }
-    // const T & Spec() const { return static_cast<const T&> (*this); }
-
-    template<typename TB>
-    INLINE const T & operator= (const Expr<TB> & v) const
-    {
-      const_cast<CMCPMatExpr*> (this) -> MatExpr<T>::operator= (v);
-      return Spec();
-    }
-
-    INLINE auto ViewRW() { return this->View(); }    
-
-    
-    template<typename TB>
-    INLINE const T & operator+= (const Expr<TB> & v) const
-    {
-      const_cast<CMCPMatExpr*> (this) -> MatExpr<T>::operator+= (v);
-      return Spec();
-    }
-
-    template<typename TB>
-    INLINE const T & operator+= (const Expr<SymExpr<TB> > & v) const
-    {
-      const_cast<CMCPMatExpr*> (this) -> MatExpr<T>::operator+= (v);
-      return Spec();
-    }
-
-    template<typename TB>
-    INLINE const T & operator-= (const Expr<TB> & v) const
-    {
-      const_cast<CMCPMatExpr*> (this) -> MatExpr<T>::operator-= (v);
-      return Spec();
-    }
-
-    template <class SCAL2>
-    INLINE const T & operator*= (SCAL2 s) const
-    {
-      const_cast<CMCPMatExpr*> (this) -> MatExpr<T>::operator*= (s);
-      return Spec();
-    }
-
-    template <class SCAL2>
-    INLINE const T & operator/= (SCAL2 s) const 
-    {
-      return (*this) *= (1.0/s);
-    }
-
-    SubMatrixExpr<const T>
-    INLINE Rows (size_t first, size_t next) const
-    { 
-      // return SubMatrixExpr<const T> (static_cast<const T&> (*this), first, 0, next-first, Width());
-      return SubMatrixExpr<const T> (this->View(), first, 0, next-first, Width()); 
-    }
-
-    SubMatrixExpr<const T>
-    INLINE Cols (size_t first, size_t next) const
-    { 
-      // return SubMatrixExpr<const T> (static_cast<const T&> (*this), 0, first, Height(), next-first);
-      return SubMatrixExpr<const T> (this->View(), 0, first, Height(), next-first);
-    }
-
-    SubMatrixExpr<const T>
-    INLINE Rows (IntRange range) const
-    { 
-      return Rows (range.First(), range.Next());
-    }
-
-    SubMatrixExpr<const T>
-    INLINE Cols (IntRange range) const
-    { 
-      return Cols (range.First(), range.Next());
-    }
-
-
-
-    INLINE RowsArrayExpr<T>
-    Rows (FlatArray<int> rows) const
-    { 
-      return RowsArrayExpr<T> (static_cast<const T&> (*this), rows); 
-    }
-
-    INLINE ColsArrayExpr<T>
-    Cols (FlatArray<int> cols) const
-    { 
-      return ColsArrayExpr<T> (static_cast<const T&> (*this), cols); 
-    }
-  };
-  
-#endif
-
-
-
-
-
-
-
-
   /* *************************** SumExpr **************************** */
 
   /**
@@ -842,10 +755,6 @@ namespace ngbla
     
     INLINE SumExpr (TA aa, TB ab) : a(aa), b(ab) { ; }
 
-    /*
-    INLINE auto operator() (size_t i) const { return a(i)+b(i); }
-    INLINE auto operator() (size_t i, size_t j) const { return a(i,j)+b(i,j); }
-    */
     template <typename ...I>
     INLINE auto operator() (I... i) const { return a(i...)+b(i...); }    
     
@@ -888,8 +797,6 @@ namespace ngbla
     
     INLINE SubExpr (TA aa, TB ab) : a(aa), b(ab) { ; }
 
-    // INLINE auto operator() (size_t i) const { return a(i)-b(i); }
-    // INLINE auto operator() (size_t i, size_t j) const { return a(i,j)-b(i,j); }
     template <typename ...I>
     INLINE auto operator() (I... i) const { return a(i...)-b(i...); }
     
@@ -927,9 +834,6 @@ namespace ngbla
     TA a;
   public:
     MinusExpr (TA aa) : a(aa) { ; }
-
-    // INLINE auto operator() (size_t i) const { return -a(i); }
-    // INLINE auto operator() (size_t i, size_t j) const { return -a(i,j); }
 
     template <typename ...I>
     INLINE auto operator() (I... i) const { return -a(i...); }
@@ -1026,9 +930,12 @@ namespace ngbla
     static constexpr bool IsLinear() { return TA::IsLinear(); }
 
     INLINE ScaleExpr (TA aa, TS as) : a(aa), s(as) { ; }
+    
+    // INLINE auto operator() (size_t i) const { return s * a(i); }
+    // INLINE auto operator() (size_t i, size_t j) const { return s * a(i,j); }
 
-    INLINE auto operator() (size_t i) const { return s * a(i); }
-    INLINE auto operator() (size_t i, size_t j) const { return s * a(i,j); }
+    template <typename ...I>
+    INLINE auto operator() (I... i) const { return s*a(i...); }
 
     INLINE auto Height() const { return a.Height(); }
     INLINE auto Width() const { return a.Width(); }
@@ -1094,9 +1001,9 @@ namespace ngbla
 
       if (wa >= 1)
 	{
-	  auto sum = a(i,0) * b(0,j...);
+	  auto sum = a(i,SafeIndex(0)) * b(0,j...);
 	  for (size_t k = 1; k < wa; k++)
-	    sum += a(i,k) * b(k,j...);
+	    sum += a(i,SafeIndex(k)) * b(k,j...);
           return sum;
 	}
 
