@@ -7,15 +7,15 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
+
+#include "fespace.hpp"
+
 namespace ngcomp
 {
 
   /** 
       Linearform
   */
-
-
-  
 
   
   class NGS_DLL_HEADER LinearForm : public NGS_Object
@@ -157,6 +157,7 @@ namespace ngcomp
     virtual BaseVector & GetVector () const override { return *vec; }
     virtual shared_ptr<BaseVector> GetVectorPtr () const override { return vec; }
 
+    virtual void AllocateVector () override;
     virtual void CleanUpLevel() override;    
     ///
     virtual void AddElementVector (FlatArray<int> dnums,
@@ -188,22 +189,16 @@ namespace ngcomp
   public:
 
     typedef typename mat_traits<TV>::TSCAL TSCAL;
-    enum { HEIGHT = mat_traits<TV>::HEIGHT };
+    // enum { HEIGHT = mat_traits<TV>::HEIGHT };
 
     ///
     using S_LinearForm<TSCAL>::S_LinearForm;
 
-    /*
-    T_LinearForm(shared_ptr<FESpace> afespace, const string & aname,
-        const Flags & flags)
-        : BASE(afespace, aname, flags) { ; }
-    */
     ///
     virtual ~T_LinearForm () { };
 
-
     ///
-    virtual void AllocateVector () override;
+    // virtual void AllocateVector () override;
     ///
     // virtual void CleanUpLevel() override;
 
@@ -260,7 +255,7 @@ namespace ngcomp
                                Vector<> apoint)
       : cf(acf), point(apoint) { }
     
-    SparseVector Assemble() const;
+    SparseVector<double> Assemble() const;
   };
   
 

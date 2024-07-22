@@ -8,6 +8,10 @@
 /*********************************************************************/
 
 
+// #include "elementtransformation.hpp"
+#include "finiteelement.hpp"
+#include "diffop.hpp"
+
 namespace ngfem
 {
 
@@ -220,28 +224,22 @@ namespace ngfem
 
     void UnSetIntegrationAlongCurve ( void );
 
-    int NumCurvePoints(void) const
+    virtual int NumCurvePoints() const
     { return curve_ips.Size(); }
 
-    FlatVector<double> & CurvePoint(const int i)
+    virtual FlatVector<double> CurvePoint(int i)
     { return *(curve_ips[i]); }
 
-    const FlatVector<double> & CurvePoint(const int i) const
-    { return *(curve_ips[i]); }
-
-    FlatVector<double> & CurvePointTangent(const int i)
+    virtual FlatVector<double> CurvePointTangent(int i)
     { return *(curve_ip_tangents[i]); }
 
-    const FlatVector<double> & CurvePointTangent(const int i) const
-    { return *(curve_ip_tangents[i]); }
+    virtual int GetNumCurveParts() const;
+    virtual int GetStartOfCurve(int i) const;
+    virtual int GetEndOfCurve(int i) const;
 
-    int GetNumCurveParts(void) const;
-    int GetStartOfCurve(const int i) const;
-    int GetEndOfCurve(const int i) const;
-
-    void AppendCurvePoint(const FlatVector<double> & point);
-    void AppendCurvePoint(const FlatVector<double> & point, const FlatVector<double> & tangent);
-    void SetCurveClearance(void);
+    virtual void AppendCurvePoint(const FlatVector<double> & point);
+    virtual void AppendCurvePoint(const FlatVector<double> & point, const FlatVector<double> & tangent);
+    virtual void SetCurveClearance();
 
 
   
@@ -1504,6 +1502,25 @@ namespace ngfem
       throw Exception ("FacetLinearFormIntegrator can not assemble volumetric element matrices!");
     }
     
+    virtual void
+    CalcFacetVector (const FiniteElement & volumefel1, int LocalFacetNr1,
+			 const ElementTransformation & eltrans1, FlatArray<int> & ElVertices1,
+			 const FiniteElement & volumefel2, int LocalFacetNr2,
+			 const ElementTransformation & eltrans2, FlatArray<int> & ElVertices2,
+			 FlatVector<double> elvec,
+			 LocalHeap & lh) const{ 
+      throw Exception ("FacetLinearFormIntegrator::CalcFacetVector for inner facets not implemented!");
+    }
+    
+    virtual void 
+    CalcFacetVector (const FiniteElement & volumefel1, int LocalFacetNr1,
+			 const ElementTransformation & eltrans1, FlatArray<int> & ElVertices1,
+			 const FiniteElement & volumefel2, int LocalFacetNr2,
+			 const ElementTransformation & eltrans2, FlatArray<int> & ElVertices2,	 
+			 FlatVector<Complex> elvec,
+			 LocalHeap & lh) const{ 
+      throw Exception ("FacetLinearFormIntegrator::CalcFacetVector<Complex> for inner facets not implemented!");
+    }
 
     virtual void
     CalcFacetVector (const FiniteElement & volumefel, int LocalFacetNr,
@@ -1558,47 +1575,32 @@ namespace ngfem
     Complex factor;
   public:
     ComplexLinearFormIntegrator (shared_ptr<LinearFormIntegrator> alfi, 
-				 Complex afactor)
-      : lfi(alfi), factor(afactor)
-    { ; }
-
+				 Complex afactor);
     virtual ~ComplexLinearFormIntegrator();
     
-    virtual VorB VB () const { return lfi->VB(); } 
-    virtual void CheckElement (const FiniteElement & el) const { lfi->CheckElement(el); }
+    virtual VorB VB () const override;
+    virtual void CheckElement (const FiniteElement & el) const override;
 
 
     virtual void
     CalcElementVector (const FiniteElement & fel, 
 		       const ElementTransformation & eltrans, 
 		       FlatVector<double> elvec,
-		       LocalHeap & lh) const
-    {
-      throw Exception ("ComplexLinearFormIntegrator: cannot assemble double vector");
-    }
+		       LocalHeap & lh) const override;
 
     virtual void
     CalcElementVector (const FiniteElement & fel, 
 		       const ElementTransformation & eltrans, 
 		       FlatVector<Complex> elvec,
-		       LocalHeap & lh) const
-    {
-      FlatVector<Complex> rvec(elvec.Size(), lh);
-      lfi->CalcElementVector (fel, eltrans, rvec, lh);
-      elvec = factor * rvec;
-    }  
-
+		       LocalHeap & lh) const override;
 
     virtual void
     CalcElementVectorIndependent (const FiniteElement & gfel, 
-				      const BaseMappedIntegrationPoint & s_mip,
-				      const BaseMappedIntegrationPoint & g_mip,
-				      FlatVector<double> & elvec,
-				      LocalHeap & lh,
-				      const bool curveint = false) const
-    {
-      throw Exception ("ComplexLinearFormIntegrator: cannot assemble double vector");
-    }
+                                  const BaseMappedIntegrationPoint & s_mip,
+                                  const BaseMappedIntegrationPoint & g_mip,
+                                  FlatVector<double> & elvec,
+                                  LocalHeap & lh,
+                                  const bool curveint = false) const override;
   
 
     virtual void
@@ -1607,24 +1609,9 @@ namespace ngfem
 				      const BaseMappedIntegrationPoint & g_mip,
 				      FlatVector<Complex> & elvec,
 				      LocalHeap & lh,
-				      const bool curveint = false) const
-    { 
-      FlatVector<double> rvec;
+                                  const bool curveint = false) const override;
 
-      lfi->CalcElementVectorIndependent (gfel, s_mip, g_mip,
-					    rvec, lh, curveint);
-      elvec.AssignMemory (rvec.Size(), lh);
-      elvec = factor * rvec;
-    }
-
-
-
-
-    virtual string Name () const
-    {
-      return string ("ComplexIntegrator (") + lfi->Name() + ")";
-    }
-
+    virtual string Name () const override;
   };
 
 
@@ -1641,42 +1628,66 @@ namespace ngfem
         is_curve_integrator = lfi->IntegrationAlongCurve();
     }
 
-    virtual VorB VB () const
+    VorB VB () const override
     { return lfi->VB(); }
 
-
-    virtual void 
+    void
     CalcElementVector (const FiniteElement & bfel, 
 		       const ElementTransformation & eltrans, 
 		       FlatVector<double> elvec,
-		       LocalHeap & lh) const;
+		       LocalHeap & lh) const override;
 
-    virtual void 
+    void
     CalcElementVector (const FiniteElement & bfel, 
 		       const ElementTransformation & eltrans, 
 		       FlatVector<Complex> elvec,
-		       LocalHeap & lh) const;
+		       LocalHeap & lh) const override;
 
-    virtual void
+    void
     CalcElementVectorIndependent (const FiniteElement & gfel,
 				      const BaseMappedIntegrationPoint & s_mip,
 				      const BaseMappedIntegrationPoint & g_mip,
 				      FlatVector<double> & elvec,
 				      LocalHeap & lh,
-				      const bool curveint = false) const;
+				      const bool curveint = false) const override;
 
-    virtual void
+    void
     CalcElementVectorIndependent (const FiniteElement & gfel,
 				      const BaseMappedIntegrationPoint & s_mip,
 				      const BaseMappedIntegrationPoint & g_mip,
 				      FlatVector<Complex> & elvec,
 				      LocalHeap & lh,
-				      const bool curveint = false) const;
+				      const bool curveint = false) const override;
 
-    virtual string Name () const
+    string Name () const override
     {
       return string ("CompoundIntegrator (") + lfi->Name() + ")";
     }
+
+    int NumCurvePoints() const override { return lfi->NumCurvePoints(); }
+    FlatVector<double> CurvePoint(int i) override
+    { return lfi->CurvePoint(i); }
+    FlatVector<double> CurvePointTangent(int i) override
+    { return lfi->CurvePointTangent(i); }
+    int GetNumCurveParts() const override
+    { return lfi->GetNumCurveParts(); }
+    int GetStartOfCurve(int i) const override
+    { return lfi->GetStartOfCurve(i); }
+    int GetEndOfCurve(int i) const override
+    { return lfi->GetEndOfCurve(i); }
+
+    void AppendCurvePoint(const FlatVector<double> & point) override
+    { lfi->AppendCurvePoint(point); }
+    void AppendCurvePoint(const FlatVector<double> & point,
+                          const FlatVector<double> & tangent) override
+    { lfi->AppendCurvePoint(point, tangent); }
+    void SetCurveClearance() override
+    { lfi->SetCurveClearance(); }
+    void SetCacheComp(const int comp) override
+    { cachecomp = comp; }
+    int CacheComp() const override
+    { return lfi->CacheComp(); }
+
   };
 
 
@@ -1743,7 +1754,7 @@ namespace ngfem
     virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & mip,
-		SliceMatrix<double,ColMajor> mat,   
+		BareSliceMatrix<double,ColMajor> mat,   
 		LocalHeap & lh) const override
     {
       throw Exception ("CalcFluxDifferentialOperator::CalcMatrix not available");
@@ -1752,7 +1763,7 @@ namespace ngfem
     virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationPoint & bmip,
-		SliceMatrix<Complex,ColMajor> mat, 
+		BareSliceMatrix<Complex,ColMajor> mat, 
 		LocalHeap & lh) const override
     {
       throw Exception ("CalcFluxDifferentialOperator::CalcMatrix not available");
@@ -1761,7 +1772,7 @@ namespace ngfem
     virtual void
     CalcMatrix (const FiniteElement & fel,
                 const BaseMappedIntegrationRule & mir,
-		SliceMatrix<double,ColMajor> mat,   
+		BareSliceMatrix<double,ColMajor> mat,   
 		LocalHeap & lh) const override
     {
       throw Exception ("CalcFluxDifferentialOperator::CalcMatrix not available");
@@ -1770,7 +1781,7 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
 		const BaseMappedIntegrationRule & mir,
-		SliceMatrix<Complex,ColMajor> mat,   
+		BareSliceMatrix<Complex,ColMajor> mat,   
 		LocalHeap & lh) const override
     {
       throw Exception ("CalcFluxDifferentialOperator::CalcMatrix not available");

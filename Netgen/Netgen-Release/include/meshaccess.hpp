@@ -8,23 +8,29 @@
 /*********************************************************************/
 
 
-// #include <nginterface.h>
 #include <nginterface_v2.hpp>
-#include <variant>
-
 #include <core/ranges.hpp>
+
+#include <elementtopology.hpp>
 
 namespace ngfem
 {
-  class ElementTransformation;
   class IntegrationPoint;
+  class CoefficientFunction;
+  class ElementTransformation;
 }
 
 
 
 namespace ngcomp
 {
+  class PML_Transformation;
+  
+  // using ngcore::INT;
   using netgen::Ng_Node;
+  using ngfem::ELEMENT_TYPE;
+  
+  using namespace ngfem;
   
   class MeshAccess;
   class Ngs_Element;
@@ -34,7 +40,7 @@ namespace ngcomp
   {
     ElementId ei;
   public:
-    static string defaultstring;
+    // static string defaultstring;
     Ngs_Element (const netgen::Ng_Element & el, ElementId id) 
       : netgen::Ng_Element(el), ei(id) { ; }
     AOWrapper<decltype(vertices)> Vertices() const { return vertices; }
@@ -42,7 +48,8 @@ namespace ngcomp
     AOWrapper<decltype(edges)> Edges() const { return edges; }
     AOWrapper<decltype(faces)> Faces() const { return faces; }
     AOWrapper<decltype(facets)> Facets() const { return facets; }
-    const string & GetMaterial() const { return mat ? *mat : defaultstring; }
+    // string_view GetMaterial() const { return mat ? *mat : defaultstring; }
+    string_view GetMaterial() const { return mat; }
     operator ElementId() const { return ei; }
     auto VB() const { return ei.VB(); }
     auto Nr() const { return ei.Nr(); }
@@ -61,15 +68,12 @@ namespace ngcomp
         case NG_TET:  case NG_TET10:     return ET_TET;
         case NG_PRISM: case NG_PRISM12: case NG_PRISM15: return ET_PRISM;
         case NG_PYRAMID: case NG_PYRAMID13: return ET_PYRAMID;
+        case NG_HEX7:   return ET_HEXAMID;          
         case NG_HEX: case NG_HEX20:     return ET_HEX;
-        default:
-          __assume (false);
-#ifndef __CUDA_ARCH__
-	  throw Exception ("Netgen2NgS type conversion: Unhandled element type");
-#else
-	  return ET_POINT;
-#endif	  
+          // default:
         }
+      __assume (false);
+      return ET_POINT;   // for some compiler
     }
 
     ELEMENT_TYPE GetType () const 
@@ -116,8 +120,7 @@ namespace ngcomp
   public:
     INLINE TElementIterator (const MeshAccess & ama, size_t anr) : ma(ama), nr(anr) { ; }
     INLINE TElementIterator operator++ () { return TElementIterator(ma, ++nr); }
-    // ElementId operator*() const { return ElementId(VB,nr); }
-    INLINE Ngs_Element operator*() const; 
+    INLINE Ngs_Element operator*() const;  // implemented below, after MeshAccess
     INLINE bool operator!=(TElementIterator id2) const { return nr != id2.nr; }
   };
   
@@ -140,8 +143,7 @@ namespace ngcomp
   public:
     INLINE DimElementIterator (const MeshAccess & ama, size_t anr) : ma(ama), nr(anr) { ; }
     INLINE DimElementIterator operator++ () { return DimElementIterator(ma, ++nr); }
-    // ElementId operator*() const { return ElementId(VB,nr); }
-    INLINE Ngs_Element operator*() const; 
+    INLINE Ngs_Element operator*() const;  // implemented below, after MeshAccess
     INLINE bool operator!=(DimElementIterator id2) const { return nr != id2.nr; }
   };
   
@@ -194,7 +196,7 @@ namespace ngcomp
 
   class GridFunction;
 
-  class NGS_DLL_HEADER MeshAccess : public BaseStatusHandler, public enable_shared_from_this_virtual<MeshAccess>
+  class NGS_DLL_HEADER MeshAccess : public enable_shared_from_this<MeshAccess>
   {
     netgen::Ngx_Mesh mesh;
 
@@ -202,7 +204,7 @@ namespace ngcomp
     /// dimension of the domain. Set to -1 if no mesh is present
     int dim;
   
-    /// number of vertex, edge, face, cell and global nodes
+    /// number of vertex, edge, face, cell, element, facet, and global nodes
     size_t nnodes[7];
 
     // number of nodes of co-dimension i 
@@ -218,20 +220,12 @@ namespace ngcomp
     /// number of multigrid levels 
     int nlevels;
 
+    /// number of regions of co-dimension i
     int nregions[4];
 
     //ngfem::ElementTransformation & GetTrafoDim (size_t elnr, Allocator & lh) const;
     typedef ngfem::ElementTransformation & (MeshAccess::*pfunc) (size_t elnr, Allocator & lh) const;    
     pfunc trafo_jumptable[4];
-    
-    /// max domain index
-    // int & ndomains = nregions[0];
-
-    /// max boundary index
-    // int & nboundaries = nregions[1];
-
-    /// max boundary index for co dim 2
-    // int & nbboundaries = nregions[2];
 
     int mesh_timestamp = -1; // timestamp of Netgen-mesh
     size_t timestamp = 0;
@@ -246,21 +240,21 @@ namespace ngcomp
 
     /// store periodic vertex mapping for each identification number
     // shared ptr because Meshaccess is copy constructible
-    shared_ptr<Array<Array<INT<2>>>> periodic_node_pairs[3] = {make_shared<Array<Array<INT<2>>>>(),
-                                                               make_shared<Array<Array<INT<2>>>>(),
-                                                               make_shared<Array<Array<INT<2>>>>()};
+    shared_ptr<Array<Array<IVec<2>>>> periodic_node_pairs[3] = {make_shared<Array<Array<IVec<2>>>>(),
+                                                               make_shared<Array<Array<IVec<2>>>>(),
+                                                               make_shared<Array<Array<IVec<2>>>>()};
 
     DynamicTable<size_t> neighbours[4][4];
     friend class Region;
   public:
-    Signal<> updateSignal;
+    SimpleSignal updateSignal;
 
     /// for achiving ...
     MeshAccess ();
     /// connects to Netgen - mesh
     MeshAccess (shared_ptr<netgen::Mesh> amesh);
     /// loads new mesh from file
-    MeshAccess (string filename, NgMPI_Comm amesh_comm = NgMPI_Comm{}); // (MPI_COMM_WORLD));
+    MeshAccess (string filename, NgMPI_Comm amesh_comm = NgMPI_Comm{});
     /// select this mesh in netgen visuaization
     void SelectMesh() const;
     /// not much to do 
@@ -285,7 +279,6 @@ namespace ngcomp
     size_t GetNCD2E() const { return nelements_cd[2]; }
 
     /// number of volume or boundary elements
-    // size_t GetNE(VorB vb) const { return ne_vb[vb]; }
     size_t GetNE(VorB vb) const { return nelements_cd[vb]; } 
 
     /// number of edges in the whole mesh
@@ -294,14 +287,13 @@ namespace ngcomp
     /// number of faces in the whole mesh
     size_t GetNFaces() const { return nnodes[2]; }    
 
-
     /// maximal sub-domain (material) index. range is [0, ndomains)
     int GetNDomains () const  { return nregions[VOL]; }
 
     /// maximal boundary condition index. range is [0, nboundaries)
     int GetNBoundaries () const { return nregions[BND]; }
 
-    [[deprecated("Use GetNRegions (BBND) instead!")]]            
+    [[deprecated("Use GetNRegions (BBND) instead!")]]
     int GetNBBoundaries() const { return nregions[BBND]; }
 
     int GetNRegions (VorB vb) const { return nregions[vb]; }
@@ -341,12 +333,6 @@ namespace ngcomp
       return DimElementRange<VB,DIM> (*this, IntRange (0, GetNE(VB)));
     }
 
-    /*
-    NodeRange Nodes (NODE_TYPE nt) const
-    {
-      return NodeRange (nt, IntRange (0, GetNNodes(nt)));
-    }
-    */
     auto Nodes (NODE_TYPE nt) const
     {
       return T_Range<NodeId> (NodeId(nt, 0), NodeId(nt, GetNNodes(nt)));
@@ -358,7 +344,6 @@ namespace ngcomp
       return T_Range<T_NodeId<nt>> (0, GetNNodes(nt));
     }
 
-    // using Vertices = Nodes<NT_VERTEX>;
     auto Vertices() const { return Nodes<NT_VERTEX>(); }
     auto Edges() const { return Nodes<NT_EDGE>(); }
     auto Faces() const { return Nodes<NT_FACE>(); }
@@ -392,9 +377,7 @@ namespace ngcomp
             {
               HeapReset hr(clh);
               ElementId ei(vb, i);
-              // Ngs_Element el(GetElement(ei), ei);
 	      func (GetElement(ei), clh);
-              // func (move(el), clh);
             }
         }
     }
@@ -463,16 +446,11 @@ namespace ngcomp
       return GetElement(ei).GetIndex();
     }
 
-
-    /// change sub-domain index (???) 
-    // void SetElIndex (int elnr, int index) const
-    // { Ng_SetElementIndex (elnr+1,index+1); }
-
-    const string & GetMaterial(ElementId ei) const
+    string_view GetMaterial(ElementId ei) const
     { return GetElement(ei).GetMaterial(); }
     
     // const string & GetMaterial(VorB vb, int region_nr) const
-    const string & GetMaterial(VorB vb, int region_nr) const
+    string_view GetMaterial(VorB vb, int region_nr) const
     {
       switch (vb)
         {
@@ -493,31 +471,31 @@ namespace ngcomp
     
     /// the material of the element
     [[deprecated("Use GetMaterial with ElementId(VOL, elnr) instead!")]]        
-    const string & GetElMaterial (int elnr) const
+    string_view GetElMaterial (int elnr) const
     { return GetMaterial(ElementId(VOL, elnr)); }
       // { return Ng_GetElementMaterial (elnr+1); }
 
     /// the material of the sub-domain
     [[deprecated("Use GetMaterial(VOL, region_nr) instead!")]]                
-    const string & GetDomainMaterial (int domnr) const
+    string_view GetDomainMaterial (int domnr) const
       { return GetMaterial(VOL, domnr); }
       // { return Ng_GetDomainMaterial (domnr+1); }
       
 
     /// the boundary condition name of surface element
     [[deprecated("Use GetMaterial with ElementId(BND, elnr) instead!")]]            
-    const string & GetSElBCName (int selnr) const
+    string_view GetSElBCName (int selnr) const
     { return GetMaterial(ElementId(BND, selnr)); }      
       // { return Ng_GetSurfaceElementBCName (selnr+1); }
 
     /// the boundary condition name of boundary condition number
     [[deprecated("Use GetMaterial(BND, region_nr) instead!")]]            
-    const string & GetBCNumBCName (int bcnr) const
+    string_view GetBCNumBCName (int bcnr) const
       { return GetMaterial(BND, bcnr); }      
     // { return Ng_GetBCNumBCName (bcnr); }
 
     [[deprecated("Use GetMaterial(BBND, region_nr) instead!")]]                
-    const string & GetCD2NumCD2Name (int cd2nr) const
+    string_view GetCD2NumCD2Name (int cd2nr) const
       { return GetMaterial(BBND, cd2nr); }      
     // { return Ng_GetCD2NumCD2Name (cd2nr); }
 
@@ -682,11 +660,7 @@ namespace ngcomp
     }
     
     void SetDeformation (shared_ptr<GridFunction> def = nullptr);
-    /*
-    {
-      deformation = def;
-    }
-    */
+
     const shared_ptr<GridFunction> & GetDeformation () const
     {
       return deformation;
@@ -700,6 +674,8 @@ namespace ngcomp
 
     shared_ptr<netgen::Mesh> GetNetgenMesh () const
     { return mesh.GetMesh(); }
+
+    netgen::Ngx_Mesh & GetNetgenMeshX () { return mesh; }
       
     
     /**
@@ -749,7 +725,7 @@ namespace ngcomp
     void GetSElVertices (int selnr, Array<int> & vnums) const
     { vnums = GetElement(ElementId(BND,selnr)).Vertices(); }
 
-    // [[deprecated("Use enums = GetElEdges(ElementId) instead! ")]]    
+    [[deprecated("Use enums = GetElEdges(ElementId) instead! ")]]    
     void GetElEdges (ElementId ei, Array<int> & ednums) const
     { ednums = GetElement(ei).Edges(); }
 
@@ -819,17 +795,17 @@ namespace ngcomp
     void GetEdgePNums (int enr, Array<int> & pnums) const;
     /// returns vertex numbers of edge
     /*
-    auto GetEdgePNums (size_t enr) const -> decltype(ArrayObject(INT<2>()))
+    auto GetEdgePNums (size_t enr) const -> decltype(ArrayObject(IVec<2>()))
     {
       int v2[2];
       Ng_GetEdge_Vertices (enr+1, v2);
-      return ArrayObject (INT<2> (v2[0]-1, v2[1]-1));
+      return ArrayObject (IVec<2> (v2[0]-1, v2[1]-1));
     }
     */
     auto GetEdgePNums (size_t enr) const
     {
       auto vts = mesh.GetNode<1>(enr).vertices;
-      return INT<2>(vts[0],vts[1]);
+      return IVec<2>(vts[0],vts[1]);
     }
     /// returns all elements connected to an edge
     void GetEdgeElements (int enr, Array<int> & elnums) const;
@@ -859,10 +835,12 @@ namespace ngcomp
     /// index of 1D element
     // int GetSegmentIndex (int snr) const;
 
+    [[deprecated("Use sels = GetVertexElements(vnr) instead!")]]                    
     void GetVertexElements (size_t vnr, Array<int> & elems) const;
     auto GetVertexElements (size_t vnr) const 
     { return ArrayObject(mesh.GetNode<0> (vnr).elements); }
 
+    [[deprecated("Use sels = GetVertexSurfaceElements(vnr) instead!")]]                
     void GetVertexSurfaceElements (size_t vnr, Array<int> & elems) const;
     auto GetVertexSurfaceElements (size_t vnr) const 
     { return ArrayObject(mesh.GetNode<0> (vnr).bnd_elements); }
@@ -937,9 +915,9 @@ namespace ngcomp
     int GetElOrder (int enr) const
     { return mesh.GetElementOrder (enr+1); } 
     /// anisotropic order stored in Netgen
-    INT<3> GetElOrders (int enr) const
+    IVec<3> GetElOrders (int enr) const
     { 
-      INT<3> eo; 
+      IVec<3> eo; 
       mesh.GetElementOrders(enr+1,&eo[0],&eo[1],&eo[2]); 
       return eo; 
     } 
@@ -953,9 +931,9 @@ namespace ngcomp
     int GetSElOrder (int enr) const
     { return mesh.GetSurfaceElementOrder (enr+1); } 
     /// anisotropic order of suface element
-    INT<2> GetSElOrders (int enr) const
+    IVec<2> GetSElOrders (int enr) const
     { 
-      INT<2> eo; 
+      IVec<2> eo; 
       mesh.GetSurfaceElementOrders(enr+1,&eo[0],&eo[1]); 
       return eo; 
     }
@@ -983,9 +961,9 @@ namespace ngcomp
     { 
       mesh.GetParentNodes (pi, parents);
     }
-    INT<2> GetParentNodes (int pi) const
+    IVec<2> GetParentNodes (int pi) const
     {
-      INT<2,int> parents;
+      IVec<2,int> parents;
       mesh.GetParentNodes (pi, &parents[0]);
       return parents;
     }
@@ -1011,6 +989,9 @@ namespace ngcomp
     bool HasParentEdges () const { return mesh.HasParentEdges(); }
     auto GetParentEdges (int enr) const { return mesh.GetParentEdges(enr); }
     auto GetParentFaces (int fnr) const { return mesh.GetParentFaces(fnr); }
+
+    Array<uint64_t> BuildRefinementTree() const;
+    void RefineFromTree(const Array<uint64_t> & tree);
 
     /// representant of vertex for anisotropic meshes
     int GetClusterRepVertex (int pi) const
@@ -1102,20 +1083,20 @@ namespace ngcomp
       // { return bool (Ng_IsElementCurved (elnr+1)); }
 
     [[deprecated("Use GetPeriodicNodes(NT_VERTEX, pairs) instead!")]]
-    void GetPeriodicVertices ( Array<ngstd::INT<2> > & pairs) const;
+    void GetPeriodicVertices ( Array<IVec<2> > & pairs) const;
     [[deprecated("Use GetNPeriodicNodes(NT_VERTEX) instead!")]]
     int GetNPairsPeriodicVertices () const;
     [[deprecated("Use GetPeriodicNodes(NT_VERTEX, idnr) instead")]]
-    void GetPeriodicVertices (int idnr, Array<ngstd::INT<2> > & pairs) const;
+    void GetPeriodicVertices (int idnr, Array<IVec<2> > & pairs) const;
     [[deprecated("Use GetPeriodicNodes(NT_VERTEX, idnr).Size() instead")]]
     int GetNPairsPeriodicVertices (int idnr) const;  
 
     [[deprecated("Use GetPeriodicNodes(NT_EDGE, pairs) instead!")]]
-    void GetPeriodicEdges ( Array<ngstd::INT<2> > & pairs) const;
+    void GetPeriodicEdges ( Array<IVec<2> > & pairs) const;
     [[deprecated("Use GetNPeriodicNodes(NT_EDGE) instead!")]]
     int GetNPairsPeriodicEdges () const;
     [[deprecated("Use GetPeriodicNodes(NT_EDGE, idnr) instead")]]
-    void GetPeriodicEdges (int idnr, Array<ngstd::INT<2> > & pairs) const;
+    void GetPeriodicEdges (int idnr, Array<IVec<2> > & pairs) const;
     [[deprecated("Use GetPeriodicNodes(NT_EDGE, idnr).Size() instead")]]
     int GetNPairsPeriodicEdges (int idnr) const;
 
@@ -1126,27 +1107,30 @@ namespace ngcomp
     // get number of all periodic nodes of nodetype nt
     size_t GetNPeriodicNodes(NODE_TYPE nt) const;
     // write all the node pairs of type nt into array pairs
-    void GetPeriodicNodes(NODE_TYPE nt, Array<INT<2>>& pairs) const;
+    void GetPeriodicNodes(NODE_TYPE nt, Array<IVec<2>>& pairs) const;
     // Uses 0 based identification numbers! Returns periodic node pairs of given identifcation number
-    const Array<INT<2>>& GetPeriodicNodes(NODE_TYPE nt, int idnr) const;
+    const Array<IVec<2>>& GetPeriodicNodes(NODE_TYPE nt, int idnr) const;
 
-    shared_ptr<CoefficientFunction> RegionCF(VorB vb, shared_ptr<CoefficientFunction> default_value, const Array<pair<variant<string, Region>, shared_ptr<CoefficientFunction>>>& region_values);
+    shared_ptr<CoefficientFunction> RegionCF(VorB vb, shared_ptr<CoefficientFunction> default_value,
+                                             const Array<pair<variant<string, Region>, shared_ptr<CoefficientFunction>>>& region_values);
 
-    shared_ptr<CoefficientFunction> MaterialCF(shared_ptr<CoefficientFunction> default_value, const Array<pair<variant<string, Region>, shared_ptr<CoefficientFunction>>>& region_values)
+    shared_ptr<CoefficientFunction> MaterialCF(shared_ptr<CoefficientFunction> default_value,
+                                               const Array<pair<variant<string, Region>, shared_ptr<CoefficientFunction>>>& region_values)
     {
       return RegionCF(VOL, default_value, region_values);
     }
 
-    shared_ptr<CoefficientFunction> BoundaryCF(shared_ptr<CoefficientFunction> default_value, const Array<pair<variant<string, Region>, shared_ptr<CoefficientFunction>>>& region_values)
+    shared_ptr<CoefficientFunction> BoundaryCF(shared_ptr<CoefficientFunction> default_value,
+                                               const Array<pair<variant<string, Region>, shared_ptr<CoefficientFunction>>>& region_values)
     {
       return RegionCF(BND, default_value, region_values);
     }
 
   private:
-    Table<size_t> elements_of_class;
-    size_t elements_of_class_timestamp = -1;
+    mutable Table<size_t> elements_of_class[4];
+    mutable size_t elements_of_class_timestamp[4] = { 0, 0, 0, 0 };
   public:
-    const Table<size_t> & GetElementsOfClass(); // classification by vertex numbers
+    const Table<size_t> & GetElementsOfClass(VorB vb = VOL) const; // classification by vertex numbers
 
   private:
     Array<bool> higher_integration_order;
@@ -1193,11 +1177,6 @@ namespace ngcomp
     FlatArray<int> GetDistantProcs (NodeId node) const
     {
       return mesh.GetDistantProcs(StdNodeType(node.GetType(), GetDimension()), node.GetNr());
-      /*
-      std::tuple<int,int*> tup =
-        mesh.GetDistantProcs(StdNodeType(node.GetType(), GetDimension()), node.GetNr());
-      return FlatArray<int> (std::get<0>(tup), std::get<1>(tup));
-      */
     }
 
     /// Reduces MPI - distributed data associated with mesh-nodes

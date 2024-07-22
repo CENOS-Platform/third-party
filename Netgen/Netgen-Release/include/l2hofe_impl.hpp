@@ -8,6 +8,7 @@
 /*********************************************************************/
 
 
+#include "l2hofe.hpp"
 
 namespace ngfem
 {
@@ -36,7 +37,7 @@ namespace ngfem
     for (int f = 0; f < ElementTopology::GetNFacets(ET); f++)
       {
         int classnr =  ET_trait<ET>::GetFacetClassNr (f, vnums);
-        if (precomp_trace.Used (INT<2> (order, classnr)))
+        if (precomp_trace.Used (IVec<2> (order, classnr)))
           continue;
         
         ELEMENT_TYPE etfacet = ElementTopology::GetFacetType (ET, f);
@@ -52,7 +53,7 @@ namespace ngfem
 
         Matrix<> * trace = new Matrix<>(nf, ndof);
         DGFiniteElement<ET>::CalcTraceMatrix (f, *trace);
-        precomp_trace.Set (INT<2> (order, classnr), trace);
+        precomp_trace.Set (IVec<2> (order, classnr), trace);
       }
 #endif
   }
@@ -65,12 +66,12 @@ namespace ngfem
 #ifndef __CUDA_ARCH__
     int classnr =  ET_trait<ET>::GetClassNr (vnums);
     
-    if (precomp_grad.Used (INT<2> (order, classnr)))
+    if (precomp_grad.Used (IVec<2> (order, classnr)))
       return;
 
     Matrix<> * gmat = new Matrix<>(ndof*DIM, ndof);
     DGFiniteElement<ET>::CalcGradientMatrix (*gmat);
-    precomp_grad.Set (INT<2> (order, classnr), gmat);
+    precomp_grad.Set (IVec<2> (order, classnr), gmat);
 #endif
   }
     
@@ -117,7 +118,7 @@ namespace ngfem
 
   template <ELEMENT_TYPE ET, class SHAPES, class BASE>
   void L2HighOrderFE<ET,SHAPES,BASE> :: 
-  EvaluateTrans (const IntegrationRule & ir, FlatVector<> values, BareSliceVector<> coefs) const
+  EvaluateTrans (const IntegrationRule & ir, BareSliceVector<> values, BareSliceVector<> coefs) const
   {
 #ifndef __CUDA_ARCH__
     int classnr =  ET_trait<ET>::GetClassNr (vnums);
@@ -150,7 +151,7 @@ namespace ngfem
 
   template <ELEMENT_TYPE ET, class SHAPES, class BASE>
   void L2HighOrderFE<ET,SHAPES,BASE> :: 
-  EvaluateGradTrans (const IntegrationRule & ir, FlatMatrixFixWidth<DIM> values, BareSliceVector<> coefs) const
+  EvaluateGradTrans (const IntegrationRule & ir, BareSliceMatrix<> values, BareSliceVector<> coefs) const
     {
 #ifndef __CUDA_ARCH__
       int classnr =  ET_trait<ET>::GetClassNr (vnums);
@@ -171,7 +172,7 @@ namespace ngfem
 #ifndef __CUDA_ARCH__
     int classnr =  ET_trait<ET>::GetClassNr (vnums);
     int bnr, pos;
-    if (precomp_grad.Used (INT<2> (order, classnr), bnr, pos))
+    if (precomp_grad.Used (IVec<2> (order, classnr), bnr, pos))
       {
         FlatMatrix<> gmat = *precomp_grad.Get (bnr, pos);
         FlatVector<> vgrad(grad.Height()*DIM, &grad(0,0));
@@ -190,7 +191,7 @@ namespace ngfem
 #ifndef __CUDA_ARCH__
     int classnr =  ET_trait<ET>::GetClassNr (vnums);
     int bnr, pos;
-    if (precomp_grad.Used (INT<2> (order, classnr), bnr, pos))
+    if (precomp_grad.Used (IVec<2> (order, classnr), bnr, pos))
       {
         FlatMatrix<> gmat = *precomp_grad.Get (bnr, pos);
         FlatVector<> vgrad(grad.Height()*DIM, &grad(0,0));
@@ -217,7 +218,7 @@ namespace ngfem
 #ifndef __CUDA_ARCH__
       int classnr =  ET_trait<ET>::GetFacetClassNr (facet, vnums);
       int bnr, pos;
-      if (precomp_trace.Used (INT<2> (order, classnr), bnr, pos))
+      if (precomp_trace.Used (IVec<2> (order, classnr), bnr, pos))
 	{
 	  FlatMatrix<> trace = *precomp_trace.Get (bnr, pos);
 	  // fcoefs = trace * coefs;
@@ -234,10 +235,10 @@ namespace ngfem
   {
 #ifndef __CUDA_ARCH__
       int classnr =  ET_trait<ET>::GetFacetClassNr (facet, vnums);
-      if (precomp_trace.Used (INT<2> (order, classnr)))
+      if (precomp_trace.Used (IVec<2> (order, classnr)))
 	{
-	  FlatMatrix<> trace = *precomp_trace.Get (INT<2> (order, classnr));          
-	  // coefs = Trans(*precomp_trace.Get (INT<2> (order, classnr))) * fcoefs;
+	  FlatMatrix<> trace = *precomp_trace.Get (IVec<2> (order, classnr));          
+	  // coefs = Trans(*precomp_trace.Get (IVec<2> (order, classnr))) * fcoefs;
           MultMatTransVec (trace, fcoefs, coefs);
 	}
       else
@@ -347,7 +348,7 @@ namespace ngfem
   T_CalcShape (TIP<1,Tx> ip, TFA & shape) const
   {
     Tx lam[2] = { ip.x, 1-ip.x };
-    INT<2> e = GetEdgeSort (0, vnums);
+    IVec<2> e = GetEdgeSort (0, vnums);
     LegendrePolynomial (order, lam[e[1]]-lam[e[0]], shape);
   }
 
@@ -361,7 +362,7 @@ namespace ngfem
   T_CalcShape (TIP<DIM,Tx> ip, TFA & shape) const
   {
     Tx lam[3] = { ip.x, ip.y, 1-ip.x-ip.y };
-    INT<4> f = GetFaceSort (0, vnums);
+    IVec<4> f = GetFaceSort (0, vnums);
     size_t p = order_inner[0];
     DubinerBasis::Eval (p, lam[f[0]], lam[f[1]], shape);
   }
@@ -378,7 +379,7 @@ namespace ngfem
     Tx x = ip.x, y = ip.y;
     Tx sigma[4] = {(1-x)+(1-y),x+(1-y),x+y,(1-x)+y};  
     
-    INT<4> f = GetFaceSort (0, vnums);  
+    IVec<4> f = GetFaceSort (0, vnums);  
     
     Tx xi = sigma[f[0]]-sigma[f[1]]; 
     Tx eta = sigma[f[0]]-sigma[f[3]]; 
@@ -516,7 +517,17 @@ namespace ngfem
 	  shape[ii] = polsx(ix) * polsy(iy) * polsz(max2(ix,iy), iz);
   }
 
+  /* *********************** Pyramid  **********************/
 
+
+  template<> template<typename Tx, typename TFA>  
+  void L2HighOrderFE_Shape<ET_HEXAMID> :: 
+  T_CalcShape (TIP<3,Tx> ip, TFA & shape) const
+  {
+    throw Exception("L2-hexamid not implemented");
+  }
+
+  
   /* *********************** Hex  **********************/
 
 

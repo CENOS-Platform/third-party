@@ -1,6 +1,8 @@
-#ifndef FILE_BOUNDARYLAYER
-#define FILE_BOUNDARYLAYER
+#ifndef NETGEN_BOUNDARYLAYER_HPP
+#define NETGEN_BOUNDARYLAYER_HPP
 
+namespace netgen
+{
 
 ///
 DLL_HEADER extern void InsertVirtualBoundaryLayer (Mesh & mesh);
@@ -19,6 +21,9 @@ public:
   bool outside = false; // set the boundary layer on the outside
   bool grow_edges = false;
   bool limit_growth_vectors = true;
+  double limit_safety = 0.3; // alloow only 30% of the growth vector length
+  bool sides_keep_surfaceindex = false;
+  bool keep_surfaceindex = false;
   Array<size_t> project_boundaries;
 };
 
@@ -44,6 +49,7 @@ class BoundaryLayerTool
     Array<SegmentIndex> moved_segs;
     int max_edge_nr, nfd_old, ndom_old;
     Array<int> new_mat_nrs;
+    BitArray moved_surfaces;
     int np, nseg, nse, ne;
     double height;
 
@@ -56,6 +62,7 @@ class BoundaryLayerTool
 
     // major steps called in Perform()
     void CreateNewFaceDescriptors();
+    void CreateFaceDescriptorsSides();
     void CalculateGrowthVectors();
     Array<Array<pair<SegmentIndex, int>>, SegmentIndex> BuildSegMap();
 
@@ -66,6 +73,7 @@ class BoundaryLayerTool
 
     void InsertNewElements(FlatArray<Array<pair<SegmentIndex, int>>, SegmentIndex> segmap, const BitArray & in_surface_direction);
     void SetDomInOut();
+    void SetDomInOutSides();
     void AddSegments();
     void FixVolumeElements();
 
@@ -84,4 +92,5 @@ class BoundaryLayerTool
     Vec<3> getEdgeTangent(PointIndex pi, int edgenr);
 };
 
-#endif
+} // namespace netgen
+#endif // NETGEN_BOUNDARYLAYER_HPP

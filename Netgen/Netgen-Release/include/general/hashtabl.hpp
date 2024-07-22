@@ -7,6 +7,8 @@
 /* Date:   01. Jun. 95                                                    */
 /**************************************************************************/
 
+#include "table.hpp"
+
 namespace netgen
 {
 
@@ -772,6 +774,15 @@ public:
     int pos = Position0 (ahash);
     return (pos != -1);
   }
+
+  inline optional<T> GetIfUsed (const INDEX_2 & ahash) const
+  {
+    int pos = Position0 (ahash);
+    if (pos != -1)
+      return cont[pos];
+    else
+      return nullopt;
+  }
     
   inline void SetData0 (int pos, const INDEX_2 & ahash, const T & acont)
   {
@@ -1401,7 +1412,7 @@ inline size_t HashValue (INDEX_3 i3, size_t size) { return (i3[0]+15*size_t(i3[1
      The array should be allocated with the double size of the expected number of entries.
   */
   template <class T_HASH, class T>
-  class ClosedHashTable
+  class NgClosedHashTable
   {
   protected:
     ///
@@ -1414,16 +1425,16 @@ inline size_t HashValue (INDEX_3 i3, size_t size) { return (i3[0]+15*size_t(i3[1
     NgArray<T> cont;
   public:
     ///
-    ClosedHashTable (size_t asize = 128)
+    NgClosedHashTable (size_t asize = 128)
       : size(asize), used(0), hash(asize), cont(asize)
     {
       for (auto & v : hash)
         SetInvalid(v);
     }
 
-    ClosedHashTable (ClosedHashTable && ht2) = default;
+    NgClosedHashTable (NgClosedHashTable && ht2) = default;
 
-    ClosedHashTable (NgFlatArray<T_HASH> _hash, NgFlatArray<T> _cont)
+    NgClosedHashTable (NgFlatArray<T_HASH> _hash, NgFlatArray<T> _cont)
       : size(_hash.Size()), used(0), hash(_hash.Size(), _hash.Addr(0)), cont(_cont.Size(), _cont.Addr(0))
     {
       for (auto & v : hash)
@@ -1431,7 +1442,7 @@ inline size_t HashValue (INDEX_3 i3, size_t size) { return (i3[0]+15*size_t(i3[1
     }
 
 
-    ClosedHashTable & operator= (ClosedHashTable && ht2) = default;
+    NgClosedHashTable & operator= (NgClosedHashTable && ht2) = default;
 
     /// 
     size_t Size() const
@@ -1465,10 +1476,10 @@ inline size_t HashValue (INDEX_3 i3, size_t size) { return (i3[0]+15*size_t(i3[1
 
     void DoubleSize()
     {
-      ClosedHashTable tmp(2*Size());
+      NgClosedHashTable tmp(2*Size());
       for (auto both : *this)
         tmp[both.first] = both.second;
-      *this = move(tmp);
+      *this = std::move(tmp);
     }
     
     // returns true if new position is created
@@ -1600,10 +1611,10 @@ inline size_t HashValue (INDEX_3 i3, size_t size) { return (i3[0]+15*size_t(i3[1
     
     class Iterator
     {
-      const ClosedHashTable & tab;
+      const NgClosedHashTable & tab;
       size_t nr;
     public:
-      Iterator (const ClosedHashTable & _tab, size_t _nr)
+      Iterator (const NgClosedHashTable & _tab, size_t _nr)
         : tab(_tab), nr(_nr)
       {
         while (nr < tab.Size() && !tab.UsedPos(nr)) nr++;
@@ -1630,7 +1641,7 @@ inline size_t HashValue (INDEX_3 i3, size_t size) { return (i3[0]+15*size_t(i3[1
 
   template <class T_HASH, class T>  
   ostream & operator<< (ostream & ost,
-                        const ClosedHashTable<T_HASH,T> & tab)
+                        const NgClosedHashTable<T_HASH,T> & tab)
   {
     for (size_t i = 0; i < tab.Size(); i++)
       if (tab.UsedPos(i))

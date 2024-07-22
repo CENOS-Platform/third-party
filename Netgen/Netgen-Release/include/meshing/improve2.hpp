@@ -1,5 +1,10 @@
-#ifndef FILE_IMPROVE2
-#define FILE_IMPROVE2
+#ifndef NETGEN_IMPROVE2_HPP
+#define NETGEN_IMPROVE2_HPP
+
+#include "meshtype.hpp"
+
+namespace netgen
+{
 
 inline void AppendEdges( const Element2d & elem, PointIndex pi, Array<std::tuple<PointIndex,PointIndex>> & edges )
 {
@@ -114,7 +119,7 @@ public:
 			     const NgArray<Point<3>* > & from, NgArray<Point<3>* > & dest);
 
   DLL_HEADER bool EdgeSwapping (const int usemetric, Array<Neighbour> &neighbors, Array<bool> &swapped,
-    DLL_HEADER const SurfaceElementIndex t1, const int edge, const int t, Array<int,PointIndex> &pdef, const bool check_only=false);
+                                const SurfaceElementIndex t1, const int edge, const int t, Array<int,PointIndex> &pdef, const bool check_only=false);
   DLL_HEADER void EdgeSwapping (int usemetric);
   DLL_HEADER void CombineImprove ();
   DLL_HEADER void SplitImprove ();
@@ -169,7 +174,5 @@ extern double CalcTriangleBadness (const Point<3> & p1,
 				   const Vec<3> & n,
 				   double metricweight,
 				   double h);
-
-#endif
-
-
+} // namespace netgen
+#endif // NETGEN_IMPROVE2_HPP

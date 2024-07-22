@@ -7,9 +7,13 @@
 /* Date:   01. Jun. 95                                                    */
 /**************************************************************************/
 
+#include <cstring>
+#include <type_traits>
 
-#include "archive.hpp"
 #include "exception.hpp"
+#include "logging.hpp"          // for logger
+#include "ngcore_api.hpp"       // for NGCORE_API
+#include "type_traits.hpp"      // for all_of_tmpl
 #include "localheap.hpp"
 #include "memtracer.hpp"
 #include "utils.hpp"
@@ -290,7 +294,7 @@ namespace ngcore
     NETGEN_INLINE ArrayRangeIterator<T> begin() const { return first; }
     NETGEN_INLINE ArrayRangeIterator<T> end() const { return next; }
 
-    T_Range Split (size_t nr, int tot) const
+    NETGEN_INLINE T_Range Split (size_t nr, int tot) const
     {
       T diff = next-first;
       return T_Range (first + nr * diff / tot,
@@ -500,7 +504,8 @@ namespace ngcore
       return *this;
     }
 
-    NETGEN_INLINE const FlatArray & operator= (const std::function<T(int)> & func) const
+    template <typename T2, std::enable_if_t<std::is_function<T2>::value>>
+    NETGEN_INLINE const FlatArray & operator= (const T2 & func) const
     {
       for (size_t i = 0; i < size; i++)
         data[i] = func(i+BASE);
@@ -615,15 +620,15 @@ namespace ngcore
     
     //auto begin() const { return ArrayIterator<T,IndexType> (*this, BASE); }
     // auto end() const { return ArrayIterator<T,IndexType> (*this, size+BASE); }
-    auto begin() const { return data; }
-    auto end() const { return data+Size(); }
+    NETGEN_INLINE auto begin() const { return data; }
+    NETGEN_INLINE auto end() const { return data+Size(); }
   };
 
   template <typename T>
   FlatArray<T> View (FlatArray<T> fa) { return fa; }
 
   template <typename T, typename TI>
-  auto Max (FlatArray<T,TI> array, T max = std::numeric_limits<T>::min()) -> T
+  auto Max (FlatArray<T,TI> array, typename std::remove_const<T>::type max = std::numeric_limits<T>::min()) -> T
   {
     for (auto & v : array)
       if (v > max) max = v;
@@ -631,7 +636,7 @@ namespace ngcore
   }
 
   template <typename T, typename TI>
-  auto Min (FlatArray<T,TI> array, T min = std::numeric_limits<T>::max()) -> T
+  auto Min (FlatArray<T,TI> array, typename std::remove_const<T>::type min = std::numeric_limits<T>::max()) -> T
   {
     for (auto & v : array)
       if (v < min) min = v;
@@ -751,8 +756,12 @@ namespace ngcore
           for (size_t i = 0; i < size; i++)
             data[i] = a2.data[i];
         }
+      
+// #ifdef __cpp_exceptions
+#ifndef __CUDA_ARCH__
       else
-        throw Exception(std::string("cannot copy-construct Array of type ") + typeid(T).name());        
+        throw Exception(std::string("cannot copy-construct Array of type ") + typeid(T).name());
+#endif      
     }
 
     
@@ -806,8 +815,9 @@ namespace ngcore
     }
 
     // Only provide this function if T is archivable
-    template<typename T2=T>
-    auto DoArchive(Archive& archive) -> typename std::enable_if_t<is_archivable<T2>, void>
+    template<typename ARCHIVE>
+    auto DoArchive(ARCHIVE& archive)
+      -> typename std::enable_if_t<ARCHIVE::template is_archivable<T>, void>
     {
       if(archive.Output())
         archive << size;
@@ -991,8 +1001,10 @@ namespace ngcore
             data[i] = a2.data[i];
           return *this;
         }
+#ifndef __CUDA_ARCH__      
       else
         throw Exception(std::string("cannot copy Array of type ") + typeid(T).name());
+#endif
     }
 
     

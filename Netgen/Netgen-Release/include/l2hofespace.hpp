@@ -7,6 +7,8 @@
 /* Date:   23.Feb. 2003                                              */
 /*********************************************************************/
 
+#include "fespace.hpp"
+
 namespace ngcomp
 {
   
@@ -32,7 +34,7 @@ namespace ngcomp
     // variable order is set to mesh_order + rel_order 
     int rel_order;
     // order of elements 
-    Array<INT<3> > order_inner;
+    Array<IVec<3> > order_inner;
     // table of first element dofnumber 
     Array<DofId> first_element_dof;
     bool all_dofs_together;
@@ -110,6 +112,11 @@ namespace ngcomp
     virtual shared_ptr<BaseMatrix> GetMassOperator (shared_ptr<CoefficientFunction> rho,
                                                     shared_ptr<Region> defon,
                                                     LocalHeap & lh) const override;
+
+    virtual shared_ptr<BaseMatrix> CreateMassOperator (shared_ptr<CoefficientFunction> rho,
+                                                       shared_ptr<Region> defon,
+                                                       bool inverse,
+                                                       LocalHeap & lh) const override;
     
     virtual void SolveM (CoefficientFunction * rho, BaseVector & vec, Region * definedon,
                          LocalHeap & lh) const override;
@@ -157,7 +164,7 @@ namespace ngcomp
     // variable order is set to mesh_order + rel_order 
     int rel_order;
     // order of elements 
-    Array<INT<3> > order_inner;
+    Array<IVec<3> > order_inner;
 
     bool lowest_order_wb;
     bool discontinuous;
@@ -241,6 +248,17 @@ namespace ngcomp
     virtual shared_ptr<BaseMatrix> GetMassOperator (shared_ptr<CoefficientFunction> rho,
                                                     shared_ptr<Region> defon,
                                                     LocalHeap & lh) const override;
+
+    virtual shared_ptr<BaseMatrix> CreateMassOperator (shared_ptr<CoefficientFunction> rho,
+                                                       shared_ptr<Region> defon,
+                                                       bool inverse,
+                                                       LocalHeap & lh) const override;
+
+    template <int DIM>
+    shared_ptr<BaseMatrix> CreateMassOperator_Dim (shared_ptr<CoefficientFunction> rho,
+                                                   shared_ptr<Region> defon,
+                                                   bool inverse,
+                                                   LocalHeap & lh) const;
     
     virtual void SolveM (CoefficientFunction * rho, BaseVector & vec, Region * definedon,
                          LocalHeap & lh) const override;

@@ -7,6 +7,14 @@
 /* Date:   orig 2006, redesign Dec 2016                              */
 /*********************************************************************/
 
+#include "finiteelement.hpp"
+#include "fe_interfaces.hpp"
+
+#include "hcurlfe.hpp" // for Cross (AD,AD)
+#include "recursive_pol.hpp"
+#include "recursive_pol_trig.hpp"
+#include "recursive_pol_tet.hpp"
+#include "shapefunction_utils.hpp"
 
 namespace ngfem
 {
@@ -73,7 +81,7 @@ namespace ngfem
                                   BareSliceMatrix<SIMD<double>> values,
                                   BareSliceVector<> coefs) const = 0;
 
-    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, SliceMatrix<> shape) const = 0;
+    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, BareSliceMatrix<> shape) const = 0;
     virtual void CalcDualShape (const SIMD_BaseMappedIntegrationRule & bmir, BareSliceMatrix<SIMD<double>> shape) const = 0;
     virtual void EvaluateDual (const SIMD_BaseMappedIntegrationRule & bmir, BareSliceVector<> coefs, BareSliceMatrix<SIMD<double>> values) const = 0;
     virtual void AddDualTrans (const SIMD_BaseMappedIntegrationRule& bmir, BareSliceMatrix<SIMD<double>> values, BareSliceVector<double> coefs) const = 0;
@@ -95,7 +103,7 @@ namespace ngfem
   };
 
   template <int D,typename VEC,typename MAT>
-  void VecToSymMat(const VEC & vec,MAT & mat)
+  void VecToSymMat(const VEC & vec,MAT && mat)
   {
     switch(D)
     {
@@ -178,8 +186,8 @@ namespace ngfem
     //enum { N_FACET   = ET_trait<ET>::N_FACET };    
     //
     //size_t vnums[N_VERTEX];
-    INT<DIM-1> order_facet[ET_trait<ET>::N_FACET];
-    INT<DIM> order_inner;
+    IVec<DIM-1> order_facet[ET_trait<ET>::N_FACET];
+    IVec<DIM> order_inner;
 
     // additional div-div free bubbles
     bool plus;
@@ -201,8 +209,8 @@ namespace ngfem
     // const HDivDivFE<ET> * Cast() const { return static_cast<const HDivDivFE<ET>*> (this); }
     auto * Cast() const { return static_cast<const SHAPES*> (this); } 
     
-    INLINE void SetOrderFacet (int nr, INT<DIM-1,int> order) { order_facet[nr] = order; }
-    INLINE void SetOrderInner (INT<DIM,int> order) { order_inner = order; }
+    INLINE void SetOrderFacet (int nr, IVec<DIM-1,int> order) { order_facet[nr] = order; }
+    INLINE void SetOrderInner (IVec<DIM,int> order) { order_inner = order; }
 
     virtual void ComputeNDof()
     {
@@ -246,9 +254,9 @@ namespace ngfem
                                             }));
     }
 
-    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, SliceMatrix<> shape) const override
+    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, BareSliceMatrix<> shape) const override
     {
-      shape = 0.0;
+      shape.AddSize(ndof, sqr(bmip.DimSpace())) = 0.0;
       Switch<4-DIM>
         (bmip.DimSpace()-DIM,[this, &bmip, shape](auto CODIM)
          {
@@ -1377,7 +1385,7 @@ namespace ngfem
               
               if (i == facetnr)
                 {
-                  INT<2> e = ET_trait<ET_TRIG>::GetEdgeSort (i, vnums);
+                  IVec<2> e = ET_trait<ET_TRIG>::GetEdgeSort (i, vnums);
                   
                   T xi = lam[e[0]]-lam[e[1]];
                   Vec<2,T> tauref = pnts[e[0]] - pnts[e[1]];
@@ -2394,7 +2402,7 @@ namespace ngfem
         if(vnums[fav[0]] > vnums[fav[1]]) swap(fav[0], fav[1]);
         */
         
-        INT<4> fav = GetVertexOrientedFace (fa);
+        IVec<4> fav = GetVertexOrientedFace (fa);
 
         ScaledLegendrePolynomial(p+1, lam[fav[0]]-lam[fav[1]],lam[fav[0]]+lam[fav[1]], &leg_u[0]);
         LegendrePolynomial::Eval(p+1, 2 * lam[fav[2]] - 1, &leg_v[0]);
@@ -2701,7 +2709,7 @@ namespace ngfem
     using HDivDivSurfaceFiniteElement<ET_trait<ET>::DIM>::ndof;
     using HDivDivSurfaceFiniteElement<ET_trait<ET>::DIM>::order;
 
-    INT<DIM> order_inner;
+    IVec<DIM> order_inner;
 
 
   public:
@@ -2716,7 +2724,7 @@ namespace ngfem
     virtual ELEMENT_TYPE ElementType() const { return ET; }
     const HDivDivSurfaceFE<ET> * Cast() const { return static_cast<const HDivDivSurfaceFE<ET>*> (this); } 
     
-    INLINE void SetOrderInner (INT<DIM,int> order) { order_inner = order; }
+    INLINE void SetOrderInner (IVec<DIM,int> order) { order_inner = order; }
 
     virtual void ComputeNDof()
     {

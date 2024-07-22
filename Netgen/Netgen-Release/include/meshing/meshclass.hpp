@@ -1,5 +1,5 @@
-#ifndef MESHCLASS
-#define MESHCLASS
+#ifndef NETGEN_MESHCLASS_HPP
+#define NETGEN_MESHCLASS_HPP
 
 /**************************************************************************/
 /* File:   meshclass.hpp                                                  */
@@ -13,8 +13,16 @@
 
 #include<filesystem>
 
+#include <gprim/adtree.hpp>
+#include <gprim/transform3d.hpp>
+
+#include "meshtype.hpp"
+#include "localh.hpp"
+#include "topology.hpp"
+
 namespace netgen
 {
+  class NetgenGeometry;
   using namespace std;
 
   static constexpr int  MPI_TAG_MESH = 210;
@@ -27,6 +35,30 @@ namespace netgen
   class CurvedElements;
   class AnisotropicClusters;
   class ParallelMeshTopology;
+
+  class MarkedTet;
+  class MarkedPrism;
+  class MarkedIdentification;
+  class MarkedTri;
+  class MarkedQuad;
+
+  typedef Array<MarkedTet> T_MTETS;
+  typedef NgArray<MarkedPrism> T_MPRISMS;
+  typedef NgArray<MarkedIdentification> T_MIDS;
+  typedef NgArray<MarkedTri> T_MTRIS;
+  typedef NgArray<MarkedQuad> T_MQUADS;
+
+  struct BisectionInfo
+  {
+    unique_ptr<T_MTETS> mtets;
+    unique_ptr<T_MPRISMS> mprisms;
+    unique_ptr<T_MIDS> mids;
+    unique_ptr<T_MTRIS> mtris;
+    unique_ptr<T_MQUADS> mquads;
+
+    BisectionInfo();
+    ~BisectionInfo();
+  };
   
   /// 2d/3d mesh
   class Mesh
@@ -178,6 +210,7 @@ namespace netgen
 
   public:
     Signal<> updateSignal;
+    BisectionInfo bisectioninfo;
 
     // store coarse mesh before hp-refinement
     unique_ptr<NgArray<HPRefElement>> hpelements;
@@ -202,7 +235,7 @@ namespace netgen
     ///
     DLL_HEADER ~Mesh();
 
-    Mesh & operator= (const Mesh & mesh2);
+    DLL_HEADER Mesh & operator= (const Mesh & mesh2);
   
     ///
     DLL_HEADER void DeleteMesh();
@@ -666,6 +699,9 @@ namespace netgen
     auto & GetCommunicator() const { return this->comm; }
     void SetCommunicator(NgMPI_Comm acomm);
     
+    DLL_HEADER void SplitFacesByAdjacentDomains();
+    DLL_HEADER shared_ptr<Mesh> GetSubMesh(string domains="", string faces="") const;
+
     ///
     DLL_HEADER void SetMaterial (int domnr, const string & mat);
     ///
@@ -874,11 +910,7 @@ namespace netgen
     NgMutex & MajorMutex ()   { return majormutex; }
 
 
-    shared_ptr<NetgenGeometry> GetGeometry() const
-    {
-      static auto global_geometry = make_shared<NetgenGeometry>();
-      return geometry ? geometry : global_geometry;
-    }
+    DLL_HEADER shared_ptr<NetgenGeometry> GetGeometry() const;
     void SetGeometry (shared_ptr<NetgenGeometry> geom) 
     {
       geometry = geom;
@@ -993,6 +1025,4 @@ namespace netgen
   
 }
 
-#endif
-
-
+#endif // NETGEN_MESHCLASS_HPP

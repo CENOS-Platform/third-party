@@ -14,10 +14,13 @@
 #include "profiler.hpp"
 #include "signal.hpp"
 #include "simd.hpp"
+#include "autodiff.hpp"
+#include "autodiffdiff.hpp"
 #include "symboltable.hpp"
 #include "taskmanager.hpp"
 #include "version.hpp"
 #include "xbool.hpp"
 #include "ngstream.hpp"
+#include "utils.hpp"
 
 #endif // NETGEN_CORE_NGCORE_HPP

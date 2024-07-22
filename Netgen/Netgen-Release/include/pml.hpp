@@ -7,6 +7,10 @@
 /* Date:   1. Jul. 2004                                              */
 /*********************************************************************/
 
+
+#include "bdbintegrator.hpp"
+
+
 namespace ngfem
 {
   extern Complex alpha;
@@ -23,7 +27,7 @@ namespace ngfem
   */
   extern int rect_pml;
   
-  extern bool apply_deriv_alpha;
+  // extern bool apply_deriv_alpha;
 
 
 
@@ -127,10 +131,12 @@ namespace ngfem
               dmat *= fac;
 	      dbmat = dmat * bmat;
 	      // elmat += Trans (bmat) * dbmat;
+              /*
               if (DMATOP::SYMMETRIC)
                 // FastMat<DIM_DMAT> (elmat.Height(), &dbmat(0,0), &bmat(0,0), &elmat(0,0));
                 FastMat<DIM_DMAT> (dbmat, bmat, elmat);
               else
+              */
                 elmat += Trans (bmat) * dbmat;
 	    } 
 	}
@@ -198,7 +204,7 @@ namespace ngfem
       ely = 0;
 
 
-      if (!apply_deriv_alpha)
+      // if (!apply_deriv_alpha)
 	{
 	  Vec<DIM_DMAT,Complex> hv1;
 	  Vec<DIM_DMAT,Complex> hv2;
@@ -223,6 +229,7 @@ namespace ngfem
 	      ely += fac * hely;
 	    }     
 	}
+        /*
       else
 	{
 	  Vec<DIM_DMAT, AutoDiff<1,Complex> > hv1;
@@ -253,6 +260,7 @@ namespace ngfem
 		ely(j) += (fac * hely(j)).DValue(0);
 	    }     
 	}
+        */
     }
 
 

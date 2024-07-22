@@ -7,6 +7,8 @@
 /* Date:   29. Jun. 2009                                              */
 /*********************************************************************/
 
+#include "tscalarfe.hpp"
+#include "coefficient.hpp"
 
 #ifdef FILE_H1LOFE_CPP
 #define H1LOFE_EXTERN
@@ -279,21 +281,16 @@ namespace ngfem
       static INLINE void T_CalcShape (TIP<1,Tx> ip, TFA & shape) 
     {
       Tx x = ip.x;
-      // Tx lam2 = 1-x;
 
-      // very primitive ...
-      // shape = 0;
-      
-      if (ORDER >= 0) shape[0] = Tx(1.0);
-      if (ORDER >= 1) shape[1] = 2*x-1;
-      if (ORDER >= 2) shape[2] = (2*x-1)*(2*x-1)-1.0/3.0;
-      if (ORDER >= 3) shape[3] = (2*x-1)*(2*x-1)*(2*x-1);
-#ifndef __CUDA_ARCH__
       if (ORDER >= 4)
+        LegendrePolynomial(ORDER, 2*x-1, shape);
+      else
         {
-          throw Exception ("TSegmL2: Legendre polynomials not implemented");
+          if (ORDER >= 0) shape[0] = Tx(1.0);
+          if (ORDER >= 1) shape[1] = 2*x-1;
+          if (ORDER >= 2) shape[2] = (2*x-1)*(2*x-1)-1.0/3.0;
+          if (ORDER >= 3) shape[3] = (2*x-1)*(2*x-1)*(2*x-1);
         }
-#endif
     }
   };
 
@@ -980,6 +977,49 @@ namespace ngfem
 
 
 
+
+  
+  /* ***************************** Hexamid *********************************** */
+
+  ///
+  template<> template<typename Tx, typename TFA>  
+  void ScalarFE<ET_HEXAMID,0> :: T_CalcShape (TIP<3,Tx> ip, TFA & shape) 
+  {
+    shape[0] = Tx(1.0);
+  }
+
+  template<> template<typename Tx, typename TFA>  
+  void ScalarFE<ET_HEXAMID,1> :: T_CalcShape (TIP<3,Tx> ip, TFA & shape) 
+  {
+    Tx y = ip.y;
+    Tx z = ip.z;
+    Tx den = (1-y)*(1-z);
+    den += Tx(1e-12);
+    Tx x = ip.x / den;    
+          
+    shape[0] = (1-x)*(1-y)*(1-z);
+    shape[1] = (  x)*(1-y)*(1-z);
+    shape[2] = (  x)*(  y)*(1-z);
+    shape[3] = (1-x)*(  y)*(1-z);
+    shape[4] = (1-x)*(1-y)*(  z);
+    shape[5] = (  x)*(1-y)*(  z);
+    shape[6] =       (  y)*(  z);
+    
+          /*
+    // if (z == 1) z -= 1e-10;
+    z -= 1e-10;
+    
+    shape[0] = (1-z-x)*(1-z-y) / (1-z);
+    shape[1] = x*(1-z-y) / (1-z);
+    shape[2] = x*y / (1-z);
+    shape[3] = (1-z-x)*y / (1-z);
+    shape[4] = z;
+          */
+  }
+
+
+  
+
 #ifdef FILE_H1LOFE_CPP
 
   template<>
@@ -1083,7 +1123,10 @@ namespace ngfem
   H1LOFE_EXTERN template class T_ScalarFiniteElement<FE_Prism2aniso,ET_PRISM>;
   H1LOFE_EXTERN template class T_ScalarFiniteElement<FE_Prism2HBaniso,ET_PRISM>;
 
+  H1LOFE_EXTERN template class T_ScalarFiniteElement<ScalarFE<ET_HEXAMID,0>,ET_HEXAMID>;
+  H1LOFE_EXTERN template class T_ScalarFiniteElement<ScalarFE<ET_HEXAMID,1>,ET_HEXAMID>;
 
+  
   H1LOFE_EXTERN template class T_ScalarFiniteElement<FE_Hex0,ET_HEX>;
   H1LOFE_EXTERN template class T_ScalarFiniteElement<FE_Hex1,ET_HEX>;
   H1LOFE_EXTERN template class T_ScalarFiniteElement<FE_Hex20,ET_HEX>;
@@ -1181,6 +1224,9 @@ namespace ngfem
   H1LOFE_EXTERN template class ScalarFE<ET_PYRAMID,0>;
   H1LOFE_EXTERN template class ScalarFE<ET_PYRAMID,1>;
 
+  H1LOFE_EXTERN template class ScalarFE<ET_HEXAMID,0>;
+  H1LOFE_EXTERN template class ScalarFE<ET_HEXAMID,1>;
+  
   H1LOFE_EXTERN template class ScalarFE<ET_HEX,0>;
   H1LOFE_EXTERN template class ScalarFE<ET_HEX,1>;
 }

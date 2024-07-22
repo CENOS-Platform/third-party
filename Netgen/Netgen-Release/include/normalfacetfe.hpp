@@ -8,8 +8,10 @@
 /*********************************************************************/
 
 
-#include <fem.hpp>
+// #include <fem.hpp>
 #include "thdivfe.hpp"
+#include "recursive_pol.hpp"
+#include <cassert>
 
 namespace ngfem 
 {
@@ -24,7 +26,7 @@ namespace ngfem
     public ET_trait<ET>
   {
   protected:
-    INT<2> order_inner;
+    IVec<2> order_inner;
     using VertexOrientedFE<ET>::vnums;
     using ET_trait<ET>::DIM;
     using HDivNormalFiniteElement<ET_trait<ET>::DIM>::order;
@@ -36,7 +38,7 @@ namespace ngfem
     NormalFacetFacetFE (int aorder) : HDivNormalFiniteElement<ET_trait<ET>::DIM>(aorder+1,aorder)
     {
       order = aorder;
-      order_inner = INT<2>(aorder,aorder);
+      order_inner = IVec<2>(aorder,aorder);
       ComputeNDof();
     }
 
@@ -47,11 +49,11 @@ namespace ngfem
     INLINE void SetOrder (int aorder)
     {
       order = aorder;
-      order_inner = INT<2>(aorder,aorder);
+      order_inner = IVec<2>(aorder,aorder);
       ComputeNDof();
     }
   
-    INLINE void SetOrder (INT<2> oi)
+    INLINE void SetOrder (IVec<2> oi)
     {
       order = max2 (oi[0], oi[1]);
       order_inner = oi;
@@ -78,7 +80,7 @@ namespace ngfem
   {
   protected:
     using ET_T = ET_trait<ET>;
-    INT<2> facet_order[ET_T::N_FACET];
+    IVec<2> facet_order[ET_T::N_FACET];
     int first_facet_dof[ET_T::N_FACET+1];
     bool highest_order_dc;
     using HDivFiniteElement<ET_trait<ET>::DIM>::order;
@@ -99,7 +101,7 @@ namespace ngfem
     {
       order = ao;
       for ( int i = 0; i < ET_T::N_FACET; i++ )
-        facet_order[i] = INT<2> (ao, ao);
+        facet_order[i] = IVec<2> (ao, ao);
       ComputeNDof();
     }
 
@@ -110,12 +112,12 @@ namespace ngfem
       for ( int i = 0; i < ET_T::N_FACET; i++ )
         {
           order = max2 ( order, ao[i] );
-          facet_order[i] = INT<2> (ao[i], ao[i]);
+          facet_order[i] = IVec<2> (ao[i], ao[i]);
         }
       ComputeNDof();
     }
 
-    void SetOrder(FlatArray<INT<2> > & ao)
+    void SetOrder(FlatArray<IVec<2> > & ao)
     {
       order = 0;
       assert(ao.Size()==ET_T::N_FACET);
@@ -127,7 +129,7 @@ namespace ngfem
       ComputeNDof();
     }
 
-    INT<2> GetFacetOrder(int j) const { return facet_order[j]; }
+    IVec<2> GetFacetOrder(int j) const { return facet_order[j]; }
     int GetVertexNumber(int j) const { return vnums[j]; }
 
     /*
@@ -161,7 +163,7 @@ namespace ngfem
     virtual void CalcShape (const IntegrationPoint & ip, int facet, SliceMatrix<> shape) const;
 
     using TBASE::CalcDualShape;
-    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, SliceMatrix<> shape) const override;
+    virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, BareSliceMatrix<> shape) const override;
 
     virtual int GetNExtraShapes( int facet) const {return 0;}
     virtual void CalcExtraShape (const IntegrationPoint & ip, int facet, FlatMatrixFixWidth<ET_T::DIM> xshape) const {xshape = 0.0;}

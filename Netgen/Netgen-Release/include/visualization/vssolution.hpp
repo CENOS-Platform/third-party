@@ -94,7 +94,6 @@ class NGGUI_API VisualSceneSolution : public VisualScene
   int fieldlinestimestamp, surface_vector_timestamp;
   int pointcurve_timestamp;
   int isosurface_timestamp;
-  int subdivision_timestamp;
   int timetimestamp;
   double minval, maxval;
 
@@ -152,6 +151,7 @@ public:
     bool iscomplex;
     bool draw_volume;
     bool draw_surface;
+    std::shared_ptr<BitArray> draw_volumes, draw_surfaces;
     SolType soltype;
     SolutionData * solclass;
 
@@ -174,7 +174,6 @@ public:
   int autoscale, logscale;
   double mminval, mmaxval;
   int numisolines;
-  int subdivisions;
 
   bool showclipsolution;
   bool showsurfacesolution;
@@ -249,11 +248,13 @@ public:
   }
 
 private:
-  void GetClippingPlaneTrigs (NgArray<ClipPlaneTrig> & trigs, NgArray<ClipPlanePoint> & pts);
+  void GetClippingPlaneTrigs (SolData * sol, NgArray<ClipPlaneTrig> & trigs, NgArray<ClipPlanePoint> & pts);
   void GetClippingPlaneGrid (NgArray<ClipPlanePoint> & pts);
   void DrawCone (const Point<3> & p1, const Point<3> & p2, double r);
   void DrawCylinder (const Point<3> & p1, const Point<3> & p2, double r);
 
+  bool SurfaceElementActive(const SolData *data, const Mesh & mesh, const Element2d & sei);
+  bool VolumeElementActive(const SolData *data, const Mesh & mesh, const Element & ei);
 
   // Get Function Value, local coordinates lam1, lam2, lam3, 
   bool GetValue (const SolData * data, ElementIndex elnr, 
@@ -328,7 +329,7 @@ public:
 
   void DrawSurfaceVectors ();
   void DrawTrigSurfaceVectors(const NgArray< Point<3> > & lp, const Point<3> & pmin, const Point<3> & pmax,
-			      const int sei, const SolData * vsol);
+			      const int sei, const SolData * vsol, bool swap_lam=false);
   void DrawIsoSurface(const SolData * sol, const SolData * grad, int comp);
   
   void DrawIsoLines (const Point<3> & p1, 

@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget netgen_mpi netgen_metis ngcore netgen nggui togl nglib netgen_cgns)
+foreach(_expectedTarget netgen_mpi netgen_metis ngcore netgen nggui ngpy ngguipy togl nglib netgen_cgns)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -59,7 +59,6 @@ add_library(ngcore SHARED IMPORTED)
 
 set_target_properties(ngcore PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS "NETGEN_PYTHON;NG_PYTHON;PYBIND11_SIMPLE_GIL_MANAGEMENT;_WIN32_WINNT=0x1000;WNT;WNT_WINDOW;NOMINMAX;MSVC_EXPRESS;_CRT_SECURE_NO_WARNINGS;HAVE_STRUCT_TIMESPEC;WIN32"
-  INTERFACE_COMPILE_OPTIONS "/bigobj;/MP;/W1;/wd4068"
   INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include;${_IMPORT_PREFIX}/include/include"
   INTERFACE_LINK_LIBRARIES "netgen_mpi"
   INTERFACE_LINK_OPTIONS "/ignore:4273;/ignore:4217;/ignore:4049"
@@ -73,6 +72,20 @@ add_library(nggui SHARED IMPORTED)
 
 set_target_properties(nggui PROPERTIES
   INTERFACE_LINK_LIBRARIES "nglib;togl;opengl32;glu32;nglib"
+)
+
+# Create imported target ngpy
+add_library(ngpy SHARED IMPORTED)
+
+set_target_properties(ngpy PROPERTIES
+  INTERFACE_LINK_LIBRARIES "nglib"
+)
+
+# Create imported target ngguipy
+add_library(ngguipy SHARED IMPORTED)
+
+set_target_properties(ngguipy PROPERTIES
+  INTERFACE_LINK_LIBRARIES "nglib;nggui"
 )
 
 # Create imported target togl

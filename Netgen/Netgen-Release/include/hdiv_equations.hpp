@@ -8,6 +8,8 @@
 /*********************************************************************/
 
 #include "hcurlhdiv_dshape.hpp"
+#include "hdivfe.hpp"
+#include "bdbequations.hpp"
 
 namespace ngfem
 {
@@ -49,7 +51,7 @@ public:
 
   static void GenerateMatrix (const FiniteElement & fel, 
                               const MappedIntegrationPoint<D,D> & mip,
-                              SliceMatrix<double,ColMajor> mat, LocalHeap & lh)
+                              BareSliceMatrix<double,ColMajor> mat, LocalHeap & lh)
   {
     Cast(fel).CalcMappedShape (mip, Trans(mat));
   }
@@ -74,7 +76,7 @@ public:
   
   template <typename AFEL, typename MIP, class TVX, class TVY>
   static void Apply (const AFEL & fel, const MIP & mip,
-                     const TVX & x, TVY & y,
+                     const TVX & x, TVY && y,
                      LocalHeap & lh) 
   {
     HeapReset hr(lh);
@@ -160,7 +162,7 @@ public:
   
   template <typename AFEL, typename MIP, typename MAT>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-                              MAT & mat, LocalHeap & lh)
+                              MAT && mat, LocalHeap & lh)
   {
     mat = (1.0 / mip.GetJacobiDet()) *mip.GetJacobian () * 
       Trans (Cast(fel).GetShape(mip.IP(),lh));
@@ -232,7 +234,7 @@ public:
   
   template <typename AFEL, typename MIP, typename MAT>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-                              MAT & mat, LocalHeap & lh)
+                              MAT && mat, LocalHeap & lh)
   {
     HeapReset hr(lh);
     mat = 1.0/mip.GetJacobiDet() *
@@ -257,7 +259,7 @@ public:
 
   template <typename AFEL, typename MIP, class TVX, class TVY>
   static void Apply (const AFEL & fel, const MIP & mip,
-                     const TVX & x, TVY & y,
+                     const TVX & x, TVY && y,
                      LocalHeap & lh) 
   {
     HeapReset hr(lh);
@@ -320,7 +322,7 @@ public:
 
   template <typename AFEL, typename MIP, typename MAT>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-			      MAT & mat, LocalHeap & lh)
+			      MAT && mat, LocalHeap & lh)
   {
     mat =  (1.0/mip.GetJacobiDet())*
       Trans(static_cast<const FEL&> (fel).GetShape (mip.IP(), lh));
@@ -361,7 +363,7 @@ public:
 
   template <typename AFEL, typename MIP, typename MAT>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-			      MAT & mat, LocalHeap & lh)
+			      MAT && mat, LocalHeap & lh)
   {
     // Vec<D> scaled_nv = (1.0/mip.GetJacobiDet()) * mip.GetNV();
     auto scaled_nv = (1.0/mip.GetJacobiDet()) * mip.GetNV();
@@ -378,7 +380,7 @@ public:
 
   template <typename AFEL, typename MIP, class TVX, class TVY> 
   static void Apply (const AFEL & fel, const MIP & mip,
-		     const TVX & x, TVY & y,
+		     const TVX & x, TVY && y,
 		     LocalHeap & lh)
   {
     y = ( (1.0/mip.GetJacobiDet())*(InnerProduct (Cast(fel).GetShape (mip.IP(), lh), x) )) * mip.GetNV();
@@ -424,16 +426,16 @@ public:
   
   
   template <typename AFEL, typename MIP, typename MAT,
-            typename std::enable_if<std::is_convertible<MAT,SliceMatrix<double,ColMajor>>::value, int>::type = 0>
+            typename std::enable_if<std::is_convertible<MAT,BareSliceMatrix<double,ColMajor>>::value, int>::type = 0>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-                              MAT & mat, LocalHeap & lh)
+                              MAT && mat, LocalHeap & lh)
   {
     Cast(fel).CalcDualShape (mip, Trans(mat));
   }
   template <typename AFEL, typename MIP, typename MAT,
-            typename std::enable_if<!std::is_convertible<MAT,SliceMatrix<double,ColMajor>>::value, int>::type = 0>
+            typename std::enable_if<!std::is_convertible<MAT,BareSliceMatrix<double,ColMajor>>::value, int>::type = 0>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-                              MAT & mat, LocalHeap & lh)
+                              MAT && mat, LocalHeap & lh)
   {
     // fel.CalcDualShape (mip, mat);
     throw Exception(string("DiffOpHDivDual not available for mat ")+typeid(mat).name());
@@ -480,16 +482,16 @@ public:
   
   
   template <typename AFEL, typename MIP, typename MAT,
-            typename std::enable_if<std::is_convertible<MAT,SliceMatrix<double,ColMajor>>::value, int>::type = 0>
+            typename std::enable_if<std::is_convertible<MAT,BareSliceMatrix<double,ColMajor>>::value, int>::type = 0>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-                              MAT & mat, LocalHeap & lh)
+                              MAT && mat, LocalHeap & lh)
   {
     Cast(fel).CalcDualShape (mip, Trans(mat));
   }
   template <typename AFEL, typename MIP, typename MAT,
-            typename std::enable_if<!std::is_convertible<MAT,SliceMatrix<double,ColMajor>>::value, int>::type = 0>
+            typename std::enable_if<!std::is_convertible<MAT,BareSliceMatrix<double,ColMajor>>::value, int>::type = 0>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-                              MAT & mat, LocalHeap & lh)
+                              MAT && mat, LocalHeap & lh)
   {
     throw Exception(string("DiffOpHDivDualSurface not available for mat ")+typeid(mat).name());
   }
@@ -505,20 +507,26 @@ public:
   
   /// Gradient operator for HDiv
   template <int D, typename FEL = HDivFiniteElement<D> >
-  class DiffOpGradientHDiv : public DiffOp<DiffOpGradientHDiv<D> >
+  // class DiffOpGradientHDiv : public DiffOp<DiffOpGradientHDiv<D> >
+  class DiffOpGradientHDiv : public NumDiffGradient<DiffOpGradientHDiv<D>,  DiffOpIdHDiv<D>, FEL>  
   {
   public:
+    /*
     enum { DIM = 1 };
     enum { DIM_SPACE = D };
     enum { DIM_ELEMENT = D };
     enum { DIM_DMAT = D*D };
     enum { DIFFORDER = 1 };
+    */
+    
     static Array<int> GetDimensions() { return Array<int> ( { D, D } ); };
     
-    static constexpr double eps() { return 1e-4; }
+    // static constexpr double eps() { return 1e-4; }
 
     typedef DiffOpGradientTraceHDiv<D> DIFFOP_TRACE;
     ///
+
+#ifdef UNUSED    
     template <typename AFEL, typename SIP, typename MAT,
               typename std::enable_if<!std::is_convertible<MAT,SliceMatrix<double,ColMajor>>::value, int>::type = 0>
       static void GenerateMatrix (const AFEL & fel, const SIP & sip,
@@ -548,7 +556,7 @@ public:
     
     template <typename AFEL, typename MIP, class TVX, class TVY>
     static void Apply (const AFEL & fel, const MIP & mip,
-                       const TVX & x, TVY & y,
+                       const TVX & x, TVY && y,
                        LocalHeap & lh) 
     {
       // typedef typename TVX::TSCAL TSCAL;
@@ -582,6 +590,7 @@ public:
     {
       AddTransSIMDDShapeFE<FEL,D,D,D>(static_cast<const FEL&>(fel), bmir, x, y, eps());
     }
+#endif
   };
 
 
@@ -602,7 +611,7 @@ public:
     typedef void DIFFOP_TRACE;
     ///
     template <typename AFEL, typename SIP, typename MAT,
-              typename std::enable_if<!std::is_convertible<MAT,SliceMatrix<double,ColMajor>>::value, int>::type = 0>
+              typename std::enable_if<!std::is_convertible<MAT,BareSliceMatrix<double,ColMajor>>::value, int>::type = 0>
       static void GenerateMatrix (const AFEL & fel, const SIP & sip,
                                   MAT & mat, LocalHeap & lh)
     {
@@ -612,7 +621,7 @@ public:
     }
     
     template <typename AFEL, typename MIP, typename MAT,
-              typename std::enable_if<std::is_convertible<MAT,SliceMatrix<double,ColMajor>>::value, int>::type = 0>
+              typename std::enable_if<std::is_convertible<MAT,BareSliceMatrix<double,ColMajor>>::value, int>::type = 0>
     static void GenerateMatrix (const AFEL & fel, const MIP & mip, MAT mat, LocalHeap & lh)
     {
       CalcDShapeFE<FEL,D,D-1,D>(static_cast<const FEL&>(fel), mip, Trans(mat), lh, eps());

@@ -1,7 +1,7 @@
 #ifndef NGSOLVE_VOXELCOEFFICIENTFUNCTION_HPP
 #define NGSOLVE_VOXELCOEFFICIENTFUNCTION_HPP
 
-#include "fem.hpp"
+#include "coefficient.hpp"
 
 namespace ngfem
 {
@@ -22,7 +22,7 @@ namespace ngfem
                              shared_ptr<CoefficientFunction> trafo=nullptr)
       : CoefficientFunctionNoDerivative(1, is_same_v<SCAL, Complex>),
         start(_start), end(_end), dim_vals(_dim_vals),
-        values(move(_values)), linear(_linear), trafocf(trafo)
+        values(std::move(_values)), linear(_linear), trafocf(trafo)
     { ; }
 
     using CoefficientFunctionNoDerivative::Evaluate;

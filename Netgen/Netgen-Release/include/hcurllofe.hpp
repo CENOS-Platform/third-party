@@ -8,6 +8,7 @@
 /*********************************************************************/
 
 #include "h1lofe.hpp"
+#include "thcurlfe.hpp"
 
 namespace ngfem
 {
@@ -39,6 +40,7 @@ namespace ngfem
   HCURLFE_EXTERN template class HCurlDummyFE<ET_TET>;
   HCURLFE_EXTERN template class HCurlDummyFE<ET_PRISM>;
   HCURLFE_EXTERN template class HCurlDummyFE<ET_PYRAMID>;
+  HCURLFE_EXTERN template class HCurlDummyFE<ET_HEXAMID>;
   HCURLFE_EXTERN template class HCurlDummyFE<ET_HEX>;
 
 
@@ -49,6 +51,7 @@ namespace ngfem
   HCURLFE_EXTERN template class T_HCurlFiniteElementFO<HCurlDummyFE<ET_TET>,ET_TET,0,0>;
   HCURLFE_EXTERN template class T_HCurlFiniteElementFO<HCurlDummyFE<ET_PRISM>,ET_PRISM,0,0>;
   HCURLFE_EXTERN template class T_HCurlFiniteElementFO<HCurlDummyFE<ET_PYRAMID>,ET_PYRAMID,0,0>;
+  HCURLFE_EXTERN template class T_HCurlFiniteElementFO<HCurlDummyFE<ET_HEXAMID>,ET_HEXAMID,0,0>;
   HCURLFE_EXTERN template class T_HCurlFiniteElementFO<HCurlDummyFE<ET_HEX>,ET_HEX,0,0>;
 
 
@@ -67,10 +70,10 @@ namespace ngfem
     FE_NedelecSegm1();
     ///
     // virtual ~FE_NedelecSegm1();
-    virtual ELEMENT_TYPE ElementType() const { return ET_SEGM; }
+    virtual ELEMENT_TYPE ElementType() const override { return ET_SEGM; }
     ///
     virtual void CalcShape (const IntegrationPoint & ip, 
-			    SliceMatrix<> shape) const;
+			    BareSliceMatrix<> shape) const override;
   };
 
 
@@ -86,10 +89,10 @@ namespace ngfem
     FE_NedelecSegm2();
     ///
     // virtual ~FE_NedelecSegm2();
-    virtual ELEMENT_TYPE ElementType() const { return ET_SEGM; }
+    virtual ELEMENT_TYPE ElementType() const override { return ET_SEGM; }
 
     virtual void CalcShape (const IntegrationPoint & ip, 
-			    SliceMatrix<> shape) const;
+			    BareSliceMatrix<> shape) const override;
   };
 
 
@@ -106,10 +109,10 @@ namespace ngfem
     FE_NedelecSegm3();
     ///
     // virtual ~FE_NedelecSegm3();
-    virtual ELEMENT_TYPE ElementType() const { return ET_SEGM; }
+    virtual ELEMENT_TYPE ElementType() const override { return ET_SEGM; }
 
     virtual void CalcShape (const IntegrationPoint & ip, 
-			    SliceMatrix<> shape) const;
+			    BareSliceMatrix<> shape) const override;
   };
 
 
@@ -210,18 +213,18 @@ namespace ngfem
     FE_TNedelecQuad();
     ///
     virtual ~FE_TNedelecQuad();
-    virtual ELEMENT_TYPE ElementType() const { return ET_QUAD; }
+    virtual ELEMENT_TYPE ElementType() const override { return ET_QUAD; }
     
 
     ///
     virtual void CalcShape (const IntegrationPoint & ip, 
-			    SliceMatrix<> shape) const;
+			    BareSliceMatrix<> shape) const override;
     ///
     virtual void CalcShape1 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<2> shape) const;
+			     FlatMatrixFixWidth<2> shape) const override;
     ///
     virtual void CalcShape2 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<2> shape) const;
+			     FlatMatrixFixWidth<2> shape) const override;
     ///
     void Orthogonalize();  
   };
@@ -605,16 +608,16 @@ namespace ngfem
     FE_NedelecTet3NoGrad();
     virtual ~FE_NedelecTet3NoGrad();
 
-    virtual ELEMENT_TYPE ElementType() const { return ET_TET; }
+    virtual ELEMENT_TYPE ElementType() const override { return ET_TET; }
     virtual void CalcShape (const IntegrationPoint & ip, 
-			    SliceMatrix<> shape) const;
+			    BareSliceMatrix<> shape) const override;
 
     using HCurlFiniteElement<3>::CalcCurlShape;
     virtual void CalcCurlShape (const IntegrationPoint & ip, 
-                                FlatMatrixFixWidth<3> curlshape) const;
+                                BareSliceMatrix<> curlshape) const override;
 
     virtual void CalcShape3 (const IntegrationPoint & ip, 
-                             FlatMatrixFixWidth<3> shape) const;
+                             FlatMatrixFixWidth<3> shape) const override; 
 
     virtual void CalcCurlShape3 (const IntegrationPoint & ip, 
                                  FlatMatrixFixWidth<3> shape) const;
@@ -639,10 +642,10 @@ namespace ngfem
     FE_NedelecHex1(); 
     ///
     virtual ~FE_NedelecHex1(); 
-    virtual ELEMENT_TYPE ElementType() const { return ET_HEX; }
+    virtual ELEMENT_TYPE ElementType() const override { return ET_HEX; }
     ///
     virtual void CalcShape (const IntegrationPoint & ip, 
-                            SliceMatrix<> shape) const; 
+                            BareSliceMatrix<> shape) const override; 
   }; 
 
 
@@ -727,22 +730,22 @@ static Matrix<> trans3;
     FE_TNedelecPrism2();
     ///
     virtual ~FE_TNedelecPrism2();
-    virtual ELEMENT_TYPE ElementType() const { return ET_PRISM; }
+    virtual ELEMENT_TYPE ElementType() const override { return ET_PRISM; }
     ///
     virtual void CalcShape (const IntegrationPoint & ip, 
-			    SliceMatrix<> shape) const;
+			    BareSliceMatrix<> shape) const override;
 
     ///
     virtual void CalcShape1 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     ///
     virtual void CalcShape2 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     ///
     virtual void CalcShape3 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     ///
     void Orthogonalize();
@@ -809,25 +812,25 @@ static Matrix<> trans_trig;
     ///
     virtual ~FE_TNedelecPrism3();
     ///
-    virtual ELEMENT_TYPE ElementType() const { return ET_PRISM; }
+    virtual ELEMENT_TYPE ElementType() const override { return ET_PRISM; }
     virtual void CalcShape (const IntegrationPoint & ip, 
-			    SliceMatrix<> shape) const;
+			    BareSliceMatrix<> shape) const override;
 
     ///
     virtual void CalcShape1 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     ///
     virtual void CalcShape2 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     /// quad face dofs
     virtual void CalcShape3 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     /// trig face dofs
     virtual void CalcShape4 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     ///
     virtual void CalcInner (const IntegrationPoint & ip, 
@@ -876,27 +879,27 @@ static Matrix<> trans_trig;
     FE_TNedelecPrism3NoGrad();
     ///
     virtual ~FE_TNedelecPrism3NoGrad();
-    virtual ELEMENT_TYPE ElementType() const { return ET_PRISM; }
+    virtual ELEMENT_TYPE ElementType() const override { return ET_PRISM; }
 
     ///
     virtual void CalcShape (const IntegrationPoint & ip, 
-			    SliceMatrix<> shape) const;
+			    BareSliceMatrix<> shape) const override;
 
     ///
     virtual void CalcShape1 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     ///
     virtual void CalcShape2 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     /// quad face dofs
     virtual void CalcShape3 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     /// trig face dofs + inner dofs
     virtual void CalcShape4 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     ///
     virtual void CalcInner (const IntegrationPoint & ip, 
@@ -948,7 +951,7 @@ static Matrix<> trans_trig;
       // horizontal edges incl. Nedelec 0
       for (int i = 0; i < 4; i++)
         {
-          INT<2> e = ET_trait<ET_PYRAMID>::GetEdge(i);	  
+          IVec<2> e = ET_trait<ET_PYRAMID>::GetEdge(i);	  
           Tx xi  = sigma[e[1]] - sigma[e[0]];   
           Tx lam_t = lambda[e[1]] + lambda[e[0]]; 
           shape[i] = uDv (0.5 * (1-z)*(1-z)*lam_t, xi);
@@ -957,7 +960,7 @@ static Matrix<> trans_trig;
       // vertical edges incl. Nedelec 0  
       for(int i = 4; i < 8; i++)
         {
-          INT<2> e = ET_trait<ET_PYRAMID>::GetEdge (i);	  
+          IVec<2> e = ET_trait<ET_PYRAMID>::GetEdge (i);	  
           shape[i] = uDv_minus_vDu (lami[e[0]], lami[e[1]]);
         }
     }
@@ -994,17 +997,17 @@ static Matrix<> trans_trig;
     FE_NedelecPyramid2();
     ///
     virtual ~FE_NedelecPyramid2();
-    virtual ELEMENT_TYPE ElementType() const { return ET_PYRAMID; }
+    virtual ELEMENT_TYPE ElementType() const override { return ET_PYRAMID; }
 
     ///
     virtual void CalcShape (const IntegrationPoint & ip, 
-			    SliceMatrix<> shape) const;
+			    BareSliceMatrix<> shape) const override;
 
     virtual void CalcShape1 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
     virtual void CalcShape2 (const IntegrationPoint & ip, 
-			     FlatMatrixFixWidth<3> shape) const;
+			     FlatMatrixFixWidth<3> shape) const override;
 
 
     ///

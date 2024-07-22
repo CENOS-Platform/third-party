@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget ngs_lapack netgen_python ngstd ngbla ngla ngfem ngcomp solve ngsolve)
+foreach(_expectedTarget netgen_libs ngs_lapack netgen_python ngstd ngbla ngla ngfem ngcomp ngsolve)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -48,28 +48,36 @@ if(_IMPORT_PREFIX STREQUAL "/")
   set(_IMPORT_PREFIX "")
 endif()
 
+# Create imported target netgen_libs
+add_library(netgen_libs INTERFACE IMPORTED)
+
+set_target_properties(netgen_libs PROPERTIES
+  INTERFACE_LINK_LIBRARIES "nglib;ngcore"
+)
+
 # Create imported target ngs_lapack
 add_library(ngs_lapack INTERFACE IMPORTED)
 
 set_target_properties(ngs_lapack PROPERTIES
-  INTERFACE_LINK_LIBRARIES "E:/source/third-party-auto/Netgen-Release/lib/BLAS.lib"
+  INTERFACE_INCLUDE_DIRECTORIES "D:/source/cenos/backend/third-party/python/Library/include"
+  INTERFACE_LINK_LIBRARIES "D:/source/cenos/backend/third-party/python/Library/lib/mkl_rt.lib"
 )
 
 # Create imported target netgen_python
 add_library(netgen_python INTERFACE IMPORTED)
 
 set_target_properties(netgen_python PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "E:/source/cenos/backend/third-party/python/include"
-  INTERFACE_LINK_LIBRARIES "E:/source/cenos/backend/third-party/python/libs/python310.lib"
+  INTERFACE_INCLUDE_DIRECTORIES "D:/source/cenos/backend/third-party/python/include"
+  INTERFACE_LINK_LIBRARIES "D:/source/cenos/backend/third-party/python/libs/python310.lib"
 )
 
 # Create imported target ngstd
 add_library(ngstd INTERFACE IMPORTED)
 
 set_target_properties(ngstd PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "HAVE_NETGEN_SOURCES;USE_TIMEOFDAY;TCL;LAPACK;NGS_PYTHON;USE_UMFPACK"
+  INTERFACE_COMPILE_DEFINITIONS "HAVE_NETGEN_SOURCES;USE_TIMEOFDAY;TCL;LAPACK;USE_PARDISO;NGS_PYTHON;USE_UMFPACK"
   INTERFACE_COMPILE_OPTIONS "/std:c++17;-DMAX_SYS_DIM=3"
-  INTERFACE_LINK_LIBRARIES "ngcore;nglib;\$<LINK_ONLY:>"
+  INTERFACE_LINK_LIBRARIES "netgen_libs;\$<LINK_ONLY:>"
 )
 
 # Create imported target ngbla
@@ -100,18 +108,11 @@ set_target_properties(ngcomp PROPERTIES
   INTERFACE_LINK_LIBRARIES "ngfem;ngla;ngbla;ngstd;\$<LINK_ONLY:>"
 )
 
-# Create imported target solve
-add_library(solve INTERFACE IMPORTED)
-
-set_target_properties(solve PROPERTIES
-  INTERFACE_LINK_LIBRARIES "ngcomp;ngstd;ngfem;ngla;ngbla;nglib;\$<LINK_ONLY:>"
-)
-
 # Create imported target ngsolve
 add_library(ngsolve SHARED IMPORTED)
 
 set_target_properties(ngsolve PROPERTIES
-  INTERFACE_LINK_LIBRARIES "nglib;ngcore;solve;ngcomp;ngfem;ngbla;ngla;ngstd"
+  INTERFACE_LINK_LIBRARIES "netgen_libs;ngsolve;ngcomp;ngfem;ngbla;ngla;ngstd"
 )
 
 if(CMAKE_VERSION VERSION_LESS 3.0.0)

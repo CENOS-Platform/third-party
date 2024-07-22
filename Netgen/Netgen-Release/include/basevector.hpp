@@ -11,8 +11,6 @@
 
 namespace ngla
 {
-
-
   class BaseVector;
   class AutoVector;
   class MultiVector;
@@ -95,22 +93,22 @@ namespace ngla
     int entrysize = 1;
     ///
     // shared_ptr<ParallelDofs> paralleldofs;
-
+    
     ///
     BaseVector () { ; }
-
+    
   public:
     ///
     virtual ~BaseVector () { ; }
-
+    
     ///
     template <typename T> 
-    BaseVector & operator= (const VVecExpr<T> & v)
+      BaseVector & operator= (const VVecExpr<T> & v)
     {
       v.AssignTo (1.0, *this);
       return *this;
     }
-
+    
     ///
     BaseVector & operator= (const BaseVector & v)
     {
@@ -282,84 +280,6 @@ namespace ngla
     void AddIndirect (FlatArray<int> ind, FlatVector<double> v, bool use_atomic = false);
     void AddIndirect (FlatArray<int> ind, FlatVector<Complex> v, bool use_atomic = false);
 
-    /*
-
-    template<int S>
-    void GetIndirect (const Array<int> & ind, 
-		      FlatVector< Vec<S,double> > & v) const
-    { 
-      FlatVector<double> fv = FVDouble();
-      // int es = EntrySize();
-      for (int i = 0, ii = 0; i < ind.Size(); i++)
-	if (ind[i] != -1)
-	  {
-	    int base = S * ind[i];
-	    for (int j = 0; j < S; j++)
-	      v[ii++] = fv[base++];
-	  }
-	else
-	  {
-	    for (int j = 0; j < S; j++)
-	      v[ii++] = 0;
-	  }
-    }
-
-    
-    template<int S>
-    void GetIndirect (const Array<int> & ind, 
-		      FlatVector< Vec<S,Complex> > & v) const
-    { 
-      FlatVector<Complex> fv = FVComplex();
-      // int es = EntrySize() / 2;
-      for (int i = 0, ii = 0; i < ind.Size(); i++)
-	if (ind[i] != -1)
-	  {
-	    int base = S * ind[i];
-	    for (int j = 0; j < S; j++)
-	      v[ii++] = fv[base++];
-	  }
-	else
-	  {
-	    for (int j = 0; j < S; j++)
-	      v[ii++] = 0.0;
-	  }
-    }
-
-
-    template<int S>
-    void AddIndirect (const Array<int> & ind, 
-		      const FlatVector< Vec<S,double> > & v)
-    { 
-      FlatVector<double> fv = FVDouble();
-      // int es = EntrySize();
-    
-      for (int i = 0; i < ind.Size(); i++)
-	if (ind[i] != -1)
-	  {
-	    int base = S * ind[i];
-	    for (int j = 0; j < S; j++)
-	      fv[base++] += v[i](j);
-	  }
-    }
-
-    template<int S>
-    void AddIndirect (const Array<int> & ind, 
-		      const FlatVector< Vec<S,Complex> > & v)
-    { 
-      FlatVector<Complex> fv = FVComplex();
-      // if(EntrySize() != 2*S)
-      //       throw Exception("BaseVector::AddIndirect() wrong dimensions");
-
-      for (int i = 0; i < ind.Size(); i++)
-	if (ind[i] != -1)
-	  {
-	    int base = S * ind[i];
-	    for (int j = 0; j < S; j++)
-	      fv[base++] += v[i](j);
-	  }
-    }
-    */
-
     virtual shared_ptr<BaseVector> GetLocalVector () const 
     { return const_cast<BaseVector*>(this)->shared_from_this(); }
     
@@ -368,32 +288,39 @@ namespace ngla
     virtual PARALLEL_STATUS GetParallelStatus () const;
     virtual void SetParallelStatus (PARALLEL_STATUS stat) const;
     virtual optional<NgMPI_Comm> GetCommunicator() const { return nullopt; }
+
+
+    virtual shared_ptr<BaseVector> CreateDeviceVector(bool unified) const;
+    static std::map<type_index, function<shared_ptr<BaseVector>(const BaseVector&,bool)>> devveccreator;
+    static void RegisterDeviceVectorCreator (type_index type,
+                                             function<shared_ptr<BaseVector>(const BaseVector&,bool)> creator)
+    {
+      devveccreator[type] = creator;
+    }
+
+    
     const MemoryTracer& GetMemoryTracer() const { return mt; }
   private:
-  MemoryTracer mt = { "BaseVector" };
+    MemoryTracer mt = { "BaseVector" };
   };
-
-
-  AutoVector CreateBaseVector(size_t size, bool is_complex, int es);
-
   
-  class NGS_DLL_HEADER AutoVector // : public BaseVector
+
+  AutoVector CreateBaseVector(size_t size, bool is_complex = false, int es = 1);
+  
+  
+  class NGS_DLL_HEADER AutoVector 
   {
     shared_ptr<BaseVector> vec;
   public:
-    AutoVector () { ; }
-
-    AutoVector (AutoVector && av2) : vec(std::move(av2.vec)) { } 
-    // { size = av2.Size(), entrysize = av2.EntrySize(); }
-
-    AutoVector (shared_ptr<BaseVector> hvec) : vec(hvec) { }
+    AutoVector () = default;
+    AutoVector (AutoVector && av2) = default; //  : vec(std::move(av2.vec)) { } 
+    
+    AutoVector (shared_ptr<BaseVector> hvec) : vec(std::move(hvec)) { }
     
     AutoVector (unique_ptr<BaseVector> hvec) : vec(std::move(hvec)) { } 
-    // { size = vec->Size(), entrysize = vec->EntrySize(); }
 
     template<typename U>
     AutoVector (unique_ptr<U> hvec) : vec(std::move(hvec)) { } 
-    // { size = vec->Size(), entrysize = vec->EntrySize(); }
 
     ~AutoVector();
 
@@ -499,9 +426,8 @@ namespace ngla
       return *this;
     }
     
-    // operator unique_ptr<BaseVector> () && { return move(vec); }
-    // operator shared_ptr<BaseVector> () && { return move(vec); }
-    operator shared_ptr<BaseVector> () { return vec; }
+    operator shared_ptr<BaseVector> () && { return std::move(vec); }
+    operator shared_ptr<BaseVector> () & { return vec; }
     BaseVector & operator* () { return *vec; }
     const BaseVector & operator* () const { return *vec; }
     operator BaseVector & () { return *vec; }
@@ -662,7 +588,7 @@ namespace ngla
   inline FlatVector<T> BaseVector::FV () const
   {
     typedef typename mat_traits<T>::TSCAL TSCAL;
-    return FlatVector<T> (Size(), FV<TSCAL>().Addr(0));
+    return FlatVector<T> (Size(), static_cast<T*> (static_cast<void*>(FV<TSCAL>().Addr(0))));
   }
 
 
@@ -704,7 +630,7 @@ namespace ngla
     virtual FlatVector<SCAL> FVScal () const 
     {
       return FlatVector<SCAL> (size * entrysize * sizeof(double)/sizeof(SCAL), 
-                               Memory());
+                               (SCAL*)Memory());
     }
 
 

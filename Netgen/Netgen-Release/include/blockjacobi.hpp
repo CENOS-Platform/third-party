@@ -15,8 +15,6 @@ namespace ngla
   */
   class NGS_DLL_HEADER BaseBlockJacobiPrecond : virtual public BaseMatrix
   {
-  public:
-    // enum COARSE_TYPE { NO_COARSE = 0, USER_COARSE = 1, DIRECT_COARSE = 2, SMOOTHING_COARSE = 3 };
   protected:
     /// the table defining the blocks
     shared_ptr<Table<int>> blocktable;
@@ -67,38 +65,7 @@ namespace ngla
 		 FlatArray<int> usedflags,        // in and out: array of -1, size = graph.size
 		 LocalHeap & lh);
 
-    /*
-    virtual void SetCoarseType ( string act) 
-    {
-      if ( strcmp ( act.c_str(), "DIRECT_COARSE") == 0 )
-	{
-	  ct = DIRECT_COARSE;
-	}
-      else if ( strcmp ( act.c_str(), "NO_COARSE") == 0 )
-	{
-	  ct = NO_COARSE;
-	}
-      else if ( strcmp ( act.c_str(), "USER_COARSE") == 0 )
-	{
-	  ct = USER_COARSE;
-	}
-      else if ( strcmp ( act.c_str(), "SMOOTHING_COARSE") == 0 )
-	{
-	  ct = SMOOTHING_COARSE;
-	}
-      else
-	{
-	  ct = NO_COARSE;
-	}
-    }
-    */
-
-    /*
-    virtual void InitCoarseType (string act, const BitArray * freedofs) 
-    {
-      cerr << "BaseBlockJacobiPrecond :: InitCoarseType not implemented!" << endl;
-    }
-    */
+    auto GetBlockTable() const { return blocktable; } 
   };
 
 
@@ -154,13 +121,16 @@ namespace ngla
     ///
     virtual ~BlockJacobiPrecond ();
 
-    int Height() const { return mat->Height(); }
+    size_t Height() const { return mat->Height(); }
     int VHeight() const override { return mat->Height(); }
-    int Width() const { return mat->Width(); }
+    size_t Width() const { return mat->Width(); }
     int VWidth() const override { return mat->Width(); }
 
     AutoVector CreateRowVector() const override { return mat->CreateColVector(); }
     AutoVector CreateColVector() const override { return mat->CreateRowVector(); }
+
+    BaseMatrix::OperatorInfo GetOperatorInfo () const override
+    { return { string("BlockJacobi-")+typeid(TM).name(), this->Height(), this->Width() }; }
     
     ///
     void MultAdd (TSCAL s, const BaseVector & x, BaseVector & y) const override;
@@ -202,7 +172,8 @@ namespace ngla
       return { MemoryUsage ("BlockJac", nels*sizeof(TM), blocktable->Size()) };
     }
 
-
+    const Array<FlatMatrix<TM>> & GetInverses() const { return invdiag; }
+    const Array<TM> & MatrixData() const { return bigmem; } 
   };
 
 

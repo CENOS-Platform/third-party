@@ -7,7 +7,6 @@
 /* Date:   01. Oct. 94, 15 Jan. 02                                        */
 /**************************************************************************/
 
-#include <limits>
 
 namespace ngla
 {
@@ -73,25 +72,27 @@ namespace ngla
   /** 
       The graph of a sparse matrix.
   */
-  class NGS_DLL_HEADER MatrixGraph
+  class NGS_DLL_HEADER MatrixGraph : public BaseMatrix
   {
+  public:
+    typedef int ColIdx;
   protected:
     /// number of rows
-    int size;
+    size_t size;
     /// with of matrix
-    int width;
+    size_t width;
     /// non-zero elements
     size_t nze; 
 
     /// column numbers
     // Array<int, size_t> colnr;
-    NumaDistributedArray<int> colnr;
+    NumaDistributedArray<ColIdx> colnr;
 
     /// pointer to first in row
     Array<size_t> firsti;
   
     /// row has same non-zero elements as previous row
-    Array<int> same_nze;
+    Array<size_t> same_nze;
     
     /// balancing for multi-threading
     Partitioning balance;
@@ -101,16 +102,16 @@ namespace ngla
 
   public:
     /// arbitrary number of els/row
-    MatrixGraph (const Array<int> & elsperrow, int awidth);
+    MatrixGraph (FlatArray<int> elsperrow, size_t awidth);
     /// matrix of height as, uniform number of els/row
-    MatrixGraph (int as, int max_elsperrow);    
+    MatrixGraph (size_t as, int max_elsperrow);    
     /// shadow matrix graph
-    MatrixGraph (const MatrixGraph & graph, bool stealgraph);
+    MatrixGraph (const MatrixGraph & graph); // , bool stealgraph = false);
     /// move-constuctor
     MatrixGraph (MatrixGraph && graph);
     /// 
-    MatrixGraph (int size, int width,
-                 const Table<int> & rowelements, const Table<int> & colelements, bool symmetric);
+    MatrixGraph (size_t size, size_t width,
+                 FlatTable<int> rowelements, FlatTable<int> colelements, bool symmetric);
     /// 
     // MatrixGraph (const Table<int> & dof2dof, bool symmetric);
     virtual ~MatrixGraph ();
@@ -119,27 +120,27 @@ namespace ngla
     void Compress();
   
     /// returns position of Element (i, j), exception for unused
-    size_t GetPosition (int i, int j) const;
+    size_t GetPosition (size_t i, size_t j) const;
     
     /// returns position of Element (i, j), -1 for unused
-    size_t GetPositionTest (int i, int j) const;
+    size_t GetPositionTest (size_t i, size_t j) const;
 
     /// find positions of n sorted elements, overwrite pos, exception for unused
-    void GetPositionsSorted (int row, int n, int * pos) const;
+    void GetPositionsSorted (size_t row, size_t n, int * pos) const;
 
     /// returns position of new element
-    size_t CreatePosition (int i, int j);
+    size_t CreatePosition (size_t i, size_t j);
 
-    int Size() const { return size; }
+    size_t Size() const { return size; }
 
     size_t NZE() const { return nze; }
 
     // full col-index array
-    FlatArray<int> GetColIndices() const { return colnr; }
+    FlatArray<ColIdx> GetColIndices() const { return colnr; }
     
     // col-indices of the i-th row
-    FlatArray<int> GetRowIndices(size_t i) const
-    { return FlatArray<int> (firsti[i+1]-firsti[i], colnr+firsti[i]); }      
+    FlatArray<ColIdx> GetRowIndices(size_t i) const
+    { return FlatArray<ColIdx> (firsti[i+1]-firsti[i], colnr+firsti[i]); }      
 
     size_t First (int i) const { return firsti[i]; }
     FlatArray<size_t> GetFirstArray () const  { return firsti; } 
@@ -157,7 +158,14 @@ namespace ngla
       return mem_tracer;
     }
 
+    virtual AutoVector CreateRowVector () const
+    { throw Exception("MatrixGraph::CreateRowVector called"); }
+    
+    virtual AutoVector CreateColVector () const
+    { throw Exception("MatrixGraph::CreateRowVector called"); }
+
   private:
+    
     MemoryTracer mem_tracer = {"MatrixGraph",
       colnr, "colnr",
       firsti, "firsti",
@@ -172,16 +180,19 @@ namespace ngla
 
 
 
-  /// A virtual base class for all sparse matrices
-  class NGS_DLL_HEADER BaseSparseMatrix : virtual public BaseMatrix, 
-					  public MatrixGraph
+  /// base class for all sparse matrices
+  class NGS_DLL_HEADER BaseSparseMatrix : public MatrixGraph
   {
   protected:
     /// sparse direct solver
-    mutable INVERSETYPE inversetype = default_inversetype;    // C++11 :-) Windows VS2013
+    mutable INVERSETYPE inversetype = default_inversetype;   
+    Flags inverseflags;
     bool spd = false;
     
   public:
+    using MatrixGraph::MatrixGraph;
+    using MatrixGraph::ColIdx;
+    /*
     BaseSparseMatrix (int as, int max_elsperrow)
       : MatrixGraph (as, max_elsperrow)  
     { ; }
@@ -194,17 +205,18 @@ namespace ngla
 		      const Table<int> & colelements, bool symmetric)
       : MatrixGraph (size, width, rowelements, colelements, symmetric)
     { ; }
+    */
 
-    BaseSparseMatrix (const MatrixGraph & agraph, bool stealgraph)
-      : MatrixGraph (agraph, stealgraph)
-    { ; }   
-
+    BaseSparseMatrix (const MatrixGraph & agraph)
+      : MatrixGraph (agraph)
+    { ; }
+    
     BaseSparseMatrix (const BaseSparseMatrix & amat)
-      : BaseMatrix(amat), MatrixGraph (amat, 0)
+      : MatrixGraph (amat)
     { ; }   
 
     BaseSparseMatrix (BaseSparseMatrix && amat)
-      : BaseMatrix(amat), MatrixGraph (std::move(amat))
+      : MatrixGraph (std::move(amat))
     { ; }
 
     virtual ~BaseSparseMatrix ();
@@ -275,13 +287,16 @@ namespace ngla
 
     virtual INVERSETYPE  GetInverseType () const override
     { return inversetype; }
-
+    virtual void SetInverseFlags (const Flags & flags) override
+    { inverseflags = flags; }
+    virtual const Flags & GetInverseFlags () const { return inverseflags; } 
+    
     void SetSPD (bool aspd = true) { spd = aspd; }
     bool IsSPD () const { return spd; }
     virtual size_t NZE () const override { return nze; }
     virtual tuple<int,int> EntrySizes() const = 0;
 
-    virtual shared_ptr<BaseSparseMatrix> DeleteZeroElements(double tol) const
+    virtual shared_ptr<BaseMatrix> DeleteZeroElements(double tol) const override
     {
       throw Exception ("DeleteZeroElements not overloaded");
     }
@@ -289,8 +304,7 @@ namespace ngla
 
   
   template <typename TSCAL>
-  class NGS_DLL_HEADER S_BaseSparseMatrix : public BaseSparseMatrix,
-                                            public S_BaseMatrix<TSCAL>
+  class NGS_DLL_HEADER S_BaseSparseMatrix : public BaseSparseMatrix
   {
   protected:
     int entry_height, entry_width;
@@ -298,35 +312,27 @@ namespace ngla
     // also be a diagonal matrix
     int entry_size;
     VFlatVector<TSCAL> asvec;
+    using MatrixGraph::ColIdx;    
   public:
     using BaseSparseMatrix::BaseSparseMatrix;
+    /*
     void SetEntrySize (int eh, int ew, int es)
     {
       entry_height = eh;
       entry_width = ew;
       entry_size = es;
     }
-
-
-    int Height() const { return size; }
-    int Width() const { return width; }
-    virtual int VHeight() const override { return size; }
-    virtual int VWidth() const override { return width; }
-
-
+    */
+    
     virtual BaseVector & AsVector() override
     {
-      // asvec.AssignMemory (nze*sizeof(TM)/sizeof(TSCAL), (void*)data.Addr(0));
       return asvec; 
     }
 
     virtual const BaseVector & AsVector() const override
     { 
-      // const_cast<VFlatVector<TSCAL>&> (asvec).
-      // AssignMemory (nze*sizeof(TM)/sizeof(TSCAL), (void*)data.Data());
       return asvec; 
     }
-    
     
     FlatVector<TSCAL> GetRowValue (int row, int j)
     {
@@ -345,7 +351,6 @@ namespace ngla
   /// A general, sparse matrix
   template<class TM>
   class NGS_DLL_HEADER SparseMatrixTM : public S_BaseSparseMatrix<typename mat_traits<TM>::TSCAL>
-    // public BaseSparseMatrix, public S_BaseMatrix<typename mat_traits<TM>::TSCAL>
   {
   protected:
     // Array<TM, size_t> data;
@@ -366,9 +371,19 @@ namespace ngla
     using BASE::CreatePosition;
     using BASE::GetPositionTest;
     using BASE::FindSameNZE;
-    using BASE::SetEntrySize;
+    // using BASE::SetEntrySize;
     using BASE::AsVector;
-
+    using typename BASE::ColIdx;
+    
+    void SetEntrySize()
+    {
+      // BASE::SetEntrySize (ngbla::Height<TM>(), ngbla::Width<TM>(), sizeof(TM)/sizeof(TSCAL));
+      BASE::entry_height = ngbla::Height<TM>();
+      BASE::entry_width = ngbla::Width<TM>();
+      BASE::entry_size = sizeof(TM)/sizeof(TSCAL);
+      BASE::is_complex = ngbla::IsComplex<TM>();
+    }
+    
   public:
     typedef TM TENTRY;
     typedef typename mat_traits<TM>::TSCAL TSCAL;
@@ -377,7 +392,9 @@ namespace ngla
       : BASE (as, max_elsperrow),
 	data(nze), nul(TSCAL(0))
     {
-      SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      // SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      // SetEntrySize (Height<TM>(), Width<TM>(), sizeof(TM)/sizeof(TSCAL));
+      SetEntrySize ();
       asvec.AssignMemory (nze*sizeof(TM)/sizeof(TSCAL), (void*)data.Addr(0));
       GetMemoryTracer().Track(*static_cast<MatrixGraph*>(this), "MatrixGraph",
                               data, "data");
@@ -388,7 +405,8 @@ namespace ngla
       : BASE (elsperrow, awidth), 
 	data(nze), nul(TSCAL(0))
     {
-      SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      // SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      SetEntrySize ();      
       asvec.AssignMemory (nze*sizeof(TM)/sizeof(TSCAL), (void*)data.Addr(0));
       GetMemoryTracer().Track(*static_cast<MatrixGraph*>(this), "MatrixGraph",
                               data, "data");
@@ -401,7 +419,8 @@ namespace ngla
       : BASE (size, width, rowelements, colelements, symmetric), 
 	data(nze), nul(TSCAL(0))
     { 
-      SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      // SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      SetEntrySize ();            
       asvec.AssignMemory (nze*sizeof(TM)/sizeof(TSCAL), (void*)data.Addr(0));
       GetMemoryTracer().Track(*static_cast<MatrixGraph*>(this), "MatrixGraph",
                               data, "data");
@@ -409,11 +428,12 @@ namespace ngla
 
     }
 
-    SparseMatrixTM (const MatrixGraph & agraph, bool stealgraph)
-      : BASE (agraph, stealgraph), 
+    SparseMatrixTM (const MatrixGraph & agraph)
+      : BASE (agraph), 
 	data(nze), nul(TSCAL(0))
     { 
-      SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      // SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      SetEntrySize ();      
       asvec.AssignMemory (nze*sizeof(TM)/sizeof(TSCAL), (void*)data.Addr(0));
       FindSameNZE();
       GetMemoryTracer().Track(*static_cast<MatrixGraph*>(this), "MatrixGraph",
@@ -421,11 +441,25 @@ namespace ngla
       GetMemoryTracer().SetName("SparseMatrix");
     }
 
+    SparseMatrixTM (MatrixGraph && agraph)
+      : BASE (std::move(agraph)), 
+	data(nze), nul(TSCAL(0))
+    { 
+      // SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      SetEntrySize ();      
+      asvec.AssignMemory (nze*sizeof(TM)/sizeof(TSCAL), (void*)data.Addr(0));
+      FindSameNZE();
+      GetMemoryTracer().Track(*static_cast<MatrixGraph*>(this), "MatrixGraph",
+                              data, "data");
+      GetMemoryTracer().SetName("SparseMatrix");
+    }
+    
     SparseMatrixTM (const SparseMatrixTM & amat)
       : BASE (amat), 
       data(nze), nul(TSCAL(0))
     {
-      SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      // SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      SetEntrySize ();            
       asvec.AssignMemory (nze*sizeof(TM)/sizeof(TSCAL), (void*)data.Addr(0));      
       AsVector() = amat.AsVector();
       GetMemoryTracer().Track(*static_cast<MatrixGraph*>(this), "MatrixGraph",
@@ -436,7 +470,8 @@ namespace ngla
     SparseMatrixTM (SparseMatrixTM && amat)
       : BASE (std::move(amat)), nul(TSCAL(0))
     {
-      SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      // SetEntrySize (mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH, sizeof(TM)/sizeof(TSCAL));
+      SetEntrySize ();
       GetMemoryTracer().Track(*static_cast<MatrixGraph*>(this), "MatrixGraph",
                               data, "data");
       GetMemoryTracer().SetName("SparseMatrix");
@@ -449,19 +484,25 @@ namespace ngla
       
     virtual ~SparseMatrixTM ();
 
-
+    size_t Height() const { return size; }
+    size_t Width() const { return width; }
+    virtual int VHeight() const override { return size; }
+    virtual int VWidth() const override { return width; }
+    virtual tuple<size_t, size_t> Shape() const override { return { size, width }; }
+    
+    
     bool IsHermitian() const { return hermitian; }
     void SetHermitian(bool herm) { hermitian = herm; }
     
-    TM & operator[] (int i)  { return data[i]; }
-    const TM & operator[] (int i) const { return data[i]; }
+    TM & operator[] (size_t i)  { return data[i]; }
+    const TM & operator[] (size_t i) const { return data[i]; }
 
-    TM & operator() (int row, int col)
+    TM & operator() (size_t row, size_t col)
     {
       return data[CreatePosition(row, col)];
     }
 
-    const TM & operator() (int row, int col) const
+    const TM & operator() (size_t row, size_t col) const
     {
       size_t pos = GetPositionTest (row,col);
       if (pos != numeric_limits<size_t>::max())
@@ -470,7 +511,7 @@ namespace ngla
 	return nul;
     }
 
-    void PrefetchRow (int rownr) const;
+    void PrefetchRow (size_t rownr) const;
 
     // full value array
     FlatVector<TM> GetValues() const { return FlatVector<TM> (data.Size(), data.Addr(0)); }
@@ -502,7 +543,8 @@ namespace ngla
     virtual AutoVector CreateRowVector () const override;
     virtual AutoVector CreateColVector () const override;
 
-    virtual tuple<int,int> EntrySizes() const override { return { mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH }; }
+    // virtual tuple<int,int> EntrySizes() const override { return { mat_traits<TM>::HEIGHT, mat_traits<TM>::WIDTH }; }
+    virtual tuple<int,int> EntrySizes() const override { return { ngbla::Height<TM>(), ngbla::Width<TM>() }; }
     
     shared_ptr<BaseSparseMatrix>
       CreateTransposeTM (const function<shared_ptr<SparseMatrixTM<decltype(Trans(TM()))>>(const Array<int>&, int)> & creator) const;
@@ -522,7 +564,7 @@ namespace ngla
     using SparseMatrixTM<TM>::colnr;
     using SparseMatrixTM<TM>::data;
     using SparseMatrixTM<TM>::balance;
-
+    using typename SparseMatrixTM<TM>::ColIdx;
 
     typedef typename mat_traits<TM>::TSCAL TSCAL;
     typedef TV_ROW TVX;
@@ -542,8 +584,8 @@ namespace ngla
 		  const Table<int> & colelements, bool symmetric)
       : SparseMatrixTM<TM> (height, width, rowelements, colelements, symmetric) { ; }
 
-    SparseMatrix (const MatrixGraph & agraph, bool stealgraph);
-    // : SparseMatrixTM<TM> (agraph, stealgraph) { ; }
+    SparseMatrix (const MatrixGraph & agraph);
+    SparseMatrix (MatrixGraph && agraph);
 
     SparseMatrix (const SparseMatrix & amat)
       : SparseMatrixTM<TM> (amat) { ; }
@@ -560,12 +602,17 @@ namespace ngla
     virtual AutoVector CreateVector () const override;
     virtual AutoVector CreateRowVector () const override;
     virtual AutoVector CreateColVector () const override;
+
+
+    BaseMatrix::OperatorInfo GetOperatorInfo () const override
+    { return { string("SparseMatrix")+typeid(TM).name(), this->Height(), this->Width() }; }
     
     virtual shared_ptr<BaseJacobiPrecond>
       CreateJacobiPrecond (shared_ptr<BitArray> inner) const override
     {
-      if constexpr(mat_traits<TM>::HEIGHT != mat_traits<TM>::WIDTH) return nullptr;
-      else if constexpr(mat_traits<TM>::HEIGHT > MAX_SYS_DIM) {
+      // if constexpr(mat_traits<TM>::HEIGHT != mat_traits<TM>::WIDTH) return nullptr;
+      if constexpr(ngbla::Height<TM>() != ngbla::Width<TM>()) return nullptr;
+      else if constexpr(ngbla::Height<TM>() > MAX_SYS_DIM) {
 	  throw Exception(string("MAX_SYS_DIM = ")+to_string(MAX_SYS_DIM)+string(", need ")+to_string(mat_traits<TM>::HEIGHT));
 	  return nullptr;
 	}
@@ -578,9 +625,10 @@ namespace ngla
                                 bool parallel = 1,
                                 shared_ptr<BitArray> freedofs = NULL) const override
     { 
-      if constexpr(mat_traits<TM>::HEIGHT != mat_traits<TM>::WIDTH) return nullptr;
-      else if constexpr(mat_traits<TM>::HEIGHT > MAX_SYS_DIM) {
-	  throw Exception(string("MAX_SYS_DIM = ")+to_string(MAX_SYS_DIM)+string(", need ")+to_string(mat_traits<TM>::HEIGHT));
+      // if constexpr(mat_traits<TM>::HEIGHT != mat_traits<TM>::WIDTH) return nullptr;
+      if constexpr(ngbla::Height<TM>() != ngbla::Width<TM>()) return nullptr;
+      else if constexpr(ngbla::Height<TM>() > MAX_SYS_DIM) {
+	  throw Exception(string("MAX_SYS_DIM = ")+to_string(MAX_SYS_DIM)+string(", need ")+to_string(ngbla::Height<TM>()));
 	  return nullptr;
 	}
       else
@@ -607,7 +655,7 @@ namespace ngla
           { return make_shared<SparseMatrix<decltype(Trans(TM())), TV_COL, TV_ROW>> (elsperrow, width); } );
     }
 
-    virtual shared_ptr<BaseSparseMatrix> DeleteZeroElements(double tol) const override;
+    virtual shared_ptr<BaseMatrix> DeleteZeroElements(double tol) const override;
     
     ///
     inline TVY RowTimesVector (int row, const FlatVector<TVX> vec) const
@@ -625,7 +673,7 @@ namespace ngla
       size_t first = firsti[row];
       size_t last = firsti[row+1];
 
-      const int * colpi = colnr.Addr(0);
+      const ColIdx * colpi = colnr.Addr(0);
       const TM * datap = data.Addr(0);
 
       for (size_t j = first; j < last; j++)
@@ -638,7 +686,7 @@ namespace ngla
       size_t first = firsti[row];
       size_t last = firsti[row+1];
 
-      const int * colpi = colnr.Addr(0);
+      const ColIdx * colpi = colnr.Addr(0);
       const TM * datap = data.Addr(0);
 
       for (size_t j = first; j < last; j++)
@@ -673,6 +721,7 @@ namespace ngla
     using SparseMatrixTM<TM>::firsti;
     using SparseMatrixTM<TM>::colnr;
     using SparseMatrixTM<TM>::data;
+    using BaseSparseMatrix::ColIdx;    
 
     typedef typename mat_traits<TM>::TSCAL TSCAL;
     typedef TV TV_COL;
@@ -692,7 +741,8 @@ namespace ngla
       : SparseMatrix<TM,TV,TV> (size, size, rowelements, rowelements, true)
     { ; }
 
-    SparseMatrixSymmetric (const MatrixGraph & agraph, bool stealgraph);
+    SparseMatrixSymmetric (const MatrixGraph & agraph);
+    SparseMatrixSymmetric (MatrixGraph && agraph);    
 
     SparseMatrixSymmetric (const SparseMatrixSymmetric & amat)
       : SparseMatrix<TM,TV,TV> (amat)
@@ -827,8 +877,8 @@ namespace ngla
 
   NGS_DLL_HEADER shared_ptr<SparseMatrixTM<double>>
   MatMult (const SparseMatrixTM<double> & mata, const SparseMatrixTM<double> & matb);
-  NGS_DLL_HEADER shared_ptr<SparseMatrixTM<std::complex<double>>>
-  MatMult (const SparseMatrixTM<std::complex<double>> & mata, const SparseMatrixTM<std::complex<double>> & matb);
+  NGS_DLL_HEADER shared_ptr<SparseMatrixTM<Complex>>
+  MatMult (const SparseMatrixTM<Complex> & mata, const SparseMatrixTM<Complex> & matb);
 
 #ifdef GOLD
 #include <sparsematrix_spec.hpp>
@@ -913,20 +963,44 @@ namespace ngla
     using BASE::CreatePosition;
     using BASE::GetPositionTest;
     using BASE::FindSameNZE;
-    using BASE::SetEntrySize;
+    // using BASE::SetEntrySize;
     using BASE::AsVector;
     
-    SparseBlockMatrix (const MatrixGraph & agraph, size_t abheight, size_t abwidth, bool stealgraph)
-      : BASE (agraph, stealgraph), bheight(abheight), bwidth(abwidth),
+    SparseBlockMatrix (const MatrixGraph & agraph, size_t abheight, size_t abwidth)
+      : BASE (agraph), bheight(abheight), bwidth(abwidth),
       data(nze*bheight*bwidth)
         { 
-          SetEntrySize (bheight, bwidth, bheight*bwidth);
+          // SetEntrySize (bheight, bwidth, bheight*bwidth);
+          BASE::entry_height = bheight;
+          BASE::entry_width = bwidth;
+          BASE::entry_size = bheight*bwidth;
+          BASE::is_complex = ngbla::IsComplex<TSCAL>();
+          
           asvec.AssignMemory (nze*bheight*bwidth, (void*)data.Addr(0));
           // FindSameNZE();
           GetMemoryTracer().Track(*static_cast<MatrixGraph*>(this), "MatrixGraph",
                                   data, "data");
           GetMemoryTracer().SetName("SparseMatrix");
         }
+
+    SparseBlockMatrix (MatrixGraph && agraph, size_t abheight, size_t abwidth)
+      : BASE (std::move(agraph)), bheight(abheight), bwidth(abwidth),
+      data(nze*bheight*bwidth)
+        { 
+          // SetEntrySize (bheight, bwidth, bheight*bwidth);
+          BASE::entry_height = bheight;
+          BASE::entry_width = bwidth;
+          BASE::entry_size = bheight*bwidth;
+          BASE::is_complex = ngbla::IsComplex<TSCAL>();
+          
+          asvec.AssignMemory (nze*bheight*bwidth, (void*)data.Addr(0));
+          // FindSameNZE();
+          GetMemoryTracer().Track(*static_cast<MatrixGraph*>(this), "MatrixGraph",
+                                  data, "data");
+          GetMemoryTracer().SetName("SparseMatrix");
+        }
+    
+
     
     tuple<int,int> EntrySizes() const override { return { bheight, bwidth }; }
     

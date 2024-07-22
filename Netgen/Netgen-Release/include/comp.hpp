@@ -8,10 +8,8 @@
 /*********************************************************************/
 
 #include <fem.hpp>
+#include <finiteelement.hpp>
 #include <la.hpp>
-
-
-
 
 /**
    namespace for NGS-components.
@@ -25,7 +23,6 @@ namespace ngcomp
   using namespace std;
   using namespace ngstd;
 
-  using ngcore::INT;
   using ngfem::ELEMENT_TYPE;
 
   using namespace ngla;
@@ -48,7 +45,7 @@ namespace ngcomp
 }
 
 
-#include "pmltrafo.hpp"
+// #include "pmltrafo.hpp"
 #include "meshaccess.hpp"
 #include "ngsobject.hpp"
 #include "fespace.hpp"
@@ -57,8 +54,6 @@ namespace ngcomp
 #include "bilinearform.hpp"
 #include "linearform.hpp"
 #include "preconditioner.hpp"
-#include "numproc.hpp"
-#include "pde.hpp"
 
 #include "postproc.hpp"
 #include "interpolate.hpp"
@@ -71,9 +66,9 @@ namespace ngcomp
 #include "hdivhofespace.hpp"
 #include "hdivhosurfacefespace.hpp" 
 #include "hcurlhofespace.hpp" 
-#include "facetfespace.hpp" 
-#include "vectorfacetfespace.hpp"
-#include "h1lumping.hpp"
+// #include "facetfespace.hpp" 
+// #include "vectorfacetfespace.hpp"
+// #include "h1lumping.hpp"
 #include "periodic.hpp"
 #include "discontinuous.hpp"
 #include "hidden.hpp"

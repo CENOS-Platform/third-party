@@ -1,6 +1,10 @@
 #ifndef TPINTRULE_HPP
 #define TPINTRULE_HPP
 
+
+#include "scalarfe.hpp"
+#include "coefficient.hpp"
+
 namespace ngfem
 {
   class TPIntegrationRule : public IntegrationRule
@@ -176,7 +180,7 @@ namespace ngfem
       ndof = elements[0]->GetNDof()*elements[1]->GetNDof();
       order = max2(elements[0]->Order(),elements[1]->Order());
     }
-    virtual NGS_DLL_HEADER ~TPHighOrderFE () { ; }
+    HD virtual NGS_DLL_HEADER ~TPHighOrderFE () { ; }
     
   };
 

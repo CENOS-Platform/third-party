@@ -8,6 +8,14 @@
 /* Date:   01. Okt. 95                                                    */
 /**************************************************************************/
 
+#include <mydefs.hpp>
+#include <general/template.hpp>
+#include <gprim/geom3d.hpp>
+#include <linalg.hpp>
+
+#include "core/exception.hpp"
+#include "msghandler.hpp"
+
 namespace netgen
 {
 
@@ -22,7 +30,7 @@ namespace netgen
     TRIG = 10, QUAD=11, TRIG6 = 12, QUAD6 = 13, QUAD8 = 14,
     TET = 20, TET10 = 21, 
     PYRAMID = 22, PRISM = 23, PRISM12 = 24, PRISM15 = 27, PYRAMID13 = 28,
-    HEX = 25, HEX20 = 26
+    HEX = 25, HEX20 = 26, HEX7 = 29
   };
 
   /*
@@ -406,8 +414,8 @@ namespace netgen
     ELEMENT_TYPE typ;
     /// number of points
     int8_t np;
+    bool refflag;  // marked for refinement
     bool badel:1;
-    bool refflag:1;  // marked for refinement
     bool strongrefflag:1;
     bool deleted:1;  // element is deleted
 
@@ -431,7 +439,8 @@ namespace netgen
       return std::map<string, int>({
           { "pnum", offsetof(Element2d, pnum)},
           { "index", offsetof(Element2d, index) },
-          { "np", offsetof(Element2d, np) }
+          { "np", offsetof(Element2d, np) },
+          { "refine", offsetof(Element2d, refflag) }
         });
     }
 
@@ -736,13 +745,13 @@ namespace netgen
 
     class flagstruct {
     public:
+      bool refflag;     // mark element for refinement
       bool marked:1;  // marked for refinement
       bool badel:1;   // angles worse then limit
       bool reverse:1; // for refinement a la Bey
       bool illegal:1; // illegal, will be split or swapped
       bool illegal_valid:1; // is illegal-flag valid ?
       bool badness_valid:1; // is badness valid ?
-      bool refflag:1;     // mark element for refinement
       bool strongrefflag:1;
       bool deleted:1;   // element is deleted, will be removed from array
       bool fixed:1;     // don't change element in optimization
@@ -757,7 +766,8 @@ namespace netgen
       return std::map<string, int>({
           { "pnum", offsetof(Element, pnum)},
           { "index", offsetof(Element, index) },
-          { "np", offsetof(Element, np) }
+          { "np", offsetof(Element, np) },
+          { "refine", offsetof(Element, flags.refflag) }          
         });
     }
 
@@ -787,7 +797,7 @@ namespace netgen
     ///
     uint8_t GetNV() const
     {
-      __assume(typ >= TET && typ <= PYRAMID13);
+      // __assume(typ >= TET && typ <= PYRAMID13);
       switch (typ)
 	{
         case TET: 
@@ -800,6 +810,8 @@ namespace netgen
 	case PYRAMID:
         case PYRAMID13:
 	  return 5;
+	case HEX7:
+	  return 7;
 	case HEX:
 	case HEX20:
 	  return 8;
@@ -906,6 +918,7 @@ namespace netgen
 	case PRISM:
         case PRISM15:
 	case PRISM12: return 5;
+        case HEX7: return 6;
         case HEX: case HEX20:
           return 6;
 	default:
@@ -982,7 +995,10 @@ namespace netgen
     { return flags.strongrefflag; }
 
     int Illegal () const
-    { return flags.illegal; }
+    {
+      NETGEN_CHECK_SAME(flags.illegal_valid, true);
+      return flags.illegal;
+    }
     int IllegalValid () const
     { return flags.illegal_valid; }
     void SetIllegal (int aillegal)
@@ -994,6 +1010,26 @@ namespace netgen
     {
       flags.illegal = alegal ? 0 : 1;
       flags.illegal_valid = 1;
+    }
+
+    bool BadnessValid()
+    { return flags.badness_valid; }
+
+    float GetBadness()
+    {
+      NETGEN_CHECK_SAME(flags.badness_valid, true);
+      return badness;
+    }
+
+    void SetBadness(float value)
+    {
+      badness = value;
+      flags.badness_valid = 1;
+    }
+
+    void Touch() {
+      flags.illegal_valid = 0;
+      flags.badness_valid = 0;
     }
   
     void Delete () { flags.deleted = 1; }

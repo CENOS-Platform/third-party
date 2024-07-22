@@ -7,7 +7,9 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
-#include "fastmat.hpp"
+// #include "fastmat.hpp"
+
+#include "integrator.hpp"
 
 namespace ngfem
 {
@@ -75,9 +77,9 @@ public:
 
   template <typename FEL, typename MIP, class TVX>
   void Apply1 (const FEL & fel, const MIP & mip,
-	       TVX & x, LocalHeap & lh) const
+	       TVX && x, LocalHeap & lh) const
   {
-    Vec<DMO::DIM_DMAT, typename TVX::TSCAL> y;
+    Vec<DMO::DIM_DMAT, typename remove_reference<TVX>::type::TSCAL> y;
     static_cast<const DMO*>(this) -> Apply (fel, mip, x, y, lh);
     x = y;
   }
@@ -127,37 +129,7 @@ public:
 };
 
 
-
-
-
-
-#ifdef WIN32
-#define __restrict__ __restrict
-#endif
-
   /*
-  template <int M> NGS_DLL_HEADER
-  void FastMat (int n, Complex * ba, Complex *  pb, Complex * pc);
-  
-  template <int M, int M2 = M> NGS_DLL_HEADER
-  void FastMat (int n, Complex * ba, double * pb, Complex * pc);
-  
-  template <int M, int M2 = M> NGS_DLL_HEADER
-  void FastMat (int n, double * __restrict__ ba, double *  __restrict__ pb, double * __restrict__ pc);
-  */
-
-  template <int M> NGS_DLL_HEADER
-  void FastMat (int n, int M2, double * __restrict__ ba, double *  __restrict__ pb, double * __restrict__ pc);
-
-  template <int M> NGS_DLL_HEADER
-  void FastMat (int n, int M2, Complex * ba, double * pb, Complex * pc);
-
-  template <int M> NGS_DLL_HEADER
-  void FastMat (int n, int M2, Complex * ba, Complex * pb, Complex * pc);
-
-
-  
-  
   template <int H, int DIST, typename T1, typename T2, typename T3>
   void FastMat (FlatMatrixFixHeight<H,T1,DIST> a,
                 FlatMatrixFixHeight<H,T2,DIST> b,
@@ -165,7 +137,7 @@ public:
   {
     FastMat<H> (a.Width(), DIST, a.Data(), b.Data(), c.Data());
   }
-  
+  */
   
 
   template <class DMATOP> // , int DIM_ELEMENT, int DIM_SPACE>
@@ -338,7 +310,7 @@ public:
     {
       diffop->Apply (fel, bmir, elx, flux, lh);
       
-      FlatMatrixFixWidth<DMATOP::DIM_DMAT,double> hflux(flux.Height(), &flux(0,0));
+      FlatMatrixFixWidth<DMATOP::DIM_DMAT,double> hflux(bmir.Size(), &flux(0,0));
       if (applyd)
         dmatop.ApplyIR (fel, bmir, hflux, lh);
     }
@@ -368,7 +340,7 @@ public:
     {
       diffop->Apply (fel, bmir, elx, flux, lh);
       
-      FlatMatrixFixWidth<DMATOP::DIM_DMAT,Complex> hflux(flux.Height(), &flux(0,0));
+      FlatMatrixFixWidth<DMATOP::DIM_DMAT,Complex> hflux(bmir.Size(), &flux(0,0));
       if (applyd)
         dmatop.ApplyIR (fel, bmir, hflux, lh);
     }
@@ -830,12 +802,12 @@ public:
 
 
 #ifdef __SSE3__
-#define BLOCK_VERSION
+  // #define BLOCK_VERSION
 #endif
 
-#ifdef __MIC__
-#define BLOCK_VERSION
-#endif
+  // #ifdef __MIC__
+  // #define BLOCK_VERSION
+  // #endif
 
 
 
@@ -1046,11 +1018,11 @@ public:
 			    FlatMatrix<TSCAL> elmat,
 			    LocalHeap & lh) const
   {
-    static Timer timer (string ("Elementmatrix, ") + Name(), NoTracing);
-    static Timer timer2 (string ("Elementmatrix, ") + Name() + ", Lapack", NoTracing, NoTiming);
-    RegionTimer reg (timer);
+    // static Timer timer (string ("Elementmatrix, ") + Name(), NoTracing);
+    // static Timer timer2 (string ("Elementmatrix, ") + Name() + ", Lapack", NoTracing, NoTiming);
+    // RegionTimer reg (timer);
 
-    try
+    // try
       {
 	// const FEL & fel = static_cast<const FEL&> (bfel);
 	int ndof = fel.GetNDof();
@@ -1079,7 +1051,7 @@ public:
 	    bdbmat.Cols(i*DIM_DMAT, (i+1)*DIM_DMAT) = Trans (dmat * bmat);
 	  }
 
-	RegionTimer reg2 (timer2);
+	// RegionTimer reg2 (timer2);
 
 	if (ndof < 20)
 	  {
@@ -1091,10 +1063,10 @@ public:
 	else
 	  elmat = bbmat * Trans(bdbmat) | Lapack;
 
-	timer.AddFlops (long(elmat.Height())*long(elmat.Width())*bbmat.Width());
+	// timer.AddFlops (long(elmat.Height())*long(elmat.Width())*bbmat.Width());
       } 
     
-
+      /*
     catch (Exception & e)
       {
 	e.Append (string ("in CalcElementMatrix - lapack, type = ") + typeid(*this).name() + "\n");
@@ -1106,6 +1078,7 @@ public:
 	e2.Append (string ("\nin CalcElementMatrix - lapack, type = ") + typeid(*this).name() + "\n");
 	throw e2;
       }
+      */
   }
 
 #endif

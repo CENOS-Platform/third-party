@@ -7,9 +7,25 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
+#include <core/register_archive.hpp>
+
+#include <finiteelement.hpp>
+#include <diffop.hpp>
+#include <symbolicintegrator.hpp>   // for ProxyFunction
+#include <la.hpp>
+
+#include "ngsobject.hpp"
+
+namespace ngmg
+{
+  class Prolongation;
+}
+
+
 namespace ngcomp
 {
-
+  using namespace ngla;
+  
   /*
     Finite Element Space
   */
@@ -154,35 +170,6 @@ ANY                  1 1 1 1 | 15
     Array<bool> dirichlet_edge;
     Array<bool> dirichlet_face;
     
-    /*
-    /// Reference - element (low order only)
-    FiniteElement * tet;  // = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * prism; // = NULL;
-    /// Reference - element (low order only) 
-    FiniteElement * pyramid;  // = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * hex; //  = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * trig; // = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * quad;// = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * segm;// = NULL;
-    /// Reference - element (low order only)
-    FiniteElement * point;// = NULL;
-    */
-    
-    /*
-    FiniteElement * dummy_tet; // = new <DummyFE<ET_TET>();
-    FiniteElement * dummy_pyramid; // = new DummyFE<ET_PYRAMID>();
-    FiniteElement * dummy_prism; // = new DummyFE<ET_PRISM>();
-    FiniteElement * dummy_hex; //  = new DummyFE<ET_HEX>();
-    FiniteElement * dummy_trig; // = new DummyFE<ET_TRIG>();
-    FiniteElement * dummy_quad; // = new DummyFE<ET_QUAD>();
-    FiniteElement * dummy_segm; // = new DummyFE<ET_SEGM>();
-    FiniteElement * dummy_point; // = new DummyFE<ET_POINT>();
-    */
     
     /// Evaluator for visualization (new style)
     shared_ptr<DifferentialOperator> evaluator[4];
@@ -241,7 +228,7 @@ ANY                  1 1 1 1 | 15
     
   public:
     string type;
-    Signal<> updateSignal;
+    SimpleSignal updateSignal;
     /**
        Constructor.
        Used flags are: \\
@@ -252,6 +239,7 @@ ANY                  1 1 1 1 | 15
     */
     FESpace (shared_ptr<MeshAccess> ama, const Flags & flags, 
              bool checkflags = false);
+    FESpace (const FESpace &) = delete;
     /// cleanup
     virtual ~FESpace ();
 
@@ -279,6 +267,7 @@ ANY                  1 1 1 1 | 15
 
     /// Dump/restore fespace
     virtual void DoArchive (Archive & archive);
+    std::tuple<Shallow<shared_ptr<MeshAccess>>, Flags> GetCArgs();
 
     Array<MemoryUsage> GetMemoryUsage () const override;
     
@@ -317,7 +306,8 @@ ANY                  1 1 1 1 | 15
     /// number of (process-local) dofs
     virtual size_t GetNDof () const { return ndof; } 
     /// number of dofs on the level
-    virtual size_t GetNDofLevel (int level) const { return ndof_level[level]; } 
+    virtual size_t GetNDofLevel (int level) const
+    { return (level < ndof_level.Size()) ? ndof_level[level] : GetNDof(); } 
 
     virtual FlatArray<VorB> GetDualShapeNodes (VorB vb) const;
     
@@ -500,6 +490,8 @@ ANY                  1 1 1 1 | 15
     virtual bool UsesDGCoupling () const throw() { return dgjumps; };
 
     bool DoesAutoUpdate () const { return autoupdate; };
+    void ConnectAutoUpdate();
+    
 
     auto & DefinedOn(VorB vb) const { return definedon[vb]; }
     
@@ -627,20 +619,6 @@ ANY                  1 1 1 1 | 15
         VTransformVC (ei, vec, type);
     }
 
-    /*
-    template < int S, class T >
-    [[deprecated("Use TransformVec with element-id instead of elnr!")]]        
-    void TransformVec (int elnr, VorB vb,
-		       const FlatVector< Vec<S,T> >& vec, TRANSFORM_TYPE type) const;
-
-    template < class T >
-    void TransformVec (ElementId ei,
-		       const T & vec, TRANSFORM_TYPE type) const
-    {
-      TransformVec (ei, vec, type);
-    }
-    */
-
     virtual void VTransformMR (ElementId ei,
 			       const SliceMatrix<double> mat, TRANSFORM_TYPE type) const
     { ; }
@@ -700,6 +678,12 @@ ANY                  1 1 1 1 | 15
     virtual shared_ptr<BaseMatrix> GetMassOperator (shared_ptr<CoefficientFunction> rho,
                                                     shared_ptr<Region> defon,
                                                     LocalHeap & lh) const;
+
+    
+    virtual shared_ptr<BaseMatrix> CreateMassOperator (shared_ptr<CoefficientFunction> rho,
+                                                       shared_ptr<Region> defon,
+                                                       bool inverse,
+                                                       LocalHeap & lh) const;
     
     virtual void SolveM(CoefficientFunction * rho, BaseVector & vec, Region * definedon,
                         LocalHeap & lh) const;
@@ -727,7 +711,6 @@ ANY                  1 1 1 1 | 15
 
     virtual int GetRelOrder() const
     { 
-      cout << "virtual GetRelOrder called for FiniteElementSpace, not available ! " << endl; 
       return 0; 
     } 
 
@@ -872,30 +855,6 @@ ANY                  1 1 1 1 | 15
     {
       return integrator[vb];
     }
-    
-  protected:
-      /*
-    template <template <ELEMENT_TYPE ET> class FE>
-    void SetDummyFE ()
-    {
-      delete dummy_tet;
-      delete dummy_pyramid;
-      delete dummy_prism;
-      delete dummy_hex;
-      delete dummy_trig;
-      delete dummy_quad;
-      delete dummy_segm;
-      delete dummy_point;
-      dummy_tet = new FE<ET_TET>();
-      dummy_pyramid = new FE<ET_PYRAMID>();
-      dummy_prism = new FE<ET_PRISM>();
-      dummy_hex = new FE<ET_HEX>();
-      dummy_trig = new FE<ET_TRIG>();
-      dummy_quad = new FE<ET_QUAD>();
-      dummy_segm = new FE<ET_SEGM>();
-      dummy_point = new FE<ET_POINT>();
-    }
-    */
   };
 
 
@@ -904,91 +863,7 @@ ANY                  1 1 1 1 | 15
 			       VorB vb, 
 			       LocalHeap & clh, 
 			       const function<void(FESpace::Element,LocalHeap&)> & func);
-  /*
-  template <typename TFUNC>
-  inline void IterateElements (const FESpace & fes, 
-                               VorB vb, 
-                               LocalHeap & clh, 
-                               const TFUNC & func)
-  {
-    IterateElements1 (fes, vb, clh, func);
-  }
-  */
-  
-  /*
-  template <typename TFUNC>
-  inline void IterateElements (const FESpace & fes, 
-                               VorB vb, 
-                               LocalHeap & clh, 
-                               const TFUNC & func)
-  {
-    
-#pragma omp parallel 
-    {
-
-#pragma omp single
-      {
-        const Table<int> & element_coloring = fes.ElementColoring(vb);
-
-        for (FlatArray<int> els_of_col : element_coloring)
-          {
-
-            for (int i = 0; i < els_of_col.Size(); i++)
-              {
-#pragma omp task
-                {
-                  LocalHeap lh = clh.Split();
-                  Array<int> temp_dnums;
-                  FESpace::Element el(fes, ElementId (vb, els_of_col[i]), temp_dnums);
-                  func (el, lh);
-                }
-              }
-
-#pragma omp taskwait
-          }
-      }
-
-    }
-
-  }
-  */
-
-
-
-
-
-
-
-
-
-#ifdef OLD_REMOVED_FOR_CLANG
-  template <typename TFUNC>
-  inline void IterateElementsInsideParallel (const FESpace & fes, 
-                                             VorB vb, 
-                                             LocalHeap & lh, 
-                                             const TFUNC & func)
-  {
-    const Table<int> & element_coloring = fes.ElementColoring(vb);
-    
-    Array<int> temp_dnums;
-
-    // lh.ClearValues();
-    
-    for (FlatArray<int> els_of_col : element_coloring)
-      
-#pragma omp for schedule(dynamic)
-      for (int i = 0; i < els_of_col.Size(); i++)
-        {
-          HeapReset hr(lh);
-          FESpace::Element el(fes, ElementId (vb, els_of_col[i]), temp_dnums);
-          func (el, lh);
-        }
-    // cout << "lh, used size = " << lh.UsedSize() << endl;
-  }
-#endif
-
-
-
+ 
 
 
   /**
@@ -1237,10 +1112,6 @@ ANY                  1 1 1 1 | 15
     void UpdateCouplingDofArray() override;
     
     void SetDefinedOn (VorB vb, const BitArray& defon) override;
-    /// 
-    // virtual size_t GetNDof () const throw() { return cummulative_nd.Last(); } 
-    ///
-    // virtual size_t GetNDofLevel (int level) const { return ndlevel[level]; }
 
     DofRange GetRange (int spacenr) const
     {
@@ -1326,6 +1197,7 @@ ANY                  1 1 1 1 | 15
   {
     bool symmetric;
     bool deviatoric;
+    bool skewsymmetric;
     int vdim;
   public:
     MatrixFESpace (shared_ptr<FESpace> space, int avdim, const Flags & flags,
@@ -1412,6 +1284,12 @@ ANY                  1 1 1 1 | 15
     {
       return fes->IsComplex();
     }
+
+    shared_ptr<BaseMatrix> CreateDeviceMatrix() const override
+    {
+      return fes->CreateMassOperator(rho, definedon, inverse, lh)->CreateDeviceMatrix();
+    }
+    
     
     virtual void Mult (const BaseVector & v, BaseVector & prod) const override;
     virtual void MultAdd (double val, const BaseVector & v, BaseVector & prod) const override;
@@ -1526,6 +1404,7 @@ ANY                  1 1 1 1 | 15
   class RegisterFESpace
   {
   public:
+    RegisterClassForArchive<FES, FESpace> regclass;
     /// constructor registers fespace
     RegisterFESpace (string label)
     {
@@ -1589,23 +1468,22 @@ ANY                  1 1 1 1 | 15
 
 
 
-#ifdef PARALLEL
 namespace ngcore
 {
+  template<typename T> struct MPI_typetrait;
+  
   template<>
-  class MPI_typetrait<ngcomp::COUPLING_TYPE>
+  struct MPI_typetrait<ngcomp::COUPLING_TYPE>
   {
-  public:
-    /// returns MPI-type 
     static MPI_Datatype MPIType () 
     { 
-      if (sizeof(ngcomp::COUPLING_TYPE) == sizeof(char)) return MPI_CHAR;
-      if (sizeof(ngcomp::COUPLING_TYPE) == sizeof(int)) return MPI_INT;
-      std::cout << "please provide MPI_Datatype for COUPLING_TYPE" << endl;
-      exit(1);
+      static_assert ( (sizeof(ngcomp::COUPLING_TYPE) == sizeof(char)) ||
+                      (sizeof(ngcomp::COUPLING_TYPE) == sizeof(int)) );
+      if constexpr (sizeof(ngcomp::COUPLING_TYPE) == sizeof(char)) return MPI_typetrait<char>::MPIType();
+      if constexpr (sizeof(ngcomp::COUPLING_TYPE) == sizeof(int)) return MPI_typetrait<int>::MPIType();
     }
   };
 }
-#endif
+
 
 #endif

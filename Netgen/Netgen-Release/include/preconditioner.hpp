@@ -7,12 +7,13 @@
 /* Date:   10. Jul. 2000                                             */
 /*********************************************************************/
 
-
+#include <la.hpp>
+#include <mgpre.hpp>
 
 namespace ngcomp
 {
-  class PDE;
-
+  using namespace ngla;
+  
   /**
      Base class for preconditioners.
   */
@@ -39,8 +40,6 @@ namespace ngcomp
     int on_proc;
 
   public:
-    Preconditioner (const PDE * const apde, const Flags & aflags,
-		    const string aname = "precond");
     Preconditioner (shared_ptr<BilinearForm> bfa, const Flags & aflags,
 		    const string aname = "precond");
     ///
@@ -159,19 +158,14 @@ namespace ngcomp
   class TwoLevelPreconditioner : public Preconditioner
   {
     ///
-    PDE * pde;
-    ///
     shared_ptr<BilinearForm> bfa;
     ///
     shared_ptr<Preconditioner> cpre;
     ///
     ngmg::TwoLevelMatrix * premat;
     ///
-    int smoothingsteps;
+    // int smoothingsteps;
   public:
-    ///
-    TwoLevelPreconditioner (PDE * apde, const Flags & aflags,
-			    const string aname = "twolevelprecond");
     ///
     virtual ~TwoLevelPreconditioner();
 
@@ -205,9 +199,6 @@ namespace ngcomp
     BaseMatrix * cm;
   public:
     ///
-    ComplexPreconditioner (PDE * apde, const Flags & aflags,
-			   const string aname = "complexprecond");
-    ///
     virtual ~ComplexPreconditioner();
     ///
     virtual void Update ();
@@ -237,9 +228,6 @@ namespace ngcomp
     ///
     int steps; 
   public:
-    ///
-    ChebychevPreconditioner (PDE * apde, const Flags & aflags,
-			     const string aname = "chebychevprecond");
     ///
     virtual ~ChebychevPreconditioner();
     ///
@@ -290,8 +278,6 @@ namespace ngcomp
 
   public:
     ///
-    MGPreconditioner (const PDE & pde, const Flags & aflags,
-		      const string aname = "mgprecond");
     MGPreconditioner (shared_ptr<BilinearForm> bfa, const Flags & aflags,
 		      const string aname = "mgprecond");
     ///
@@ -332,7 +318,6 @@ namespace ngcomp
   class CommutingAMGPreconditioner : public Preconditioner
   {
   protected:
-    PDE * pde;
     shared_ptr<BilinearForm> bfa;
     // CommutingAMG * amg;
     BaseMatrix * amg;
@@ -341,9 +326,6 @@ namespace ngcomp
     bool coarsegrid;
     int levels;
   public:
-    CommutingAMGPreconditioner (PDE * apde, const Flags & aflags,
-				const string aname = "commutingamgprecond");
-
     virtual ~CommutingAMGPreconditioner ();
 
     virtual void Update ();
@@ -394,9 +376,6 @@ namespace ngcomp
     BaseMatrix * cm;
   public:
     ///
-    NonsymmetricPreconditioner (PDE * apde, const Flags & aflags,
-				const string aname = "nonsymmetricprecond");
-    ///
     virtual ~NonsymmetricPreconditioner();
     ///
     virtual bool IsComplex() const { return cm->IsComplex(); }
@@ -425,23 +404,21 @@ namespace ngcomp
     struct PreconditionerInfo
     {
       string name;
-      function<shared_ptr<Preconditioner>(const PDE&, const Flags&, const string&)> creator;
       function<shared_ptr<Preconditioner>(shared_ptr<BilinearForm>,const Flags &,const string)> creatorbf;
       DocInfo docinfo;
       
       PreconditionerInfo (const string & aname,
-			  function<shared_ptr<Preconditioner>(const PDE &, const Flags &, const string &)> acreator,
                           function<shared_ptr<Preconditioner>(shared_ptr<BilinearForm>, const Flags &, const string)> acreateorbf,
                           DocInfo adocinfo);
     };
   
     Array<unique_ptr<PreconditionerInfo>> prea;
   public:
-    PreconditionerClasses();
-    ~PreconditionerClasses();
+    PreconditionerClasses() = default;
+    PreconditionerClasses(const PreconditionerClasses &) = default;
+    ~PreconditionerClasses() = default;
 
     void AddPreconditioner (const string & aname, 
-			    function<shared_ptr<Preconditioner>(const PDE&, const Flags&, const string&)> acreator,
 			    function<shared_ptr<Preconditioner>(shared_ptr<BilinearForm>, const Flags&, const string)> createorbf,
                             DocInfo docinfo = DocInfo());
       
@@ -460,14 +437,9 @@ namespace ngcomp
   public:
     RegisterPreconditioner (string label, bool isparallel = true)
     {
-      GetPreconditionerClasses().AddPreconditioner (label, Create, CreateBF);
+      GetPreconditionerClasses().AddPreconditioner (label, CreateBF);
     }
     
-    static shared_ptr<Preconditioner> Create (const PDE & pde, const Flags & flags, const string & name)
-    {
-      return make_shared<PRECOND> (pde, flags, name);
-    }
-
     static shared_ptr<Preconditioner> CreateBF (shared_ptr<BilinearForm> bfa, const Flags & flags, const string & name)
     {
       return make_shared<PRECOND> (bfa, flags, name);

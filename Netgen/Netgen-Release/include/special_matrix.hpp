@@ -11,7 +11,7 @@ namespace ngla
 {
 
 
-  class Projector : public BaseMatrix
+  class NGS_DLL_HEADER Projector : public BaseMatrix
   {
     shared_ptr<BitArray> bits;
     bool keep_values;
@@ -492,20 +492,23 @@ namespace ngla
   };
 
 
+  template <typename T = double>
   class BaseMatrixFromMatrix : public BaseMatrix
   {
-    Matrix<> mat;
+    Matrix<T> mat;
 
   public:
-    BaseMatrixFromMatrix (Matrix<> amat);
+    NGS_DLL_HEADER BaseMatrixFromMatrix (Matrix<T> amat);
 
-    bool IsComplex() const override { return false; }
+    bool IsComplex() const override { return typeid(T) == typeid(Complex); }
     virtual void MultAdd (double s, const BaseVector & x, BaseVector & y) const override;
     virtual void MultTransAdd (double s, const BaseVector & x, BaseVector & y) const override;
+    virtual void MultAdd (Complex s, const BaseVector & x, BaseVector & y) const override;
+    virtual void MultTransAdd (Complex s, const BaseVector & x, BaseVector & y) const override;
 
     virtual int VHeight() const override { return mat.Height(); }
     virtual int VWidth() const override { return mat.Width(); }
-
+    virtual size_t NZE() const override { return mat.Height()*mat.Width(); }
     virtual AutoVector CreateRowVector () const override;
     virtual AutoVector CreateColVector () const override;
   };

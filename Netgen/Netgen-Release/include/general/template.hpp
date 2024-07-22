@@ -7,14 +7,16 @@
 /* Date:   01. Jun. 95                                                    */
 /**************************************************************************/
 
+#include <core/utils.hpp>
+
 namespace netgen 
 {
-
+  using namespace ngcore;
 /*
    templates, global types, defines and variables
 */
 
-DLL_HEADER extern const string netgen_version;
+  DLL_HEADER extern const std::string netgen_version;
 
 ///	The following value may be adapted to the hardware !
 #ifndef CLOCKS_PER_SEC
@@ -387,7 +389,7 @@ inline bool operator< (const INDEX_4 & a, const INDEX_4 & b)
 
 
 
-
+/*
 
 
 
@@ -425,6 +427,7 @@ inline T max3 (T a, T b, T c)
 
 ///
 
+
 ///
 template <class T>
 inline int sgn (T a)
@@ -445,6 +448,7 @@ inline T pow3 (const T a)
 {
   return a * a * a; 
 }
+*/
 
 
 

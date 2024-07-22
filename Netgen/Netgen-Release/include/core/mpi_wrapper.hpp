@@ -1,6 +1,8 @@
 #ifndef NGCORE_MPIWRAPPER_HPP
 #define NGCORE_MPIWRAPPER_HPP
 
+#include <array>
+
 #ifdef PARALLEL
 #define OMPI_SKIP_MPICXX
 #include <mpi.h>
@@ -43,6 +45,21 @@ namespace ngcore
   template <> struct MPI_typetrait<bool> {
     static MPI_Datatype MPIType () { return MPI_C_BOOL; } };
 
+
+  template<typename T, size_t S>
+  struct MPI_typetrait<std::array<T,S>>
+  {
+    static MPI_Datatype MPIType () 
+    { 
+      static MPI_Datatype MPI_T = 0;
+      if (!MPI_T)
+	{
+	  MPI_Type_contiguous ( S, MPI_typetrait<T>::MPIType(), &MPI_T);
+	  MPI_Type_commit ( &MPI_T );
+	}
+      return MPI_T;
+    }
+  };
   
   template <class T, class T2 = decltype(MPI_typetrait<T>::MPIType())>
   inline MPI_Datatype GetMPIType () {
@@ -465,6 +482,15 @@ namespace ngcore
   typedef int MPI_Request;
   
   enum { MPI_SUM = 0, MPI_MIN = 1, MPI_MAX = 2, MPI_LOR = 4711 };
+
+  inline void MPI_Type_contiguous ( int, MPI_Datatype, MPI_Datatype*) { ; } 
+  inline void MPI_Type_commit ( MPI_Datatype * ) { ; }
+
+  template <class T> struct MPI_typetrait  {
+    static MPI_Datatype MPIType () { return -1; }    
+  };
+  template <class T, class T2=void>
+  inline MPI_Datatype GetMPIType () { return -1; }
   
   class NgMPI_Comm
   {

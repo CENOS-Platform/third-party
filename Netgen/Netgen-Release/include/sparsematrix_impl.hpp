@@ -19,7 +19,7 @@ namespace ngla
 
   template <class TM>
   void SparseMatrixTM<TM> ::
-  PrefetchRow (int rownr) const
+  PrefetchRow (size_t rownr) const
   {
 #ifdef NETGEN_ARCH_AMD64
 #ifdef __GNUC__
@@ -97,7 +97,7 @@ namespace ngla
     for (int i = 0; i < dnums1.Size(); i++)
       if (IsRegularIndex(dnums1[i]))
 	{
-	  FlatArray<int> rowind = this->GetRowIndices(dnums1[i]);
+	  FlatArray rowind = this->GetRowIndices(dnums1[i]);
 	  FlatVector<TM> rowvals = this->GetRowValues(dnums1[i]);
 	  
 	  int k = 0;
@@ -145,8 +145,13 @@ namespace ngla
 
 
   template <class TM, class TV_ROW, class TV_COL>
-  SparseMatrix<TM,TV_ROW,TV_COL> :: SparseMatrix (const MatrixGraph & agraph, bool stealgraph)
-  : SparseMatrixTM<TM> (agraph, stealgraph) 
+  SparseMatrix<TM,TV_ROW,TV_COL> :: SparseMatrix (const MatrixGraph & agraph)
+    : SparseMatrixTM<TM> (agraph) 
+  { ; }
+  
+  template <class TM, class TV_ROW, class TV_COL>
+  SparseMatrix<TM,TV_ROW,TV_COL> :: SparseMatrix (MatrixGraph && agraph)
+    : SparseMatrixTM<TM> (std::move(agraph))
   { ; }
  
   
@@ -257,9 +262,14 @@ namespace ngla
     FlatVector<TVX> fx = x.FV<TVX> (); //  (x.Size(), x.Memory());
     FlatVector<TVY> fy = y.FV<TVY> (); // (y.Size(), y.Memory());
 
-    int h = this->Height();
-    for (int i = 0; i < h; i++)
-      fy(i) += ConvertTo<TSCAL> (s) * RowTimesVector (i, fx);
+    if constexpr (std::is_constructible<TSCAL,Complex>())
+      {
+        int h = this->Height();
+        for (int i = 0; i < h; i++)
+          fy(i) += TSCAL(s) * RowTimesVector (i, fx);
+      }
+    else
+      throw Exception("MultAdd(complex) called for real matrix");
   }
   
 
@@ -272,9 +282,12 @@ namespace ngla
 
     FlatVector<TVY> fx = x.FV<TVY>(); //  (x.Size(), x.Memory());
     FlatVector<TVX> fy = y.FV<TVX>(); // (y.Size(), y.Memory());
-    
-    for (int i = 0; i < this->Height(); i++)
-      AddRowTransToVector (i, ConvertTo<TSCAL> (s)*fx(i), fy);
+
+    if constexpr (std::is_constructible<TSCAL,Complex>())    
+      for (int i = 0; i < this->Height(); i++)
+        AddRowTransToVector (i, TSCAL(s)*fx(i), fy);
+     else
+      throw Exception("MultTransAdd(complex) called for real matrix");
   }
 
   template <class TM, class TV_ROW, class TV_COL>
@@ -286,9 +299,12 @@ namespace ngla
 
     FlatVector<TVY> fx = x.FV<TVY>(); //  (x.Size(), x.Memory());
     FlatVector<TVX> fy = y.FV<TVX>(); // (y.Size(), y.Memory());
-    
-    for (int i = 0; i < this->Height(); i++)
-      AddRowConjTransToVector (i, ConvertTo<TSCAL> (s)*fx(i), fy);
+
+    if constexpr (std::is_constructible<TSCAL,Complex>())        
+      for (int i = 0; i < this->Height(); i++)
+        AddRowConjTransToVector (i, TSCAL(s)*fx(i), fy);
+    else
+      throw Exception("MultConjTransAdd(complex) called for real matrix");      
   }
 
   template <class TM, class TV_ROW, class TV_COL>
@@ -319,11 +335,12 @@ namespace ngla
   template <class TM, class TV_ROW, class TV_COL>
   shared_ptr<BaseMatrix> SparseMatrix<TM,TV_ROW,TV_COL> ::
   InverseMatrix (shared_ptr<BitArray> subset) const {
-    if constexpr(mat_traits<TM>::HEIGHT != mat_traits<TM>::WIDTH) {
+    // if constexpr(mat_traits<TM>::HEIGHT != mat_traits<TM>::WIDTH) {
+    if constexpr(ngbla::Height<TM>() != ngbla::Width<TM>()) { 
 	throw Exception("Tried to invert SparseMatrix with non-square entries!");
 	return nullptr;
       }
-    else if constexpr(MAX_SYS_DIM < mat_traits<TM>::HEIGHT) {
+      else if constexpr(MAX_SYS_DIM < ngbla::Height<TM>()) {
 	throw Exception(string("MAX_SYS_DIM = ")+to_string(MAX_SYS_DIM)+string(", need at least ")+to_string(mat_traits<TM>::HEIGHT));
       }
     else {
@@ -375,12 +392,13 @@ namespace ngla
   shared_ptr<BaseMatrix> SparseMatrix<TM,TV_ROW,TV_COL> ::
   InverseMatrix (shared_ptr<const Array<int>> clusters) const
   {
-    if constexpr(mat_traits<TM>::HEIGHT != mat_traits<TM>::WIDTH) {
+    // if constexpr(mat_traits<TM>::HEIGHT != mat_traits<TM>::WIDTH) {
+    if constexpr(ngbla::Height<TM>() != ngbla::Width<TM>()) { 
 	throw Exception("Tried to invert SparseMatrix with non-square entries!");
 	return nullptr;
       }
-    else if constexpr(MAX_SYS_DIM < mat_traits<TM>::HEIGHT) {
-	throw Exception(string("MAX_SYS_DIM = ")+to_string(MAX_SYS_DIM)+string(", need at least ")+to_string(mat_traits<TM>::HEIGHT));
+    else if constexpr(MAX_SYS_DIM < ngbla::Height<TM>() ) {
+	throw Exception(string("MAX_SYS_DIM = ")+to_string(MAX_SYS_DIM)+string(", need at least ")+to_string(ngbla::Height<TM>()));
       }
     else {
       // #ifndef ASTRID
@@ -439,7 +457,7 @@ namespace ngla
   }
 
   template <class TM, class TV_ROW, class TV_COL>
-  shared_ptr<BaseSparseMatrix> SparseMatrix<TM,TV_ROW,TV_COL> ::
+  shared_ptr<BaseMatrix> SparseMatrix<TM,TV_ROW,TV_COL> ::
   DeleteZeroElements(double tol) const
   {
     static Timer t("SparseMatrix::DeleteZeroElements"); RegionTimer reg(t);
@@ -548,13 +566,13 @@ namespace ngla
         RegionTimer reg(tbuild);
 
 	Array<int> marks(n);
-	Array<INT<2> > e2v;
+	Array<IVec<2> > e2v;
 	for (int i = 0; i < n; i++)
 	  for (int j = 0; j < this->GetRowIndices(i).Size(); j++)
 	    {
 	      int col = this->GetRowIndices(i)[j];
-	      FlatArray<int> prol_rowind = prol.GetRowIndices(i);
-	      FlatArray<int> prol_colind = prol.GetRowIndices(col);
+	      FlatArray<ColIdx> prol_rowind = prol.GetRowIndices(i);
+	      FlatArray<ColIdx> prol_colind = prol.GetRowIndices(col);
 
 	      for (int k = 0; k < prol_rowind.Size(); k++)
 		for (int l = 0; l < prol_colind.Size(); l++)
@@ -563,7 +581,7 @@ namespace ngla
 		    int ll = prol_colind[l];
 		    
 		    // if (kk >= ll) swap (kk,ll);
-		    e2v.Append (INT<2> (kk,ll));
+		    e2v.Append (IVec<2> (kk,ll));
 		  }
 	    }
 
@@ -625,7 +643,7 @@ namespace ngla
 	  
     for (int i = 0; i < n; i++)
       {
-        FlatArray<int> mat_ri = this->GetRowIndices(i);
+        FlatArray mat_ri = this->GetRowIndices(i);
         FlatVector<TM> mat_rval = this->GetRowValues(i);
 
         for (int j = 0; j < mat_ri.Size(); j++)
@@ -633,8 +651,8 @@ namespace ngla
             int col = mat_ri[j];
             TM mat_val = mat_rval[j]; 
 
-            FlatArray<int> prol_ri_i = prol.GetRowIndices(i);
-            FlatArray<int> prol_ri_col = prol.GetRowIndices(col);
+            FlatArray prol_ri_i = prol.GetRowIndices(i);
+            FlatArray prol_ri_col = prol.GetRowIndices(col);
             FlatVector<double> prol_rval_i = prol.GetRowValues(i);
             FlatVector<double> prol_rval_col = prol.GetRowValues(col);
 
@@ -762,7 +780,7 @@ namespace ngla
         {
           // FlatArray<int> rowind = this->GetRowIndices(dnums[map[i1]]);
           // FlatVector<TM> rowvals = this->GetRowValues(dnums[map[i1]]);
-          FlatArray<int> rowind = this->GetRowIndices(dnumsmap[i1]);
+          FlatArray rowind = this->GetRowIndices(dnumsmap[i1]);
           FlatVector<TM> rowvals = this->GetRowValues(dnumsmap[i1]);
           auto elmat_row = elmat.Rows(map[i1], map[i1]+1);
 
@@ -795,7 +813,7 @@ namespace ngla
 
           // FlatArray<int> rowind = this->GetRowIndices(dnums[map[i1]]);
           // FlatVector<TM> rowvals = this->GetRowValues(dnums[map[i1]]);
-          FlatArray<int> rowind = this->GetRowIndices(dnumsmap[i1]);
+          FlatArray rowind = this->GetRowIndices(dnumsmap[i1]);
           FlatVector<TM> rowvals = this->GetRowValues(dnumsmap[i1]);
           auto elmat_row = elmat.Rows(map[i1], map[i1]+1);
 
@@ -818,12 +836,21 @@ namespace ngla
   
   template <class TM, class TV>
   SparseMatrixSymmetric<TM,TV> :: 
-  SparseMatrixSymmetric (const MatrixGraph & agraph, bool stealgraph)
+  SparseMatrixSymmetric (const MatrixGraph & agraph)
     // : SparseMatrixTM<TM> (agraph, stealgraph), 
     // SparseMatrixSymmetricTM<TM> (agraph, stealgraph),
-    : SparseMatrix<TM,TV,TV> (agraph, stealgraph)
+    : SparseMatrix<TM,TV,TV> (agraph)
   { ; }
 
+  template <class TM, class TV>
+  SparseMatrixSymmetric<TM,TV> :: 
+  SparseMatrixSymmetric (MatrixGraph && agraph)
+    // : SparseMatrixTM<TM> (agraph, stealgraph), 
+    // SparseMatrixSymmetricTM<TM> (agraph, stealgraph),
+    : SparseMatrix<TM,TV,TV> (std::move(agraph))
+  { ; }
+
+  
   template <class TM, class TV>
   SparseMatrixSymmetric<TM,TV> :: ~SparseMatrixSymmetric ()
   {

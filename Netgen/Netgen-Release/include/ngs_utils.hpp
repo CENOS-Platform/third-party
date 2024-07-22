@@ -7,11 +7,6 @@
 /* Date:   Oct. 14                                                        */
 /**************************************************************************/
 
-#ifdef WIN32
-#include <windows.h>
-#else // WIN32
-#include <dlfcn.h>
-#endif //WIN32
 
 #include <filesystem>
 #include <string>
@@ -29,8 +24,8 @@ namespace ngstd
 
   // ////////////////    integral constants
 
-  template <int N>
-  using IC = integral_constant<int,N>;
+  // template <int N>
+  // using IC = integral_constant<int,N>;
 
   // Class to handle/load shared libraries
   class SharedLibrary
@@ -38,11 +33,11 @@ namespace ngstd
     filesystem::path lib_name;
     optional<filesystem::path> directory_to_delete = nullopt;
 
-#ifdef WIN32
-    HINSTANCE lib = nullptr;
-#else // WIN32
+    // #ifdef WIN32
+    // HINSTANCE lib = nullptr;
+    // #else // WIN32
     void *lib = nullptr;
-#endif // WIN32
+    // #endif // WIN32
 
   public:
     SharedLibrary() = default;

@@ -7,12 +7,16 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
+
+#include "fespace.hpp"
+#include <specialelement.hpp>
+
 namespace ngcomp
 {
-
   class LinearForm;
   class Preconditioner;
 
+  
   /** 
       A bilinear-form.
       A bilinear-form provides the system matrix. 
@@ -120,7 +124,9 @@ namespace ngcomp
     Array<void*> precomputed_data;
     /// output of norm of matrix entries
     bool checksum;
-
+    ///
+    optional<double> delete_zero_elements;
+    
     mutable std::map<size_t, Matrix<>> precomputed;
   public:
     /// generate a bilinear-form
@@ -415,8 +421,8 @@ namespace ngcomp
     virtual Array<MemoryUsage> GetMemoryUsage () const;
 
     /// creates a compatible vector
-    virtual unique_ptr<BaseVector> CreateRowVector() const = 0;
-    virtual unique_ptr<BaseVector> CreateColVector() const = 0;
+    virtual AutoVector CreateRowVector() const;
+    virtual AutoVector CreateColVector() const;
 
     /// frees matrix 
     virtual void CleanUpLevel() { ; }
@@ -464,17 +470,6 @@ namespace ngcomp
         
   public:
     ///
-    /*
-    S_BilinearForm (shared_ptr<FESpace> afespace, const string & aname,
-		    const Flags & flags)
-      : BilinearForm (afespace, aname, flags)  { } 
-
-    ///
-    S_BilinearForm (shared_ptr<FESpace> afespace, 
-		    shared_ptr<FESpace> afespace2,
-		    const string & aname, const Flags & flags)
-      : BilinearForm (afespace, afespace2, aname, flags) { } 
-    */
     using BilinearForm::BilinearForm;
     
     virtual ~S_BilinearForm();
@@ -504,7 +499,11 @@ namespace ngcomp
       x.Cumulate();
       y.Distribute();
 
-      AddMatrix1 (ConvertTo<SCAL> (val), x, y, lh);
+      // AddMatrix1 (ConvertTo<SCAL> (val), x, y, lh);
+      if constexpr (std::is_constructible<SCAL,Complex>())
+        AddMatrix1 (SCAL(val), x, y, lh);
+      else
+        throw Exception("BilinearForm::AddMatrix(complex) called for real BilinearForm");
     }
 
     virtual void AddMatrixTrans (double val, const BaseVector & x,
@@ -539,7 +538,10 @@ namespace ngcomp
       x.Cumulate();
       y.Distribute();
 
-      ApplyLinearizedMatrixAdd1 (ConvertTo<SCAL> (val), lin, x, y, lh);
+      if constexpr (std::is_constructible<SCAL,Complex>())
+        ApplyLinearizedMatrixAdd1 (SCAL(val), lin, x, y, lh);
+      else
+        throw Exception("BilinearForm::ApplyLinearizedMatrix(complex) called for real BilinearForm");
     }
   
 
@@ -565,20 +567,6 @@ namespace ngcomp
 				   ElementId id, bool addatomic,
 				   LocalHeap & lh) = 0;
 
-    /*
-    virtual void ApplyElementMatrix(const BaseVector & x,
-				    BaseVector & y,
-				    const SCAL & val,
-				    const Array<int> & dnums,
-				    const ElementTransformation & eltrans,
-				    const int elnum,
-				    const int type,
-				    int & cnt,
-				    LocalHeap & lh,
-				    const FiniteElement * fel,
-				    const SpecialElement * sel = NULL) const;
-    */
-    // { cerr << "ApplyElementMatrix called for baseclass" << endl;}
 
     virtual void AddDiagElementMatrix (FlatArray<int> dnums1,
                                        FlatVector<SCAL> diag,
@@ -606,19 +594,6 @@ namespace ngcomp
       return innermatrix; 
     }
 
-    /*
-    virtual void ApplyElementMatrix(const BaseVector & x,
-				    BaseVector & y,
-				    const SCAL & val,
-				    const Array<int> & dnums,
-				    const ElementTransformation & eltrans,
-				    const int elnum,
-				    const int type,
-				    int & cnt,
-				    LocalHeap & lh,
-				    const FiniteElement * fel,
-				    const SpecialElement * sel = NULL) const;
-    */
     virtual void AllocateInternalMatrices () override;
   };
 
@@ -635,15 +610,6 @@ namespace ngcomp
   protected:
 
   public:
-    /*
-    ///
-    T_BilinearForm (shared_ptr<FESpace> afespace, const string & aname, const Flags & flags);
-    ///
-    T_BilinearForm (shared_ptr<FESpace> afespace, 
-		    shared_ptr<FESpace> afespace2,
-		    const string & aname,
-		    const Flags & flags);
-    */
     using S_BilinearForm<TSCAL> :: S_BilinearForm;
     ///
     virtual ~T_BilinearForm () { };
@@ -654,10 +620,6 @@ namespace ngcomp
     virtual void AllocateMatrix () override;
 
     ///
-    virtual unique_ptr<BaseVector> CreateRowVector() const override;
-    virtual unique_ptr<BaseVector> CreateColVector() const override;
-
-    ///
     virtual void CleanUpLevel() override;
 
     ///
@@ -666,8 +628,6 @@ namespace ngcomp
 				   BareSliceMatrix<TSCAL> elmat,
 				   ElementId id, bool addatomic, 
 				   LocalHeap & lh) override;
-
-    // virtual void LapackEigenSystem(FlatMatrix<TSCAL> & elmat, LocalHeap & lh) const override;
   };
 
 
@@ -696,30 +656,13 @@ namespace ngcomp
     virtual void CleanUpLevel() override;
     virtual shared_ptr<BilinearForm> GetLowOrderBilinearForm() override;
     
-    virtual unique_ptr<BaseVector> CreateRowVector() const override;
-    virtual unique_ptr<BaseVector> CreateColVector() const override;
-
     virtual void AddElementMatrix (FlatArray<int> dnums1,
 				   FlatArray<int> dnums2,
                                    BareSliceMatrix<TSCAL> elmat,
 				   ElementId id, bool addatomic, 
 				   LocalHeap & lh) override;
-    /*
-    virtual void ApplyElementMatrix(const BaseVector & x,
-				    BaseVector & y,
-				    const TSCAL & val,
-				    const Array<int> & dnums,
-				    const ElementTransformation & eltrans,
-				    const int elnum,
-				    const int type,
-				    int & cnt,
-				    LocalHeap & lh,
-				    const FiniteElement * fel,
-				    const SpecialElement * sel = NULL) const;
-    */
+
     virtual bool SymmetricStorage() const override { return true; }
-
-
     virtual void LapackEigenSystem(FlatMatrix<TSCAL> & elmat, LocalHeap & lh) const override;
   };
 
@@ -753,8 +696,6 @@ namespace ngcomp
     virtual shared_ptr<BilinearForm> GetLowOrderBilinearForm() override;
 
     virtual void AllocateMatrix () override;
-    virtual unique_ptr<BaseVector> CreateRowVector() const override;
-    virtual unique_ptr<BaseVector> CreateColVector() const override;
 
     virtual void CleanUpLevel() override;
 
@@ -785,9 +726,6 @@ namespace ngcomp
     virtual void AllocateMatrix () { cout << "S_BilinearFormNonAssemble :: Allocate: nothing to do" << endl; }
     virtual void CleanUpLevel() { ; } 
 
-    virtual unique_ptr<BaseVector> CreateRowVector() const;
-    virtual unique_ptr<BaseVector> CreateColVector() const;
-
     virtual void AddElementMatrix (FlatArray<int> dnums1,
 				   FlatArray<int> dnums2,
                                    BareSliceMatrix<TSCAL> elmat,
@@ -796,19 +734,7 @@ namespace ngcomp
     {
       throw Exception ("AddElementMatrix for non-assemble biform called");
     }
-    /*
-    virtual void ApplyElementMatrix(const BaseVector & x,
-				    BaseVector & y,
-				    const TSCAL & val,
-				    const Array<int> & dnums,
-				    const ElementTransformation & eltrans,
-				    const int elnum,
-				    const int type,
-				    int & cnt,
-				    LocalHeap & lh,
-				    const FiniteElement * fel,
-				    const SpecialElement * sel = NULL) const;
-    */
+
     virtual bool SymmetricStorage() const { return true; }
 
     virtual void LapackEigenSystem(FlatMatrix<TSCAL> & elmat, LocalHeap & lh) const
@@ -838,8 +764,6 @@ namespace ngcomp
     virtual ~T_BilinearFormDiagonal ();
 
     virtual void AllocateMatrix () override;
-    virtual unique_ptr<BaseVector> CreateRowVector() const override;
-    virtual unique_ptr<BaseVector> CreateColVector() const override;
 
     virtual void AddElementMatrix (FlatArray<int> dnums1,
 				   FlatArray<int> dnums2,
@@ -851,19 +775,6 @@ namespace ngcomp
 				       FlatVector<TSCAL> diag,
 				       bool inner_element, int elnr,
 				       LocalHeap & lh) override;
-    /*
-    virtual void ApplyElementMatrix(const BaseVector & x,
-				    BaseVector & y,
-				    const TSCAL & val,
-				    const Array<int> & dnums,
-				    const ElementTransformation & eltrans,
-				    const int elnum,
-				    const int type,
-				    int & cnt,
-				    LocalHeap & lh,
-				    const FiniteElement * fel,
-				    const SpecialElement * sel = NULL) const;
-    */
   };
 
 
@@ -922,9 +833,9 @@ namespace ngcomp
     { throw Exception ("comp-bf - ComputeInternal is illegal"); } 
     virtual void ModifyRHS (BaseVector & f) const 
     { throw Exception ("comp-bf - ModifyRHS is illegal"); } 
-    virtual unique_ptr<BaseVector> CreateRowVector() const 
+    virtual AutoVector CreateRowVector() const 
     { throw Exception ("comp-bf - CreateRowVector is illegal"); } 
-    virtual unique_ptr<BaseVector> CreateColVector() const 
+    virtual AutoVector CreateColVector() const 
     { throw Exception ("comp-bf - CreateColVector is illegal"); } 
     virtual void DoAssemble (LocalHeap & lh) 
     { throw Exception ("comp-bf - DoAssemble is illegal"); } 
@@ -1086,8 +997,8 @@ namespace ngcomp
     virtual ~ElementByElement_BilinearForm () override;
     
     virtual void AllocateMatrix () override;
-    virtual unique_ptr<BaseVector> CreateRowVector() const override;
-    virtual unique_ptr<BaseVector> CreateColVector() const override;
+    // virtual AutoVector CreateRowVector() const override;
+    // virtual AutoVector CreateColVector() const override;
     
     virtual void AddElementMatrix (FlatArray<int> dnums1,
                                    FlatArray<int> dnums2,

@@ -7,6 +7,9 @@
 /* Date:   28. Mar. 2002                                             */
 /*********************************************************************/
 
+#include "integrator.hpp"
+
+
 namespace ngfem
 {
 
@@ -32,6 +35,13 @@ namespace ngfem
 
 
     virtual void GetDofNrs (Array<int> & dnums) const = 0;
+    
+    // dofs for test-space (which might be different from trial-space)
+    virtual void GetDofNrs2 (Array<int> & dnums) const
+    {
+      GetDofNrs(dnums);
+    }
+    
     virtual double Energy (FlatVector<double> elx,
 			   LocalHeap & lh) const
     {
