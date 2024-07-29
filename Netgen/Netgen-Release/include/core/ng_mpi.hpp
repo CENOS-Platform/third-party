@@ -54,7 +54,6 @@ struct NG_MPI_Request {
   NG_MPI_Request() = default;
   NG_MPI_Request(uintptr_t value_) : value(value_) {}
   void operator=(uintptr_t value_) { value = value_; }
-  void operator=(void *value_) { value = reinterpret_cast<uintptr_t>(value_); }
 };
 
 struct NG_MPI_Op {

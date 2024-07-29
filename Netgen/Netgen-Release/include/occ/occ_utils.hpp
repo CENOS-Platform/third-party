@@ -65,14 +65,15 @@ namespace netgen
 
     DLL_HEADER Box<3> GetBoundingBox( const TopoDS_Shape & shape );
 
-    struct OCCIdentification
+    class OCCIdentification
     {
+    public:
       TopoDS_Shape from;
       TopoDS_Shape to;
-      optional<Transformation<3>> trafo = nullopt;
+      Transformation<3> trafo;
       string name;
       Identifications::ID_TYPE type;
-      bool opposite_direction = false;
+      bool opposite_direction;
     };
 
     Standard_Integer BuildTriangulation( const TopoDS_Shape & shape );

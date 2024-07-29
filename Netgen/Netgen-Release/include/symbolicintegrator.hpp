@@ -72,7 +72,6 @@ public:
 
   NGS_DLL_HEADER shared_ptr<ProxyFunction> Deriv() const;
   NGS_DLL_HEADER shared_ptr<ProxyFunction> Trace() const;
-  NGS_DLL_HEADER shared_ptr<ProxyFunction> Primary() const { return primaryproxy; }
   
   NGS_DLL_HEADER shared_ptr<ProxyFunction> Dt() const;  
   NGS_DLL_HEADER shared_ptr<ProxyFunction> AntiDt() const;
