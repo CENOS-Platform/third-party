@@ -16,6 +16,8 @@ namespace ngla
   enum INVERSETYPE { PARDISO, PARDISOSPD, SPARSECHOLESKY, SUPERLU, SUPERLU_DIST, MUMPS, MASTERINVERSE, UMFPACK };
   extern string GetInverseName (INVERSETYPE type);
 
+  class BaseSparseMatrix;
+  
   /**
      The base for all matrices in the linalg.
   */
@@ -155,6 +157,8 @@ namespace ngla
     template <typename TSCAL>
       Matrix<TSCAL> ToDense() const;
 
+    virtual shared_ptr<BaseSparseMatrix> CreateSparseMatrix() const;
+    
     // time per run
     double Timing (int runs = 10) const;
     
@@ -344,6 +348,8 @@ namespace ngla
     ///
     virtual bool IsComplex() const override { return bm.IsComplex(); }
     virtual BaseMatrix::OperatorInfo GetOperatorInfo () const override;
+
+    virtual shared_ptr<BaseSparseMatrix> CreateSparseMatrix() const override;
     
     virtual AutoVector CreateRowVector () const override { return bm.CreateColVector(); }
     virtual AutoVector CreateColVector () const override { return bm.CreateRowVector(); }
@@ -568,6 +574,8 @@ namespace ngla
       return ost;
     }
 
+    virtual shared_ptr<BaseSparseMatrix> CreateSparseMatrix() const override;
+    
     virtual shared_ptr<BaseMatrix> CreateDeviceMatrix() const override
     {
       return make_shared<ProductMatrix>(bma.CreateDeviceMatrix(), bmb.CreateDeviceMatrix());
@@ -689,7 +697,7 @@ namespace ngla
       bmb.MultAdd (Vector(b*alpha), x, y);
     }
 
-
+    virtual shared_ptr<BaseSparseMatrix> CreateSparseMatrix() const override;
     
     virtual int VHeight() const override
     {
@@ -810,6 +818,8 @@ namespace ngla
       info.childs += &bm;
       return info;
     }
+
+    virtual shared_ptr<BaseSparseMatrix> CreateSparseMatrix() const override;
     
     virtual shared_ptr<BaseMatrix> CreateDeviceMatrix() const override
     {

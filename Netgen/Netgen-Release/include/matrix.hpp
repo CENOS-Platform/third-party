@@ -195,7 +195,8 @@ namespace ngbla
     }
 
     /// access operator
-    INLINE TELEM & operator() (size_t i, size_t j) const
+    template <typename I, typename J>
+    INLINE TELEM & operator() (I i, J j) const
     {
       NETGEN_CHECK_RANGE(i, 0, Height());
       NETGEN_CHECK_RANGE(j, 0, Width());
@@ -620,7 +621,7 @@ namespace ngbla
     {
       this->h = m2.h;      
       this->w = m2.w;
-      Swap (this->data, m2.data);
+      ngcore::Swap (this->data, m2.data);
       return *this;
     }
 
@@ -994,7 +995,7 @@ namespace ngbla
     INLINE MatrixFixWidth & operator= (MatrixFixWidth && m)
     {
       this->h = m.h;
-      Swap (this->data, m.data);
+      ngcore::Swap (this->data, m.data);
       return *this;
     }
 
@@ -1464,6 +1465,15 @@ namespace ngbla
       return *this;
     }
     
+    auto Swap (MatrixView & m) 
+    {
+      ngcore::Swap (data, m.data);
+      ngcore::Swap (h, m.h);
+      ngcore::Swap (w, m.w);
+      ngcore::Swap (dist, m.dist);
+      return *this;
+    }
+        
     auto Reshape(size_t h2, size_t w2)
     {
       static_assert(std::is_same<TDIST, unused_dist>(), "MatrixView::Reshape needs unused-dist");            

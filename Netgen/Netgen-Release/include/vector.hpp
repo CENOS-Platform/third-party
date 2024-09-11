@@ -314,7 +314,9 @@ namespace ngbla
 
     
     /// constant element access
-    INLINE TELEM & operator() (size_t i) const
+    // template<typename I, typename std::enable_if<std::is_integral<I>::value, int>::type = 0>
+    template<typename I, typename std::enable_if<std::is_convertible<I,size_t>::value, int>::type = 0>
+    INLINE TELEM & operator() (I i) const
     {
       NETGEN_CHECK_RANGE(i,0,Size());
       return data[i*dist]; 
@@ -355,6 +357,12 @@ namespace ngbla
     {
       // return VectorView<T,decltype(declval<TS>()/size_t()), decltype(declval<TDIST>()*size_t())> (size/dist2, dist2*dist, Addr(first));
       return VectorView<T,decltype(declval<TS>()/size_t()), decltype(declval<TDIST>()*size_t())> ( (size-first+dist2-1)/dist2, dist2*dist, Addr(first));
+    }
+
+    INLINE auto Reversed() const
+    {
+      // return VectorView { Size(), -Dist(), Addr(Size()-1) };
+      return VectorView<T,TS,decltype(-declval<TDIST>())> { Size(), -Dist(), Addr(Size()-1) };
     }
     
     INLINE auto operator+(int i) const { return VectorView(size-i, dist, data+i*dist); }

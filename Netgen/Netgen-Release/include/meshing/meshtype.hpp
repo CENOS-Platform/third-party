@@ -1633,6 +1633,7 @@ namespace netgen
     
     ///
     DLL_HEADER void GetPairs (int identnr, NgArray<INDEX_2> & identpairs) const;
+    DLL_HEADER Array<INDEX_3> GetPairs () const;
     ///
     int GetMaxNr () const { return maxidentnr; }  
 
@@ -1642,9 +1643,24 @@ namespace netgen
          names.Append(name);
       return names.Pos(name)+1;
     }
+    string GetName(int nr) const
+    {
+      if (nr <= names.Size())
+        return names[nr - 1];
+      else
+        return "";
+    }
+    void SetName(int nr, string name)
+    {
+      while(names.Size() < nr)
+        names.Append("");
+      names[nr-1] = name;
+    }
 
     /// remove secondorder
     void SetMaxPointNr (int maxpnum);
+
+    void MapPoints(FlatArray<PointIndex, PointIndex> op2np);
 
     DLL_HEADER void Print (ostream & ost) const;
 
