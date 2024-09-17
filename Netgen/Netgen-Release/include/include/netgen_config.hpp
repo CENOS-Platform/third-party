@@ -2,7 +2,7 @@
 #define NETGEN_CONFIG_HPP_INCLUDED___
 
 #define NETGEN_USE_NATIVE_ARCH          0
-#define NETGEN_USE_GUI                  0
+#define NETGEN_USE_GUI                  1
 #define NETGEN_USE_PYTHON               1
 #define NETGEN_USE_MPI                  1
 #define NETGEN_USE_MPI4PY               0
