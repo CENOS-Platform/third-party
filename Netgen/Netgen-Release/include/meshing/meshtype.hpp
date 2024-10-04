@@ -8,6 +8,8 @@
 /* Date:   01. Okt. 95                                                    */
 /**************************************************************************/
 
+#include <variant>
+
 #include <mydefs.hpp>
 #include <general/template.hpp>
 #include <core/mpi_wrapper.hpp>
@@ -1272,6 +1274,24 @@ namespace netgen
   };
 
 
+  struct BoundaryLayerParameters
+  {
+    std::variant<string, int, std::vector<int>> boundary;
+    std::variant<double, std::vector<double>> thickness;
+    std::variant<string, std::map<string, string>> new_material;
+    std::variant<string, int, std::vector<int>> domain;
+    bool outside;
+    std::optional<std::variant<string, std::vector<int>>> project_boundaries;
+    bool grow_edges;
+    bool limit_growth_vectors;
+    bool sides_keep_surfaceindex;
+    bool keep_surfaceindex;
+
+    double limit_safety = 0.3; // alloow only 30% of the growth vector length
+  };
+
+
+  ostream & operator<< (ostream & ost, const BoundaryLayerParameters & mp);
 
   class DLL_HEADER MeshingParameters
   {
@@ -1397,6 +1417,8 @@ namespace netgen
     int nthreads = 4;
 
     Flags geometrySpecificParameters;
+
+    Array<BoundaryLayerParameters> boundary_layers;
     ///
     MeshingParameters ();
     ///
@@ -1633,6 +1655,7 @@ namespace netgen
     
     ///
     DLL_HEADER void GetPairs (int identnr, NgArray<INDEX_2> & identpairs) const;
+    DLL_HEADER Array<INDEX_3> GetPairs () const;
     ///
     int GetMaxNr () const { return maxidentnr; }  
 
@@ -1658,6 +1681,8 @@ namespace netgen
 
     /// remove secondorder
     void SetMaxPointNr (int maxpnum);
+
+    void MapPoints(FlatArray<PointIndex, PointIndex> op2np);
 
     DLL_HEADER void Print (ostream & ost) const;
 
