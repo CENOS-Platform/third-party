@@ -1,4 +1,4 @@
-set(PACKAGE_VERSION "6.2.2404-37-gb50657124")
+set(PACKAGE_VERSION "6.2.2405-22-g22c125423")
 find_package(Netgen CONFIG REQUIRED HINTS
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
@@ -14,7 +14,7 @@ get_filename_component(NGSOLVE_LIBRARY_DIR  "${NETGEN_LIBRARY_DIR}"  ABSOLUTE)
 get_filename_component(NGSOLVE_PYTHON_DIR   "${NETGEN_PYTHON_DIR}"   ABSOLUTE)
 get_filename_component(NGSOLVE_RESOURCE_DIR "${NETGEN_RESOURCE_DIR}" ABSOLUTE)
 
-set(NGSOLVE_CXX_COMPILER "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.39.33519/bin/Hostx64/x64/cl.exe")
+set(NGSOLVE_CXX_COMPILER "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/bin/Hostx64/x64/cl.exe")
 set(NGSOLVE_CMAKE_BUILD_TYPE "Release")
 
 set(NGSOLVE_CMAKE_THREAD_LIBS_INIT "")

@@ -1894,7 +1894,7 @@ namespace ngfem
 
 
   template <int DIM_SPC, VorB VB = VOL>
-  class DiffOpIdVectorH1 : public DiffOp<DiffOpIdVectorH1<DIM_SPC> >
+  class DiffOpIdVectorH1 : public DiffOp<DiffOpIdVectorH1<DIM_SPC, VB> >
   {
   public:
     enum { DIM = 1 };
@@ -1959,7 +1959,7 @@ namespace ngfem
         }
     }
 
-    using DiffOp<DiffOpIdVectorH1<DIM_SPC>>::ApplySIMDIR;    
+    using DiffOp<DiffOpIdVectorH1<DIM_SPC, VB>>::ApplySIMDIR;
     static void ApplySIMDIR (const FiniteElement & bfel, const SIMD_BaseMappedIntegrationRule & mir,
                              BareSliceVector<double> x, BareSliceMatrix<SIMD<double>> y)
     {
@@ -1971,7 +1971,7 @@ namespace ngfem
         }
     }
 
-    using DiffOp<DiffOpIdVectorH1<DIM_SPC>>::AddTransSIMDIR;        
+    using DiffOp<DiffOpIdVectorH1<DIM_SPC, VB>>::AddTransSIMDIR;
     static void AddTransSIMDIR (const FiniteElement & bfel, const SIMD_BaseMappedIntegrationRule & mir,
                                 BareSliceMatrix<SIMD<double>> y, BareSliceVector<double> x)
     {
@@ -2713,6 +2713,7 @@ namespace ngfem
   extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpIdVectorH1<1,BND> >;
   extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpIdVectorH1<2,BND> >;
   extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpIdVectorH1<3,BND> >;
+  extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpIdVectorH1<3,BBND> >;
 
 
 

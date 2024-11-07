@@ -8,6 +8,8 @@
 /* Date:   01. Okt. 95                                                    */
 /**************************************************************************/
 
+#include <variant>
+
 #include <mydefs.hpp>
 #include <general/template.hpp>
 #include <core/mpi_wrapper.hpp>
@@ -1272,6 +1274,22 @@ namespace netgen
   };
 
 
+  struct BoundaryLayerParameters
+  {
+    std::variant<double, std::vector<double>> thickness;
+    std::variant<string, int, std::vector<int>> domain;
+    std::variant<string, int, std::vector<int>> boundary = ".*";
+    std::optional<std::variant<string, std::map<string, string>>> new_material = nullopt;
+    std::optional<std::variant<string, std::vector<int>>> project_boundaries = nullopt;
+    bool outside = false;
+    bool grow_edges = true;
+    bool limit_growth_vectors = true;
+    std::optional<bool> sides_keep_surfaceindex = nullopt; // !outside by default
+    bool disable_curving = true; // disable curving affected boundaries/edges (could lead to self-intersecting volume elements)
+  };
+
+
+  ostream & operator<< (ostream & ost, const BoundaryLayerParameters & mp);
 
   class DLL_HEADER MeshingParameters
   {
@@ -1397,6 +1415,8 @@ namespace netgen
     int nthreads = 4;
 
     Flags geometrySpecificParameters;
+
+    Array<BoundaryLayerParameters> boundary_layers;
     ///
     MeshingParameters ();
     ///
@@ -1597,9 +1617,9 @@ namespace netgen
 
     // bool HasIdentifiedPoints() const { return identifiedpoints != nullptr; } 
     ///
-    INDEX_2_HASHTABLE<int> & GetIdentifiedPoints () 
+    INDEX_3_HASHTABLE<int> & GetIdentifiedPoints ()
     { 
-      return identifiedpoints; 
+      return identifiedpoints_nr;
     }
 
     bool Used (PointIndex pi1, PointIndex pi2)
@@ -1633,6 +1653,7 @@ namespace netgen
     
     ///
     DLL_HEADER void GetPairs (int identnr, NgArray<INDEX_2> & identpairs) const;
+    DLL_HEADER Array<INDEX_3> GetPairs () const;
     ///
     int GetMaxNr () const { return maxidentnr; }  
 
@@ -1658,6 +1679,8 @@ namespace netgen
 
     /// remove secondorder
     void SetMaxPointNr (int maxpnum);
+
+    void MapPoints(FlatArray<PointIndex, PointIndex> op2np);
 
     DLL_HEADER void Print (ostream & ost) const;
 
