@@ -95,7 +95,9 @@ typedef enum {
   ALM_ATTR_OPT_GLOBALZONE,                /* Option should not be used unless instructed by licensing team */
   ALM_ATTR_OPT_HHWU_SESSION_ID,
   ALM_ATTR_OPT_ALAS_CO_REQUIRE_FIRST_RUN_CHECK,
-  ALM_ATTR_OPT_SO_PATH_OVERRIDE
+  ALM_ATTR_OPT_SO_PATH_OVERRIDE,
+  ALM_ATTR_OPT_USERNAME_OVERRIDE,
+  ALM_ATTR_OPT_HOSTNAME_OVERRIDE
 } ALM_ATTR_OPT_TYPE;
 
 typedef enum {
