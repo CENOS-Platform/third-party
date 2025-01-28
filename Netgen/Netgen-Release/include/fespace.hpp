@@ -12,7 +12,12 @@
 #include <finiteelement.hpp>
 #include <diffop.hpp>
 #include <symbolicintegrator.hpp>   // for ProxyFunction
-#include <la.hpp>
+
+#include <basevector.hpp>
+#include <basematrix.hpp>
+
+// #include <paralleldofs.hpp>
+
 
 #include "ngsobject.hpp"
 
@@ -283,14 +288,7 @@ ANY                  1 1 1 1 | 15
       order_policy = op;
     }
     
-    virtual void SetOrder (ELEMENT_TYPE et, TORDER order)
-    {
-      if (order_policy == CONSTANT_ORDER || order_policy == OLDSTYLE_ORDER)
-        order_policy = NODE_TYPE_ORDER;
-      et_bonus_order[et] = order - this->order;
-
-      timestamp = 0;  // rerun first_update
-    }
+    virtual void SetOrder (ELEMENT_TYPE et, TORDER order);
 
     virtual void SetOrder (NodeId ni, int order); 
     virtual int GetOrder (NodeId ni) const; 
@@ -924,7 +922,7 @@ ANY                  1 1 1 1 | 15
   class NGS_DLL_HEADER NonconformingFESpace : public FESpace
   {
     ///
-    Array<int> ndlevel;
+    // Array<int> ndlevel;
 
   public:
     NonconformingFESpace (shared_ptr<MeshAccess> ama, const Flags & flags, bool parseflags=false);
@@ -938,7 +936,7 @@ ANY                  1 1 1 1 | 15
 
     virtual FiniteElement & GetFE (ElementId ei, Allocator & lh) const override;
     ///
-    virtual size_t GetNDof () const throw() override;
+    // virtual size_t GetNDof () const throw() override;
     ///
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const override;
   };
@@ -949,7 +947,7 @@ ANY                  1 1 1 1 | 15
   class NGS_DLL_HEADER NonconformingSurfaceFESpace : public FESpace
   {
     ///
-    Array<int> ndlevel;
+    // Array<int> ndlevel;
 
   public:
     NonconformingSurfaceFESpace (shared_ptr<MeshAccess> ama, const Flags & flags, bool parseflags=false);
@@ -963,7 +961,7 @@ ANY                  1 1 1 1 | 15
 
     virtual FiniteElement & GetFE (ElementId ei, Allocator & lh) const override;
     ///
-    virtual size_t GetNDof () const throw() override;
+    // virtual size_t GetNDof () const throw() override;
     ///
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const override;
   };
@@ -1433,7 +1431,7 @@ namespace ngcore
   template<>
   struct MPI_typetrait<ngcomp::COUPLING_TYPE>
   {
-    static NG_MPI_Datatype MPIType () 
+    static auto MPIType () 
     { 
       static_assert ( (sizeof(ngcomp::COUPLING_TYPE) == sizeof(char)) ||
                       (sizeof(ngcomp::COUPLING_TYPE) == sizeof(int)) );

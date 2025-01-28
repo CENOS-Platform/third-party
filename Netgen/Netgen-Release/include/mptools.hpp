@@ -813,7 +813,6 @@ c
       scale = newscale;
     }
 
-    
     template <typename TARGET>
     void Transform (MultiPole<TARGET> & target, Vec<3> dist) const
     {
@@ -1277,7 +1276,7 @@ c
       
       for (int n = 0; n <= os; n++)
         hv1(n) = sh.Coef(n,0);
-      hv2 = trafo.Rows(ot+1) * hv1;
+      hv2 = trafo.Rows(ot+1).Cols(os+1) * hv1;
       for (int n = 0; n <= ot; n++)
         target.SH().Coef(n,0) = hv2(n);
 
@@ -2095,12 +2094,12 @@ c
     template <typename TARGET>
     void ShiftZ (double z, MultiPole<TARGET> & target) { mp.ShiftZ(z, target); }
 
+    using CoefficientFunction::Transform;        
     template <typename TARGET>
     void Transform (MultiPoleCF<TARGET> & target)
     {
       mp.Transform (target.MP(), target.Center()-center);
     }
-    
   };
 
   

@@ -8,10 +8,15 @@
 /* Date:   25. Mar. 2000                                             */
 /*********************************************************************/
 
+
+#include "basevector.hpp"
+#include "multivector.hpp"
+// #include "paralleldofs.hpp"
+
 namespace ngla
 {
-
-
+  class ParallelDofs;
+  
   // sets the solver which is used for InverseMatrix
   enum INVERSETYPE { PARDISO, PARDISOSPD, SPARSECHOLESKY, SUPERLU, SUPERLU_DIST, MUMPS, MASTERINVERSE, UMFPACK };
   extern string GetInverseName (INVERSETYPE type);
@@ -144,6 +149,16 @@ namespace ngla
     virtual INVERSETYPE SetInverseType ( INVERSETYPE ainversetype ) const;
     virtual INVERSETYPE SetInverseType ( string ainversetype ) const;
     virtual INVERSETYPE  GetInverseType () const;
+
+    typedef  std::function<shared_ptr<BaseMatrix>(shared_ptr<BaseMatrix>,
+                                                  shared_ptr<BitArray>,
+                                                  shared_ptr<const Array<int>>)> T_INVCREATOR;
+    mutable T_INVCREATOR invcreator;
+    void SetInverseCreator(T_INVCREATOR ainvcreator) const { invcreator = ainvcreator; }
+
+    static SymbolTable<T_INVCREATOR> invcreators;
+    static void RegisterInverseCreator(string name, T_INVCREATOR creator);
+    
     virtual void SetInverseFlags (const Flags & flags) { ; }
     virtual shared_ptr<BaseMatrix> DeleteZeroElements(double tol) const
     {
@@ -258,14 +273,6 @@ namespace ngla
     void AssignTo (TS s, BaseVector & v) const
     { 
       CheckSize (v);
-      /*
-      if (m.Height() != v.Size() || m.Width() != x.Size())
-	throw Exception (ToString ("matrix-vector: size does not fit\n") +
-                         "matrix-type = " + typeid(m).name() +
-			 "Matrix:     " + ToString(m.Height()) + " x " + ToString(m.Width()) + "\n"
-			 "Vector in : " + ToString(x.Size()) + "\n"
-			 "Vector res: " + ToString(v.Size()));
-      */
       m.Mult (x, v);
       v *= s;
     }
@@ -274,10 +281,6 @@ namespace ngla
     void AddTo (TS s, BaseVector & v) const
     { 
       CheckSize (v);
-      /*
-      if (m.Height() != v.Size() || m.Width() != x.Size())
-	throw Exception ("matrix-vector MultAdd: size does not fit");
-      */
       m.MultAdd (s, x, v);
     }
 
@@ -839,7 +842,6 @@ namespace ngla
   {
     bool has_format;
     size_t size;
-    // bool is_complex;
   public:
     ///
     IdentityMatrix ()
@@ -847,7 +849,6 @@ namespace ngla
     IdentityMatrix (size_t asize, bool ais_complex)
       : has_format(true), size(asize) { is_complex=ais_complex; }
     
-    // virtual bool IsComplex() const override { return is_complex; }
     virtual BaseMatrix::OperatorInfo GetOperatorInfo () const override;
     
     ///
@@ -918,7 +919,7 @@ namespace ngla
   };
 
   
-  /* *********************** operator<< ********************** */
+  /* *********************** operators  ********************** */
 
   // default is ProductMatrix, but optimizations for
   // ParallelMatrices
@@ -944,8 +945,8 @@ namespace ngla
 
   
   shared_ptr<BaseMatrix> TransposeOperator (shared_ptr<BaseMatrix> mat);
+
   
-  /// output operator for matrices
   inline ostream & operator<< (ostream & ost, const BaseMatrix & m)
   {
     return m.Print(ost);

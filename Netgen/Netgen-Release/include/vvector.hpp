@@ -1,3 +1,8 @@
+#ifndef FILE_VVECTOR
+#define FILE_VVECTOR
+
+#include "basevector.hpp"
+
 namespace ngla
 {
 
@@ -13,7 +18,7 @@ namespace ngla
   {
   protected:
     TSCAL * pdata;
-    int es;
+    int es;    // entry size in in term of TSCALs
     bool ownmem;
     
   public:
@@ -197,3 +202,7 @@ namespace ngla
   extern template class VVector<double>;
   extern template class VVector<Complex>;
 }
+
+
+
+#endif

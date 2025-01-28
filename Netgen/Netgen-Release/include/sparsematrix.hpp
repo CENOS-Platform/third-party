@@ -8,6 +8,9 @@
 /**************************************************************************/
 
 
+#include "vvector.hpp"
+#include "basematrix.hpp"
+
 namespace ngla
 {
 
@@ -149,6 +152,9 @@ namespace ngla
     void CalcBalancing ();
     const Partitioning & GetBalancing() const { return balance; } 
 
+    void EmbedHeight (size_t starti, size_t newheight);
+    void EmbedWidth (size_t starti, size_t newwidth);
+    
     ostream & Print (ostream & ost) const;
 
     virtual Array<MemoryUsage> GetMemoryUsage () const;    
@@ -338,6 +344,8 @@ namespace ngla
     { 
       return asvec; 
     }
+
+    // tuple<int,int> EntryShape() const { return { entry_height, entry_width }; }
     
     FlatVector<TSCAL> GetRowValue (int row, int j)
     {
@@ -345,9 +353,10 @@ namespace ngla
       return FlatVector<TSCAL> (entry_size, p);
     }
     
-    FlatMatrix<TSCAL> GetRowValueMat (int row, int j)
+    FlatMatrix<TSCAL> GetRowValueMat (int row, int j) const
     {
-      TSCAL * p = asvec(entry_size * (firsti[row] + j)).Data(0);
+      // TSCAL * p = asvec(entry_size * (firsti[row] + j)).Data(0);
+      TSCAL * p = &asvec(entry_size * (firsti[row] + j));
       return FlatMatrix<TSCAL> (entry_height, entry_width, p);
     }
   };
@@ -552,7 +561,7 @@ namespace ngla
     virtual tuple<int,int> EntrySizes() const override { return { ngbla::Height<TM>(), ngbla::Width<TM>() }; }
     
     shared_ptr<BaseSparseMatrix>
-      CreateTransposeTM (const function<shared_ptr<SparseMatrixTM<decltype(Trans(TM()))>>(const Array<int>&, int)> & creator) const;
+      CreateTransposeTM (const function<shared_ptr<SparseMatrixTM<decltype(ngbla::Trans(TM()))>>(const Array<int>&, int)> & creator) const;
 
   public:
     using BaseMatrix::GetMemoryTracer;
@@ -613,37 +622,13 @@ namespace ngla
     { return { string("SparseMatrix")+typeid(TM).name(), this->Height(), this->Width() }; }
     
     virtual shared_ptr<BaseJacobiPrecond>
-      CreateJacobiPrecond (shared_ptr<BitArray> inner) const override
-    {
-      // if constexpr(mat_traits<TM>::HEIGHT != mat_traits<TM>::WIDTH) return nullptr;
-      if constexpr(ngbla::Height<TM>() != ngbla::Width<TM>()) return nullptr;
-      else if constexpr(ngbla::Height<TM>() > MAX_SYS_DIM) {
-	  throw Exception(string("MAX_SYS_DIM = ")+to_string(MAX_SYS_DIM)+string(", need ")+to_string(mat_traits<TM>::HEIGHT));
-	  return nullptr;
-	}
-      else return make_shared<JacobiPrecond<TM,TV_ROW,TV_COL>> (*this, inner);
-    }
+      CreateJacobiPrecond (shared_ptr<BitArray> inner) const override;
     
     virtual shared_ptr<BaseBlockJacobiPrecond>
       CreateBlockJacobiPrecond (shared_ptr<Table<int>> blocks,
                                 const BaseVector * constraint = 0,
                                 bool parallel = 1,
-                                shared_ptr<BitArray> freedofs = NULL) const override
-    { 
-      // if constexpr(mat_traits<TM>::HEIGHT != mat_traits<TM>::WIDTH) return nullptr;
-      if constexpr(ngbla::Height<TM>() != ngbla::Width<TM>()) return nullptr;
-      else if constexpr(ngbla::Height<TM>() > MAX_SYS_DIM) {
-	  throw Exception(string("MAX_SYS_DIM = ")+to_string(MAX_SYS_DIM)+string(", need ")+to_string(ngbla::Height<TM>()));
-	  return nullptr;
-	}
-      else
-        // return make_shared<BlockJacobiPrecond<TM,TV_ROW,TV_COL>> (*this, blocks, parallel);
-
-        return make_shared<BlockJacobiPrecond<TM,TV_ROW,TV_COL>>
-          ( dynamic_pointer_cast<const SparseMatrix>
-            (this->shared_from_this()),
-            blocks, parallel);
-    }
+                                shared_ptr<BitArray> freedofs = NULL) const override;
 
     virtual shared_ptr<BaseMatrix> InverseMatrix (shared_ptr<BitArray> subset = nullptr) const override;
     virtual shared_ptr<BaseMatrix> InverseMatrix (shared_ptr<const Array<int>> clusters) const override;
@@ -790,24 +775,12 @@ namespace ngla
       this->AddElementMatrixSymmetric (dnums1, elmat, use_atomic);
     }
     
-    virtual shared_ptr<BaseJacobiPrecond> CreateJacobiPrecond (shared_ptr<BitArray> inner) const override
-    { 
-      return make_shared<JacobiPrecondSymmetric<TM,TV>> (*this, inner);
-    }
-
+    virtual shared_ptr<BaseJacobiPrecond> CreateJacobiPrecond (shared_ptr<BitArray> inner) const override;
     virtual shared_ptr<BaseBlockJacobiPrecond>
       CreateBlockJacobiPrecond (shared_ptr<Table<int>> blocks,
                                 const BaseVector * constraint = 0,
                                 bool parallel  = 1,
-                                shared_ptr<BitArray> freedofs = NULL) const override
-    { 
-      // return make_shared<BlockJacobiPrecondSymmetric<TM,TV>> (*this, blocks);
-      return make_shared<BlockJacobiPrecondSymmetric<TM,TV>>
-        ( dynamic_pointer_cast<const SparseMatrixSymmetric>
-          (this->shared_from_this()),
-          blocks);
-    }
-
+                                shared_ptr<BitArray> freedofs = NULL) const override;
 
     virtual shared_ptr<BaseSparseMatrix> Restrict (const SparseMatrixTM<double> & prol,
 					 shared_ptr<BaseSparseMatrix> cmat = nullptr) const override;

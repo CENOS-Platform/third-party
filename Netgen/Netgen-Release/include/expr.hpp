@@ -9,8 +9,9 @@
 
 #include <core/array.hpp>
 #include <core/localheap.hpp>
-// #include <core/exception.hpp>
+#include <core/exception.hpp>
 
+#include <cstddef>
 #include <ngs_stdcpp_include.hpp>  // for INLINE
 #include "complex_wrapper.hpp"
 
@@ -28,15 +29,18 @@ template <typename T>
 struct SafeIndex
 {
   T i;
-  SafeIndex(T ai) : i(ai) { };
-  operator T() const { return i; }
-  auto operator++() { return ++i; }
-  auto operator++(int) { return i++; }
+  INLINE SafeIndex(T ai) : i(ai) { };
+  INLINE operator T() const { return i; }
+  INLINE auto operator++() { return ++i; }
+  INLINE auto operator++(int) { return i++; }
 };
 
-template <typename T>
-struct IsSafe<SafeIndex<T>> {
-  constexpr operator bool() const { return true; } };
+namespace ngcore
+{
+  template <typename T>
+  struct IsSafe<SafeIndex<T>> {
+    constexpr operator bool() const { return true; } };
+} // namespace ngcore
 
 /*
 namespace std {
@@ -262,6 +266,7 @@ namespace ngbla
     explicit constexpr undefined_size(IC<S> s) : size(s) { }
     explicit constexpr operator size_t() const { return size; }
     explicit constexpr operator int() const { return size; }    
+    explicit constexpr operator ptrdiff_t() const { return size; }
   };
 
     

@@ -7,13 +7,34 @@
 /* Date:   7. Feb. 2003                                              */
 /*********************************************************************/
 
-
+#include <bla.hpp>
+#include <core/mpi_wrapper.hpp>
+// #include "paralleldofs.hpp"
 
 namespace ngla
 {
+  using namespace ngbla;
+  
   class BaseVector;
   class AutoVector;
   class MultiVector;
+
+  class ParallelDofs;
+  
+  class DofRange : public T_Range<size_t>
+  {
+    shared_ptr<ParallelDofs> pardofs;
+  public:
+    DofRange () { }
+    DofRange (T_Range<size_t> range, shared_ptr<ParallelDofs> apardofs)
+      : T_Range<size_t>(range), pardofs(apardofs) { ; }
+    DofRange (size_t end, shared_ptr<ParallelDofs> apardofs)
+      : T_Range<size_t>(0, end), pardofs(apardofs) { ; }
+    shared_ptr<ParallelDofs> GetParallelDofs() const { return pardofs; }
+  };
+  
+
+  
   
   template <class SCAL> class S_BaseVector;
 
@@ -91,9 +112,6 @@ namespace ngla
     size_t size;
     /// number of doubles per entry
     int entrysize = 1;
-    ///
-    // shared_ptr<ParallelDofs> paralleldofs;
-    
     ///
     BaseVector () { ; }
     
@@ -265,6 +283,7 @@ namespace ngla
     virtual void SetRandom ();
 
     inline AutoVector Range (size_t begin, size_t end) const;
+    inline AutoVector Range (size_t end) const;
     // { return Range(T_Range(begin, end)); }
     virtual AutoVector Range (T_Range<size_t> range) const;
     virtual AutoVector Range (DofRange range) const;
@@ -434,6 +453,7 @@ namespace ngla
     operator const BaseVector & () const { return *vec; }
 
     AutoVector Range (size_t begin, size_t end) const { return vec->Range(begin,end); }
+    AutoVector Range (size_t end) const { return vec->Range(0,end); }
     AutoVector Range (T_Range<size_t> range) const { return vec->Range(range); }
     
     template <typename T>
@@ -571,6 +591,11 @@ namespace ngla
     return Range(T_Range(begin, end));
   }
 
+  AutoVector BaseVector::Range (size_t end) const
+  {
+    return Range (0, end);
+  }
+  
 
   template <>
   inline FlatVector<double> BaseVector::FV<double> () const
@@ -650,72 +675,6 @@ namespace ngla
   extern template class S_BaseVector<double>;
   extern template class S_BaseVector<Complex>;
 #endif
-
-  /*
-  template <class SCAL>
-  class NGS_DLL_HEADER S_BaseVector;
-
-
-  template <>
-  class NGS_DLL_HEADER S_BaseVector<double> : virtual public BaseVector
-  {
-  public:
-    S_BaseVector () throw () { ; }
-    virtual ~S_BaseVector() { ; }
-
-    S_BaseVector & operator= (double s);
-
-    virtual double InnerProduct (const BaseVector & v2) const;
-
-    virtual FlatVector<double> FVDouble () const;
-    virtual FlatVector<Complex> FVComplex () const;
-
-    virtual FlatVector<double> FVScal () const
-    {
-      return FlatVector<double> (size * entrysize, Memory());
-    }
-
-
-    virtual void GetIndirect (const FlatArray<int> & ind, 
-			      const FlatVector<double> & v) const;
-    virtual void GetIndirect (const FlatArray<int> & ind, 
-			      const FlatVector<Complex> & v) const;
-
-  };
-
-
-
-
-  template <>
-  class NGS_DLL_HEADER S_BaseVector<Complex> : virtual public BaseVector
-  {
-  public:
-    S_BaseVector () throw() { ; }
-    ~S_BaseVector () { ; }
-
-    virtual Complex InnerProduct (const BaseVector & v2) const;
-
-    virtual FlatVector<double> FVDouble () const throw();
-    virtual FlatVector<Complex> FVComplex () const throw();
-    virtual FlatVector<Complex> FVScal () const throw() 
-    {
-      return FlatVector<Complex> (size * entrysize/2, Memory());
-    }
-
-    virtual void GetIndirect (const FlatArray<int> & ind, 
-			      const FlatVector<double> & v) const;
-    virtual void GetIndirect (const FlatArray<int> & ind, 
-			      const FlatVector<Complex> & v) const;
-  };
-
-  */
-
-
-
-
-
-
-
 
 
 
@@ -821,14 +780,20 @@ namespace ngla
   };
 
 
-
+  /*
   inline VVecExpr<VSumExpr<VVecExpr<BaseVector>, VVecExpr<BaseVector> > >
   operator+ (const BaseVector & a, const BaseVector & b)
   {
     typedef VSumExpr<VVecExpr<BaseVector>, VVecExpr<BaseVector> > TRES;
     return TRES (a, b);
   }
+  */
+  inline auto operator+ (const BaseVector & a, const BaseVector & b)
+  {
+    return VVecExpr<VSumExpr<VVecExpr<BaseVector>,VVecExpr<BaseVector>>>{{a,b}};
+  }
 
+  /*
   template <class TA>
   inline VVecExpr<VSumExpr<VVecExpr<TA>, VVecExpr<BaseVector> > >
   operator+ (const VVecExpr<TA> & a, const BaseVector & b)
@@ -836,6 +801,13 @@ namespace ngla
     typedef VSumExpr<VVecExpr<TA>, VVecExpr<BaseVector> > TRES;
     return TRES (a, b);
   }
+  */
+  template <class TA>
+  inline auto operator+ (const VVecExpr<TA> & a, const BaseVector & b)
+  {
+    return VSumExpr<VVecExpr<TA>,VVecExpr<BaseVector>> (a,b);
+  }
+  
 
   template <class TB>
   inline VVecExpr<VSumExpr<VVecExpr<BaseVector>, VVecExpr<TB> > >

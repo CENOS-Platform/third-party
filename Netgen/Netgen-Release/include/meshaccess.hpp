@@ -9,8 +9,6 @@
 
 
 #include <nginterface_v2.hpp>
-#include <core/ranges.hpp>
-
 #include <elementtopology.hpp>
 
 namespace ngfem
@@ -26,7 +24,6 @@ namespace ngcomp
 {
   class PML_Transformation;
   
-  // using ngcore::INT;
   using netgen::Ng_Node;
   using ngfem::ELEMENT_TYPE;
   
@@ -158,30 +155,6 @@ namespace ngcomp
     INLINE auto end () const { return DimElementIterator<VB,DIM>(ma, r.Next()); }
   };
 
-  /*
-  class NodeIterator
-  {
-    NodeId ni;
-  public:
-    NodeIterator (NodeId ani) : ni(ani) { ; }
-    NodeIterator operator++ () { return NodeIterator(++ni); }
-    INLINE NodeId operator*() const { return ni; }
-    bool operator!=(NodeIterator id2) const { return ni != id2.ni; }
-    bool operator==(NodeIterator id2) const { return ni == id2.ni; }
-  };
-
-  class NodeRange : public IntRange
-  {
-    NODE_TYPE nt;
-  public:
-    NodeRange (NODE_TYPE ant, IntRange ar) 
-      : IntRange(ar), nt(ant) { ; } 
-    NodeIterator begin () const { return NodeIterator(NodeId(nt,IntRange::First())); }
-    NodeIterator end () const { return NodeIterator(NodeId(nt,IntRange::Next())); }
-    NodeId operator[] (size_t nr) { return NodeId(nt, IntRange::First()+nr); }
-  };
-  */
-
   /** 
       Access to mesh topology and geometry.
 
@@ -240,9 +213,12 @@ namespace ngcomp
 
     /// store periodic vertex mapping for each identification number
     // shared ptr because Meshaccess is copy constructible
+    /*
     shared_ptr<Array<Array<IVec<2>>>> periodic_node_pairs[3] = {make_shared<Array<Array<IVec<2>>>>(),
                                                                make_shared<Array<Array<IVec<2>>>>(),
                                                                make_shared<Array<Array<IVec<2>>>>()};
+    */
+    Array<Array<IVec<2>>> periodic_node_pairs[3];
 
     DynamicTable<size_t> neighbours[4][4];
     friend class Region;
@@ -662,7 +638,7 @@ namespace ngcomp
     
     void SetDeformation (shared_ptr<GridFunction> def = nullptr);
 
-    const shared_ptr<GridFunction> & GetDeformation () const
+    shared_ptr<GridFunction> GetDeformation () const
     {
       return deformation;
     }
@@ -817,15 +793,6 @@ namespace ngcomp
     void GetFaceEdges (int fnr, Array<int> & edges) const;
     INLINE auto GetFaceEdges (size_t fnr) const
     { return ArrayObject(mesh.GetFaceEdges(fnr)); }
-    /*
-    {
-      ArrayMem<int,4> f2ed;
-      GetFaceEdges (fnr, f2ed);
-      f2ed.NothingToDelete(); // dynamic allocation never needed
-      return f2ed;
-    }
-    */
-    
     void GetEdgeFaces (int enr, Array<int> & faces) const;
     /// returns elements connected to a face
     void GetFaceElements (int fnr, Array<int> & elnums) const;
@@ -911,7 +878,6 @@ namespace ngcomp
     }
 
 
-    // void GetVertexElements (int vnr, Array<int> & elnrs) const;
     /// element order stored in Netgen
     int GetElOrder (int enr) const
     { return mesh.GetElementOrder (enr+1); } 
@@ -1053,11 +1019,11 @@ namespace ngcomp
 	}
     }
     
-
+    /*
     // (old style optimization)
     [[deprecated("functionality not useful anymore, just remove function call!")]]            
     void SetPointSearchStartElement(const int el) const;
-
+    */
 
     
     ElementId FindElementOfPoint (FlatVector<double> point,
@@ -1083,6 +1049,7 @@ namespace ngcomp
     { return GetElement(ElementId(VOL,elnr)).is_curved; }
       // { return bool (Ng_IsElementCurved (elnr+1)); }
 
+    /*
     [[deprecated("Use GetPeriodicNodes(NT_VERTEX, pairs) instead!")]]
     void GetPeriodicVertices ( Array<IVec<2> > & pairs) const;
     [[deprecated("Use GetNPeriodicNodes(NT_VERTEX) instead!")]]
@@ -1100,10 +1067,11 @@ namespace ngcomp
     void GetPeriodicEdges (int idnr, Array<IVec<2> > & pairs) const;
     [[deprecated("Use GetPeriodicNodes(NT_EDGE, idnr).Size() instead")]]
     int GetNPairsPeriodicEdges (int idnr) const;
-
+    */
+    
     int GetNPeriodicIdentifications() const
     {
-      return periodic_node_pairs[NT_VERTEX]->Size();
+      return periodic_node_pairs[NT_VERTEX].Size();
     }
     // get number of all periodic nodes of nodetype nt
     size_t GetNPeriodicNodes(NODE_TYPE nt) const;
@@ -1147,9 +1115,10 @@ namespace ngcomp
 
     // void PrecomputeGeometryData(int intorder);
 
+    /*
     void InitPointCurve(double red = 1, double green = 0, double blue = 0) const;
     void AddPointCurvePoint(const Vec<3> & point) const;
-
+    */
 
     
     template <int DIMS, int DIMR> friend class Ng_ElementTransformation;
@@ -1169,10 +1138,11 @@ namespace ngcomp
        Returns the global number of the node.
        Currently, this function works only for vertex-nodes.
      */
-
+    /*
     [[deprecated("should not need global numbers")]]                    
     size_t GetGlobalNodeNum (NodeId node) const;
-
+    */
+    
     size_t GetGlobalVertexNum (int locnum) const;
     
     FlatArray<int> GetDistantProcs (NodeId node) const
@@ -1357,21 +1327,21 @@ namespace ngcomp
       for (auto p : GetDistantProcs(Node(nt, i)))
         dist_data[p][cnt[p]++] = data[i];
 
-    Array<NG_MPI_Request> requests;
+    NgMPI_Requests requests;
     for (auto i : cnt.Range())
       if (cnt[i])
 	{
-	  requests.Append (comm.ISend(dist_data[i], i, NG_MPI_TAG_SOLVE));
-	  requests.Append (comm.IRecv(recv_data[i], i, NG_MPI_TAG_SOLVE));
+	  requests += comm.ISend(dist_data[i], i, NG_MPI_TAG_SOLVE);
+	  requests += comm.IRecv(recv_data[i], i, NG_MPI_TAG_SOLVE);
 	}
-    MyMPI_WaitAll (requests);
+    requests.WaitAll();
     
     cnt = 0;
-    NG_MPI_Datatype type = GetMPIType<T>();
+    auto type = GetMPIType<T>();
     for (auto i : Range(GetNNodes(nt)))
       for (auto p : GetDistantProcs(Node(nt, i)))
         NG_MPI_Reduce_local (&recv_data[p][cnt[p]++],
-                          &data[i], 1, type, op);
+                             &data[i], 1, type, op);
   }
 
 

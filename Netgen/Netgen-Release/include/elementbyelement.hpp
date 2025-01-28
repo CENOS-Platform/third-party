@@ -11,6 +11,10 @@
    Element by element matrix
 */
 
+
+#include "basematrix.hpp"
+#include "blockjacobi.hpp"
+
 namespace ngla
 {
 
@@ -145,6 +149,8 @@ namespace ngla
     
     virtual AutoVector CreateRowVector () const override;
     virtual AutoVector CreateColVector () const override;
+
+    virtual shared_ptr<BaseSparseMatrix> CreateSparseMatrix() const override;
     
     FlatMatrix<SCAL> GetMatrix() const { return matrix; }
     FlatTable<int> GetRowDNums() const { return row_dnums; }

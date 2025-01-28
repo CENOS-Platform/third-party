@@ -26,7 +26,6 @@ struct SpecialBoundaryPoint
     GrowthGroup(const GrowthGroup&) = default;
     GrowthGroup() = default;
   };
-  // std::map<int, Vec<3>> normals;
   Array<GrowthGroup> growth_groups;
   Vec<3> separating_direction;
 
@@ -59,7 +58,9 @@ public:
   Array<int> new_mat_nrs;
   BitArray moved_surfaces;
   int np, nseg, nse, ne;
+  PointIndex npi;  // IndexBASE<PointIndex>+np
   double total_height;
+  Array<POINTTYPE, PointIndex> point_types;
 
   // These parameters are derived from given BoundaryLayerParameters and the Mesh
   Array<double> par_heights;
