@@ -1,4 +1,4 @@
-set(PACKAGE_VERSION "6.2.2406-126-g6b925b90d")
+set(PACKAGE_VERSION "6.2.2406-128-g084e6af39")
 find_package(Netgen CONFIG REQUIRED HINTS
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
@@ -76,8 +76,8 @@ if(NGSOLVE_USE_PYTHON)
     endif()
     add_library(${target} SHARED ${ARGN})
 
-    find_package(PythonInterp 3 REQUIRED)
-    find_package(PythonLibs 3 REQUIRED)
+    find_package(PythonInterp 3.10.5 EXACT REQUIRED)
+    find_package(PythonLibs 3.10.5 EXACT REQUIRED)
     target_include_directories(${target} PRIVATE ${PYTHON_INCLUDE_DIR})
 
     if(NETGEN_BUILD_FOR_CONDA AND NOT WIN32)
