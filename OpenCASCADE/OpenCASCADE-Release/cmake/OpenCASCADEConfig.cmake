@@ -13,7 +13,7 @@ set(OpenCASCADE_ALREADY_INCLUDED 1)
 # The OpenCASCADE version number
 set (OpenCASCADE_MAJOR_VERSION       "7")
 set (OpenCASCADE_MINOR_VERSION       "6")
-set (OpenCASCADE_MAINTENANCE_VERSION "3")
+set (OpenCASCADE_MAINTENANCE_VERSION "2")
 set (OpenCASCADE_DEVELOPMENT_VERSION "")
 
 # Compute the installation prefix from this OpenCASCADEConfig.cmake file 
