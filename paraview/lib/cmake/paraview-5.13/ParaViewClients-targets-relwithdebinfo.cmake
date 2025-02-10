@@ -5,6 +5,17 @@
 # Commands may need to know the format version.
 set(CMAKE_IMPORT_FILE_VERSION 1)
 
+# Import target "ParaView::ClientsWeb" for configuration "RelWithDebInfo"
+set_property(TARGET ParaView::ClientsWeb APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
+set_target_properties(ParaView::ClientsWeb PROPERTIES
+  IMPORTED_IMPLIB_RELWITHDEBINFO "${_IMPORT_PREFIX}/lib/vtkPVClientWeb-pv5.13.lib"
+  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELWITHDEBINFO "ParaView::RemotingApplication;ParaView::RemotingViews;VTK::CommonSystem"
+  IMPORTED_LOCATION_RELWITHDEBINFO "${_IMPORT_PREFIX}/bin/vtkPVClientWeb-pv5.13.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS ParaView::ClientsWeb )
+list(APPEND _IMPORT_CHECK_FILES_FOR_ParaView::ClientsWeb "${_IMPORT_PREFIX}/lib/vtkPVClientWeb-pv5.13.lib" "${_IMPORT_PREFIX}/bin/vtkPVClientWeb-pv5.13.dll" )
+
 # Import target "ParaView::Catalyst" for configuration "RelWithDebInfo"
 set_property(TARGET ParaView::Catalyst APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
 set_target_properties(ParaView::Catalyst PROPERTIES
