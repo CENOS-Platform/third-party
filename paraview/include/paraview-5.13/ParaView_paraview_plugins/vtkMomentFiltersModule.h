@@ -1,0 +1,47 @@
+
+#ifndef VTKMOMENTFILTERS_EXPORT_H
+#define VTKMOMENTFILTERS_EXPORT_H
+
+#ifdef VTKMOMENTFILTERS_STATIC_DEFINE
+#  define VTKMOMENTFILTERS_EXPORT
+#  define VTKMOMENTFILTERS_NO_EXPORT
+#else
+#  ifndef VTKMOMENTFILTERS_EXPORT
+#    ifdef MomentFilters_EXPORTS
+        /* We are building this library */
+#      define VTKMOMENTFILTERS_EXPORT __declspec(dllexport)
+#    else
+        /* We are using this library */
+#      define VTKMOMENTFILTERS_EXPORT __declspec(dllimport)
+#    endif
+#  endif
+
+#  ifndef VTKMOMENTFILTERS_NO_EXPORT
+#    define VTKMOMENTFILTERS_NO_EXPORT 
+#  endif
+#endif
+
+#ifndef VTKMOMENTFILTERS_DEPRECATED
+#  define VTKMOMENTFILTERS_DEPRECATED __declspec(deprecated)
+#endif
+
+#ifndef VTKMOMENTFILTERS_DEPRECATED_EXPORT
+#  define VTKMOMENTFILTERS_DEPRECATED_EXPORT VTKMOMENTFILTERS_EXPORT VTKMOMENTFILTERS_DEPRECATED
+#endif
+
+#ifndef VTKMOMENTFILTERS_DEPRECATED_NO_EXPORT
+#  define VTKMOMENTFILTERS_DEPRECATED_NO_EXPORT VTKMOMENTFILTERS_NO_EXPORT VTKMOMENTFILTERS_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef VTKMOMENTFILTERS_NO_DEPRECATED
+#    define VTKMOMENTFILTERS_NO_DEPRECATED
+#  endif
+#endif
+
+/* VTK-HeaderTest-Exclude: vtkMomentFiltersModule.h */
+
+/* Include ABI Namespace */
+#include "vtkABINamespace.h"
+
+#endif /* VTKMOMENTFILTERS_EXPORT_H */

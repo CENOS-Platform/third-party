@@ -193,53 +193,6 @@ set(_vtk_module_find_package_enabled OFF)
 set(_vtk_module_find_package_is_required OFF)
 set(_vtk_module_find_package_fail_if_not_found OFF)
 if (_vtk_module_find_package_components)
-  if ("ioss" IN_LIST _vtk_module_find_package_components)
-    set(_vtk_module_find_package_enabled ON)
-    if ("ioss" IN_LIST _vtk_module_find_package_components_required)
-      set(_vtk_module_find_package_is_required "${${CMAKE_FIND_PACKAGE_NAME}_FIND_REQUIRED}")
-      set(_vtk_module_find_package_fail_if_not_found ON)
-    endif ()
-  endif ()
-else ()
-  set(_vtk_module_find_package_enabled ON)
-  set(_vtk_module_find_package_is_required "${${CMAKE_FIND_PACKAGE_NAME}_FIND_REQUIRED}")
-  set(_vtk_module_find_package_fail_if_not_found ON)
-endif ()
-
-if (_vtk_module_find_package_enabled)
-  set(_vtk_module_find_package_required)
-  if (_vtk_module_find_package_is_required)
-    set(_vtk_module_find_package_required REQUIRED)
-  endif ()
-
-  find_package(Threads
-    
-    
-    
-    ${_vtk_module_find_package_quiet}
-    ${_vtk_module_find_package_required}
-    COMPONENTS          
-    OPTIONAL_COMPONENTS )
-  if (NOT Threads_FOUND AND _vtk_module_find_package_fail_if_not_found)
-    if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
-      message(STATUS
-        "Could not find the ${CMAKE_FIND_PACKAGE_NAME} package due to a "
-        "missing dependency: Threads")
-    endif ()
-    set("${CMAKE_FIND_PACKAGE_NAME}_ioss_FOUND" 0)
-    list(APPEND "${CMAKE_FIND_PACKAGE_NAME}_ioss_NOT_FOUND_MESSAGE"
-      "Failed to find the Threads package.")
-  endif ()
-endif ()
-
-unset(_vtk_module_find_package_fail_if_not_found)
-unset(_vtk_module_find_package_enabled)
-unset(_vtk_module_find_package_required)
-
-set(_vtk_module_find_package_enabled OFF)
-set(_vtk_module_find_package_is_required OFF)
-set(_vtk_module_find_package_fail_if_not_found OFF)
-if (_vtk_module_find_package_components)
   if ("exodusII" IN_LIST _vtk_module_find_package_components)
     set(_vtk_module_find_package_enabled ON)
     if ("exodusII" IN_LIST _vtk_module_find_package_components_required)
@@ -275,6 +228,53 @@ if (_vtk_module_find_package_enabled)
     endif ()
     set("${CMAKE_FIND_PACKAGE_NAME}_exodusII_FOUND" 0)
     list(APPEND "${CMAKE_FIND_PACKAGE_NAME}_exodusII_NOT_FOUND_MESSAGE"
+      "Failed to find the Threads package.")
+  endif ()
+endif ()
+
+unset(_vtk_module_find_package_fail_if_not_found)
+unset(_vtk_module_find_package_enabled)
+unset(_vtk_module_find_package_required)
+
+set(_vtk_module_find_package_enabled OFF)
+set(_vtk_module_find_package_is_required OFF)
+set(_vtk_module_find_package_fail_if_not_found OFF)
+if (_vtk_module_find_package_components)
+  if ("ioss" IN_LIST _vtk_module_find_package_components)
+    set(_vtk_module_find_package_enabled ON)
+    if ("ioss" IN_LIST _vtk_module_find_package_components_required)
+      set(_vtk_module_find_package_is_required "${${CMAKE_FIND_PACKAGE_NAME}_FIND_REQUIRED}")
+      set(_vtk_module_find_package_fail_if_not_found ON)
+    endif ()
+  endif ()
+else ()
+  set(_vtk_module_find_package_enabled ON)
+  set(_vtk_module_find_package_is_required "${${CMAKE_FIND_PACKAGE_NAME}_FIND_REQUIRED}")
+  set(_vtk_module_find_package_fail_if_not_found ON)
+endif ()
+
+if (_vtk_module_find_package_enabled)
+  set(_vtk_module_find_package_required)
+  if (_vtk_module_find_package_is_required)
+    set(_vtk_module_find_package_required REQUIRED)
+  endif ()
+
+  find_package(Threads
+    
+    
+    
+    ${_vtk_module_find_package_quiet}
+    ${_vtk_module_find_package_required}
+    COMPONENTS          
+    OPTIONAL_COMPONENTS )
+  if (NOT Threads_FOUND AND _vtk_module_find_package_fail_if_not_found)
+    if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FIND_QUIETLY)
+      message(STATUS
+        "Could not find the ${CMAKE_FIND_PACKAGE_NAME} package due to a "
+        "missing dependency: Threads")
+    endif ()
+    set("${CMAKE_FIND_PACKAGE_NAME}_ioss_FOUND" 0)
+    list(APPEND "${CMAKE_FIND_PACKAGE_NAME}_ioss_NOT_FOUND_MESSAGE"
       "Failed to find the Threads package.")
   endif ()
 endif ()

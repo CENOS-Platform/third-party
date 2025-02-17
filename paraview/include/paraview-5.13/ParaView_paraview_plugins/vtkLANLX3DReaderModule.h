@@ -1,0 +1,47 @@
+
+#ifndef VTKLANLX3DREADER_EXPORT_H
+#define VTKLANLX3DREADER_EXPORT_H
+
+#ifdef VTKLANLX3DREADER_STATIC_DEFINE
+#  define VTKLANLX3DREADER_EXPORT
+#  define VTKLANLX3DREADER_NO_EXPORT
+#else
+#  ifndef VTKLANLX3DREADER_EXPORT
+#    ifdef vtkLANLX3DReader_EXPORTS
+        /* We are building this library */
+#      define VTKLANLX3DREADER_EXPORT __declspec(dllexport)
+#    else
+        /* We are using this library */
+#      define VTKLANLX3DREADER_EXPORT __declspec(dllimport)
+#    endif
+#  endif
+
+#  ifndef VTKLANLX3DREADER_NO_EXPORT
+#    define VTKLANLX3DREADER_NO_EXPORT 
+#  endif
+#endif
+
+#ifndef VTKLANLX3DREADER_DEPRECATED
+#  define VTKLANLX3DREADER_DEPRECATED __declspec(deprecated)
+#endif
+
+#ifndef VTKLANLX3DREADER_DEPRECATED_EXPORT
+#  define VTKLANLX3DREADER_DEPRECATED_EXPORT VTKLANLX3DREADER_EXPORT VTKLANLX3DREADER_DEPRECATED
+#endif
+
+#ifndef VTKLANLX3DREADER_DEPRECATED_NO_EXPORT
+#  define VTKLANLX3DREADER_DEPRECATED_NO_EXPORT VTKLANLX3DREADER_NO_EXPORT VTKLANLX3DREADER_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef VTKLANLX3DREADER_NO_DEPRECATED
+#    define VTKLANLX3DREADER_NO_DEPRECATED
+#  endif
+#endif
+
+/* VTK-HeaderTest-Exclude: vtkLANLX3DReaderModule.h */
+
+/* Include ABI Namespace */
+#include "vtkABINamespace.h"
+
+#endif /* VTKLANLX3DREADER_EXPORT_H */

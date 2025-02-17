@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget ParaView::Catalyst ParaView::Catalyst-private-kit-links ParaView::PythonCatalyst ParaView::InSitu)
+foreach(_expectedTarget ParaView::AdaptorsPython ParaView::ClientsWeb ParaView::Catalyst ParaView::Catalyst-private-kit-links ParaView::PythonCatalyst ParaView::InSitu)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -49,6 +49,17 @@ get_filename_component(_IMPORT_PREFIX "${_IMPORT_PREFIX}" PATH)
 if(_IMPORT_PREFIX STREQUAL "/")
   set(_IMPORT_PREFIX "")
 endif()
+
+# Create imported target ParaView::AdaptorsPython
+add_library(ParaView::AdaptorsPython INTERFACE IMPORTED)
+
+# Create imported target ParaView::ClientsWeb
+add_library(ParaView::ClientsWeb SHARED IMPORTED)
+
+set_target_properties(ParaView::ClientsWeb PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include/paraview-5.13"
+  INTERFACE_LINK_LIBRARIES "VTK::WebCore;VTK::WebGLExporter"
+)
 
 # Create imported target ParaView::Catalyst
 add_library(ParaView::Catalyst SHARED IMPORTED)
