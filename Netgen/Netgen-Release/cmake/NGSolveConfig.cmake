@@ -15,7 +15,7 @@ get_filename_component(NGSOLVE_PYTHON_DIR   "${NETGEN_PYTHON_DIR}"   ABSOLUTE)
 get_filename_component(NGSOLVE_RESOURCE_DIR "${NETGEN_RESOURCE_DIR}" ABSOLUTE)
 
 set(NGSOLVE_CXX_COMPILER "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/bin/Hostx64/x64/cl.exe")
-set(NGSOLVE_CMAKE_BUILD_TYPE "Release")
+set(NGSOLVE_CMAKE_BUILD_TYPE "RelWithDebInfo")
 
 set(NGSOLVE_CMAKE_THREAD_LIBS_INIT "")
 set(NGSOLVE_MKL_LIBRARIES "D:/source/cenos/backend/third-party/python/Library/lib/mkl_rt.lib")
