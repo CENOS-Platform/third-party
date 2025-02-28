@@ -67,10 +67,11 @@ public:
   Array<int> par_surfid;
   bool insert_only_volume_elements;
   map<string, string> par_new_mat;
+  bool have_material_map = false;
   Array<size_t> par_project_boundaries;
 
   bool have_single_segments;
-  Array<Segment> old_segments, segments, new_segments, new_segments_on_moved_bnd;
+  Array<Segment> old_segments, free_segments, segments, new_segments, new_segments_on_moved_bnd;
   Array<Element2d, SurfaceElementIndex> new_sels, new_sels_on_moved_bnd;
   Array<Array<PointIndex>, PointIndex> mapto;
   Array<PointIndex, PointIndex> mapfrom;
