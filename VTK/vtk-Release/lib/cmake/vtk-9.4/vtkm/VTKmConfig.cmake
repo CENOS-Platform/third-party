@@ -105,7 +105,7 @@ set(VTKm_ENABLE_TESTING_LIBRARY "ON")
 set(VTKm_USE_DEFAULT_TYPES_FOR_ASCENT "")
 
 # This is true when the package is still in the build directory (not installed)
-if(CMAKE_CURRENT_LIST_DIR STREQUAL "D:/source/third-party-builder/out/configure-release/VTK-build/lib/cmake/vtk-9.4/vtkm")
+if(CMAKE_CURRENT_LIST_DIR STREQUAL "D:/source/VTK-build/lib/cmake/vtk-9.4/vtkm")
   set(VTKm_PACKAGE_IN_BUILD TRUE)
 endif()
 
@@ -150,7 +150,7 @@ set(PACKAGE_PREFIX_DIR ${PACKAGE_PREFIX_DIR_save_vtkm})
 # Load the library exports, but only if not compiling VTK-m itself
 set_and_check(VTKm_CONFIG_DIR "${PACKAGE_PREFIX_DIR}/lib/cmake/vtk-9.4/vtkm")
 set(VTKM_FROM_INSTALL_DIR FALSE)
-if(NOT "${CMAKE_BINARY_DIR}" STREQUAL "D:/source/third-party-builder/out/configure-release/VTK-build/ThirdParty/vtkm/vtkvtkm/vtk-m")
+if(NOT "${CMAKE_BINARY_DIR}" STREQUAL "D:/source/VTK-build/ThirdParty/vtkm/vtkvtkm/vtk-m")
   set(VTKM_FROM_INSTALL_DIR TRUE)
   include(${VTKm_CONFIG_DIR}/VTKmTargets.cmake)
 

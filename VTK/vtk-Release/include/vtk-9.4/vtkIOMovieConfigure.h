@@ -7,6 +7,6 @@
 /* #undef VTK_USE_VIDEO_FOR_WINDOWS */
 
 // If defined, `vtkMP4Writer.h` is available.
-/* #undef VTK_USE_MICROSOFT_MEDIA_FOUNDATION */
+#define VTK_USE_MICROSOFT_MEDIA_FOUNDATION
 
 #endif

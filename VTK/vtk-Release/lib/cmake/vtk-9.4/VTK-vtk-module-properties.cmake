@@ -659,7 +659,7 @@ set_property(TARGET "VTK::IOMovie" PROPERTY "INTERFACE_vtk_module_optional_depen
 set_property(TARGET "VTK::IOMovie" PROPERTY "INTERFACE_vtk_module_implements" "")
 set_property(TARGET "VTK::IOMovie" PROPERTY "INTERFACE_vtk_module_implementable" "FALSE")
 set_property(TARGET "VTK::IOMovie" PROPERTY "INTERFACE_vtk_module_library_name" "vtkIOMovie")
-set_property(TARGET "VTK::IOMovie" PROPERTY "INTERFACE_vtk_module_headers" "${_vtk_module_import_prefix}/include/vtk-9.4/vtkIOMovieConfigure.h;${_vtk_module_import_prefix}/include/vtk-9.4/vtkGenericMovieWriter.h")
+set_property(TARGET "VTK::IOMovie" PROPERTY "INTERFACE_vtk_module_headers" "${_vtk_module_import_prefix}/include/vtk-9.4/vtkIOMovieConfigure.h;${_vtk_module_import_prefix}/include/vtk-9.4/vtkGenericMovieWriter.h;${_vtk_module_import_prefix}/include/vtk-9.4/vtkMP4Writer.h")
 set_property(TARGET "VTK::IOMovie" PROPERTY "INTERFACE_vtk_module_hierarchy" "${_vtk_module_import_prefix}/lib/vtk-9.4/hierarchy/VTK/vtkIOMovie-hierarchy.txt")
 set_property(TARGET "VTK::IOFDS" PROPERTY "INTERFACE_vtk_module_exclude_wrap" "FALSE")
 set_property(TARGET "VTK::IOFDS" PROPERTY "INTERFACE_vtk_module_include_marshal" "FALSE")

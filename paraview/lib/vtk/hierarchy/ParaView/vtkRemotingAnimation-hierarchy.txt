@@ -2457,6 +2457,8 @@ vtkLoopBooleanPolyDataFilter : vtkPolyDataAlgorithm ; vtkLoopBooleanPolyDataFilt
 vtkLoopBooleanPolyDataFilter::NoIntersectionOutputType : enum ; vtkLoopBooleanPolyDataFilter.h ; vtkFiltersGeneral
 vtkLoopBooleanPolyDataFilter::OperationType : enum ; vtkLoopBooleanPolyDataFilter.h ; vtkFiltersGeneral
 vtkLoopBooleanPolyDataFilter::Superclass = vtkPolyDataAlgorithm ; vtkLoopBooleanPolyDataFilter.h ; vtkFiltersGeneral
+vtkMP4Writer : vtkGenericMovieWriter ; vtkMP4Writer.h ; vtkIOMovie
+vtkMP4Writer::Superclass = vtkGenericMovieWriter ; vtkMP4Writer.h ; vtkIOMovie
 vtkMPIMToNSocketConnection : vtkObject ; vtkMPIMToNSocketConnection.h ; vtkRemotingCore
 vtkMPIMToNSocketConnection::Superclass = vtkObject ; vtkMPIMToNSocketConnection.h ; vtkRemotingCore
 vtkMPIMToNSocketConnectionPortInformation : vtkPVInformation ; vtkMPIMToNSocketConnectionPortInformation.h ; vtkRemotingCore

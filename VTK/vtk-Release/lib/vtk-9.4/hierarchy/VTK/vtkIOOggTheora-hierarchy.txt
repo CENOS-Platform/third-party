@@ -964,6 +964,8 @@ vtkLongLongArray::RealSuperclass = vtkAOSDataArrayTemplate<long long> ; vtkLongL
 vtkLongLongArray::Superclass = vtkDataArray ; vtkLongLongArray.h ; vtkCommonCore
 vtkLookupTable : vtkScalarsToColors ; vtkLookupTable.h ; vtkCommonCore
 vtkLookupTable::Superclass = vtkScalarsToColors ; vtkLookupTable.h ; vtkCommonCore
+vtkMP4Writer : vtkGenericMovieWriter ; vtkMP4Writer.h ; vtkIOMovie
+vtkMP4Writer::Superclass = vtkGenericMovieWriter ; vtkMP4Writer.h ; vtkIOMovie
 vtkMTimeType = vtkTypeUInt64 ; vtkType.h ; vtkCommonCore
 vtkMallocingFunction = * function ; vtkObjectBase.h ; vtkCommonCore
 vtkMappedDataArray<Scalar> : vtkTypedDataArray<Scalar> ; vtkMappedDataArray.h ; vtkCommonCore
