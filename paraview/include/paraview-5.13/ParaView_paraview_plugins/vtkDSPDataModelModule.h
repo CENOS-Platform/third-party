@@ -1,0 +1,47 @@
+
+#ifndef VTKDSPDATAMODEL_EXPORT_H
+#define VTKDSPDATAMODEL_EXPORT_H
+
+#ifdef VTKDSPDATAMODEL_STATIC_DEFINE
+#  define VTKDSPDATAMODEL_EXPORT
+#  define VTKDSPDATAMODEL_NO_EXPORT
+#else
+#  ifndef VTKDSPDATAMODEL_EXPORT
+#    ifdef DSPDataModel_EXPORTS
+        /* We are building this library */
+#      define VTKDSPDATAMODEL_EXPORT 
+#    else
+        /* We are using this library */
+#      define VTKDSPDATAMODEL_EXPORT 
+#    endif
+#  endif
+
+#  ifndef VTKDSPDATAMODEL_NO_EXPORT
+#    define VTKDSPDATAMODEL_NO_EXPORT 
+#  endif
+#endif
+
+#ifndef VTKDSPDATAMODEL_DEPRECATED
+#  define VTKDSPDATAMODEL_DEPRECATED __declspec(deprecated)
+#endif
+
+#ifndef VTKDSPDATAMODEL_DEPRECATED_EXPORT
+#  define VTKDSPDATAMODEL_DEPRECATED_EXPORT VTKDSPDATAMODEL_EXPORT VTKDSPDATAMODEL_DEPRECATED
+#endif
+
+#ifndef VTKDSPDATAMODEL_DEPRECATED_NO_EXPORT
+#  define VTKDSPDATAMODEL_DEPRECATED_NO_EXPORT VTKDSPDATAMODEL_NO_EXPORT VTKDSPDATAMODEL_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef VTKDSPDATAMODEL_NO_DEPRECATED
+#    define VTKDSPDATAMODEL_NO_DEPRECATED
+#  endif
+#endif
+
+/* VTK-HeaderTest-Exclude: vtkDSPDataModelModule.h */
+
+/* Include ABI Namespace */
+#include "vtkABINamespace.h"
+
+#endif /* VTKDSPDATAMODEL_EXPORT_H */

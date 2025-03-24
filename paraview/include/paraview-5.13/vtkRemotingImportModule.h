@@ -1,0 +1,47 @@
+
+#ifndef VTKREMOTINGIMPORT_EXPORT_H
+#define VTKREMOTINGIMPORT_EXPORT_H
+
+#ifdef VTKREMOTINGIMPORT_STATIC_DEFINE
+#  define VTKREMOTINGIMPORT_EXPORT
+#  define VTKREMOTINGIMPORT_NO_EXPORT
+#else
+#  ifndef VTKREMOTINGIMPORT_EXPORT
+#    ifdef RemotingImport_EXPORTS
+        /* We are building this library */
+#      define VTKREMOTINGIMPORT_EXPORT __declspec(dllexport)
+#    else
+        /* We are using this library */
+#      define VTKREMOTINGIMPORT_EXPORT __declspec(dllimport)
+#    endif
+#  endif
+
+#  ifndef VTKREMOTINGIMPORT_NO_EXPORT
+#    define VTKREMOTINGIMPORT_NO_EXPORT 
+#  endif
+#endif
+
+#ifndef VTKREMOTINGIMPORT_DEPRECATED
+#  define VTKREMOTINGIMPORT_DEPRECATED __declspec(deprecated)
+#endif
+
+#ifndef VTKREMOTINGIMPORT_DEPRECATED_EXPORT
+#  define VTKREMOTINGIMPORT_DEPRECATED_EXPORT VTKREMOTINGIMPORT_EXPORT VTKREMOTINGIMPORT_DEPRECATED
+#endif
+
+#ifndef VTKREMOTINGIMPORT_DEPRECATED_NO_EXPORT
+#  define VTKREMOTINGIMPORT_DEPRECATED_NO_EXPORT VTKREMOTINGIMPORT_NO_EXPORT VTKREMOTINGIMPORT_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef VTKREMOTINGIMPORT_NO_DEPRECATED
+#    define VTKREMOTINGIMPORT_NO_DEPRECATED
+#  endif
+#endif
+
+/* VTK-HeaderTest-Exclude: vtkRemotingImportModule.h */
+
+/* Include ABI Namespace */
+#include "vtkABINamespace.h"
+
+#endif /* VTKREMOTINGIMPORT_EXPORT_H */
