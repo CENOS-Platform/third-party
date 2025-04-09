@@ -105,7 +105,7 @@ set_target_properties(ngfem PROPERTIES
 add_library(ngcomp INTERFACE IMPORTED)
 
 set_target_properties(ngcomp PROPERTIES
-  INTERFACE_LINK_LIBRARIES "ngfem;ngla;ngbla;ngstd;\$<LINK_ONLY:>"
+  INTERFACE_LINK_LIBRARIES "ngfem;ngla;ngbla;ngstd;\$<LINK_ONLY:>;nggui"
 )
 
 # Create imported target ngsolve

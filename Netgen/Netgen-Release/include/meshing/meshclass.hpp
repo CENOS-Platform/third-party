@@ -148,9 +148,10 @@ namespace netgen
     int numvertices;
 
     /// geometric search tree for interval intersection search
-    unique_ptr<BoxTree<3>> elementsearchtree;
+    unique_ptr<BoxTree<3, ElementIndex>> elementsearchtree_vol;
+    unique_ptr<BoxTree<3, SurfaceElementIndex>> elementsearchtree_surf;
     /// time stamp for tree
-    mutable int elementsearchtreets;
+    mutable size_t elementsearchtreets[4];
 
     /// element -> face, element -> edge etc ...
     MeshTopology topology;
@@ -200,11 +201,11 @@ namespace netgen
 
     DLL_HEADER bool PointContainedIn2DElement(const Point3d & p,
 				   double lami[3],
-				   const int element,
+				   SurfaceElementIndex element,
 				   bool consider3D = false) const;
     DLL_HEADER bool PointContainedIn3DElement(const Point3d & p,
 				   double lami[3],
-				   const int element) const;
+				   ElementIndex element) const;
     DLL_HEADER bool PointContainedIn3DElementOld(const Point3d & p,
 				      double lami[3],
 				      const int element) const;
@@ -663,35 +664,48 @@ namespace netgen
 
 
     /// build box-search tree
-    DLL_HEADER void BuildElementSearchTree ();
+    DLL_HEADER void BuildElementSearchTree (int dim);
+    BoxTree<3, ElementIndex>* GetElementSearchTree () const
+    {
+        return elementsearchtree_vol.get();
+    }
+
+    BoxTree<3, SurfaceElementIndex>* GetSurfaceElementSearchTree () const
+    {
+      return elementsearchtree_surf.get();
+    }
 
     void SetPointSearchStartElement(const int el) const {ps_startelement = el;}
 
     /// gives element of point, barycentric coordinates
-    DLL_HEADER int GetElementOfPoint (const netgen::Point<3> & p,
-			   double * lami,
-			   bool build_searchtree = 0,
-			   const int index = -1,
-			   const bool allowindex = true) const;
-    DLL_HEADER int GetElementOfPoint (const netgen::Point<3> & p,
-			   double * lami,
-			   const NgArray<int> * const indices,
-			   bool build_searchtree = 0,
-			   const bool allowindex = true) const;
-    DLL_HEADER int GetSurfaceElementOfPoint (const netgen::Point<3> & p,
-				  double * lami,
-				  bool build_searchtree = 0,
-				  const int index = -1,
-				  const bool allowindex = true) const;
-    DLL_HEADER int GetSurfaceElementOfPoint (const netgen::Point<3> & p,
-				  double * lami,
-				  const NgArray<int> * const indices,
-				  bool build_searchtree = 0,
-				  const bool allowindex = true) const;
+    DLL_HEADER ElementIndex
+    GetElementOfPoint (const netgen::Point<3> & p,
+                       double * lami,
+                       bool build_searchtree = false,
+                       int index = -1,
+                       bool allowindex = true) const;
+    DLL_HEADER ElementIndex
+    GetElementOfPoint (const netgen::Point<3> & p,
+                       double * lami,
+                       std::optional<FlatArray<int>> indices,
+                       bool build_searchtree = 0,
+                       bool allowindex = true) const;
+    DLL_HEADER SurfaceElementIndex
+    GetSurfaceElementOfPoint (const netgen::Point<3> & p,
+                              double * lami,
+                              bool build_searchtree = false,
+                              int index = -1,
+                              bool allowindex = true) const;
+    DLL_HEADER SurfaceElementIndex
+    GetSurfaceElementOfPoint (const netgen::Point<3> & p,
+                              double * lami,
+                              std::optional<FlatArray<int>> indices,
+                              bool build_searchtree = false,
+                              bool allowindex = true) const;
 
     /// give list of vol elements which are int the box(p1,p2)
     void GetIntersectingVolEls(const Point3d& p1, const Point3d& p2, 
-			       NgArray<int> & locels) const;
+			       Array<ElementIndex> & locels) const;
 
     ///
     int AddFaceDescriptor(const FaceDescriptor& fd)
@@ -1036,7 +1050,6 @@ namespace netgen
   }
 
   DLL_HEADER void AddFacesBetweenDomains(Mesh & mesh);
-  
 }
 
 #endif // NETGEN_MESHCLASS_HPP
