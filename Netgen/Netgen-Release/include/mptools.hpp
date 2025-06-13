@@ -10,27 +10,32 @@
 #include <coefficient.hpp>
 #include <recursive_pol.hpp>
 
-namespace ngfem
+
+namespace ngcomp
 {
+  class Region;
+}
 
-
+namespace ngsbem
+{
+  using namespace ngfem;
   
+
+  template <typename entry_type = Complex>
   class NGS_DLL_HEADER SphericalHarmonics
   {
     int order;
-    Vector<Complex> coefs;
+    Vector<entry_type> coefs;
 
   public:
     SphericalHarmonics (int aorder)
       : order(aorder), coefs(sqr(order+1)) { coefs=0.0; }
 
     int Order() const { return order; }
-    FlatVector<Complex> Coefs() const { return coefs; }
-
-    Complex & Coef(int n, int m)
-    {
-      return coefs(n*(n+1) + m);  
-    }
+    FlatVector<entry_type> Coefs() const { return coefs; }
+    
+    entry_type & Coef(int n, int m) { return coefs(n*(n+1) + m); }
+    entry_type Coef(int n, int m) const { return coefs(n*(n+1) + m); }    
 
     auto CoefsN (int n) const
     {
@@ -53,29 +58,29 @@ namespace ngfem
       return { theta, phi };
     }
     
-    Complex Eval (Vec<3> x) const
+    entry_type Eval (Vec<3> x) const
     {
       auto [theta, phi] = Polar(x);
       return Eval(theta, phi);
     }
   
-    Complex Eval (double theta, double phi) const;
+    entry_type Eval (double theta, double phi) const;
     
-    Complex EvalOrder (int n, Vec<3> x) const
+    entry_type EvalOrder (int n, Vec<3> x) const
     {
       auto [theta, phi] = Polar (x);
       return EvalOrder(n, theta, phi);
     }
   
-    Complex EvalOrder (int n, double theta, double phi) const;
+    entry_type EvalOrder (int n, double theta, double phi) const;
 
-    void EvalOrders (Vec<3> x, FlatVector<Complex> vals) const
+    void EvalOrders (Vec<3> x, FlatVector<entry_type> vals) const
     {
       auto [theta, phi] = Polar(x);
       return EvalOrders(theta, phi, vals);
     }
   
-    void EvalOrders (double theta, double phi, FlatVector<Complex> vals) const;
+    void EvalOrders (double theta, double phi, FlatVector<entry_type> vals) const;
     
     void Calc (Vec<3> x, FlatVector<Complex> shapes);
 
@@ -106,7 +111,7 @@ namespace ngfem
     
     // Nail A. Gumerov and Ramani Duraiswami book, formula (2.2.12)
     // add directional derivative divided by kappa to res, both multipoles need same scaling
-    void DirectionalDiffAdd (Vec<3> d, SphericalHarmonics & res, double scale = 1);
+    void DirectionalDiffAdd (Vec<3> d, SphericalHarmonics<entry_type> & res, double scale = 1) const;
 
   };
 
@@ -162,13 +167,13 @@ namespace ngfem
       values(i) = (2*i-1)/rho * values(i-1) - values(i-2);
     */
     
-    if (rho < 1e-8)
+    if (rho < 1e-100)
       {
         values = Complex(0);
         return;
       }
     Vector j(n+1), y(n+1), jp(n+1), yp(n+1);
-    SBESJY (rho, n, j, y, jp, yp);
+    // SBESJY (rho, n, j, y, jp, yp);
 
     /*
     values = j + Complex(0,1) * y;
@@ -218,43 +223,75 @@ namespace ngfem
     {
       SphericalHankel1(order, r, scale,  values);
     }
+
+    template <typename T>
+    static void Eval (int order, double kappa, double r, double rtyp, T && values)
+    {
+      double scale = Scale(kappa, rtyp);
+      SphericalHankel1(order, r*kappa, scale,  values);
+    }
+
+    static double Scale (double kappa, double rtyp)
+    {
+      // return min(1.0, rtyp*kappa);
+      return min(1.0, 0.5*rtyp*kappa);      
+    }
   };
+
+
   
   // jn
   class MPRegular
   {
-  public:    
+  public:
     template <typename T>
     static void Eval (int order, double r, double scale, T && values)
     {
       SphericalBessel (order, r, 1.0/scale, values);
     }
+
+    template <typename T>
+    static void Eval (int order, double kappa, double r, double rtyp, T && values)
+    {
+      double scale = Scale(kappa, rtyp);
+      SphericalBessel (order, r*kappa, 1.0/scale, values);      
+    }
+
+    static double Scale (double kappa, double rtyp)
+    {
+      // return 1.0/ min(1.0, 0.25*rtyp*kappa);
+      return 1.0/ min(1.0, 0.5*rtyp*kappa);
+    }
+    
   };
   
   
 
 
-  template <typename RADIAL>
+  template <typename RADIAL, typename entry_type=Complex>
   class NGS_DLL_HEADER MultiPole
   {
-    SphericalHarmonics sh;
+    SphericalHarmonics<entry_type> sh;
     double kappa;
-    double scale;
+    double rtyp;
   public:
-    MultiPole (int aorder, double akappa, double ascale = 1) 
-      : sh(aorder), kappa(akappa), scale(ascale) { }
 
-    Complex & Coef(int n, int m) { return sh.Coef(n,m); }
+    MultiPole (int aorder, double akappa, double artyp) 
+    : sh(aorder), kappa(akappa), rtyp(artyp) { }
+
+  
+    entry_type & Coef(int n, int m) { return sh.Coef(n,m); }
     auto & SH() { return sh; }
     const auto & SH() const { return sh; }
     double Kappa() const { return kappa; }
-    double Scale() const { return scale; }    
+    double Scale() const { return RADIAL::Scale(kappa, rtyp); }
+    double RTyp() const { return rtyp; }
     int Order() const { return sh.Order(); }
     
-    MultiPole<RADIAL> Truncate(int neworder) const
+    MultiPole Truncate(int neworder) const
     {
       if (neworder > sh.Order()) neworder=sh.Order();
-      MultiPole nmp(neworder, kappa);
+      MultiPole nmp(neworder, kappa, rtyp);
       nmp.sh.Coefs() = sh.Coefs().Range(sqr(neworder+1));
       return nmp;
     }
@@ -266,20 +303,34 @@ namespace ngfem
       return *this;
     }
     
-    Complex Eval (Vec<3> x) const;
+    entry_type Eval (Vec<3> x) const;
+    entry_type EvalDirectionalDerivative (Vec<3> x, Vec<3> d) const;
 
-    void AddCharge (Vec<3> x, Complex c);
-    void AddDipole (Vec<3> x, Vec<3> d, Complex c);
+    void AddCharge (Vec<3> x, entry_type c);
+    void AddDipole (Vec<3> x, Vec<3> d, entry_type c);
+    void AddCurrent (Vec<3> ap, Vec<3> ep, Complex j, int num=100);
     
-    
+    /*
     void ChangeScaleTo (double newscale)
     {
-      double fac = scale/newscale;
+      double fac = Scale()/newscale;
       double prod = 1;
       for (int n = 0; n <= sh.Order(); n++, prod*= fac)
         sh.CoefsN(n) *= prod;
       scale = newscale;
     }
+    */
+    void ChangeRTypTo (double new_rtyp)
+    {
+      // double fac = Scale()/newscale;
+      double fac = RADIAL::Scale(kappa, rtyp) / RADIAL::Scale(kappa, new_rtyp);
+      double prod = 1;
+      for (int n = 0; n <= sh.Order(); n++, prod*= fac)
+        sh.CoefsN(n) *= prod;
+      // scale = newscale;
+      rtyp = new_rtyp;
+    }
+    
 
     Vector<double> Spectrum (bool scaled) const
     {
@@ -288,14 +339,14 @@ namespace ngfem
       for (int n = 0; n <= Order(); n++)
         {
           spec(n) = fac * L2Norm2(sh.CoefsN(n));
-          if (!scaled) fac *= sqr(scale);
+          if (!scaled) fac *= sqr(Scale());
         }
       return spec;
     }
 
     
     template <typename TARGET>
-    void Transform (MultiPole<TARGET> & target, Vec<3> dist) const
+    void Transform (MultiPole<TARGET,entry_type> & target, Vec<3> dist) const
     {
       if (target.SH().Order() < 0) return;
       if (SH().Order() < 0)
@@ -304,8 +355,8 @@ namespace ngfem
           return;
         }
       
-      static Timer t("mptool Transform "+ToString(typeid(RADIAL).name())+ToString(typeid(TARGET).name()));      
-      RegionTimer reg(t);
+      // static Timer t("mptool Transform "+ToString(typeid(RADIAL).name())+ToString(typeid(TARGET).name()));      
+      // RegionTimer reg(t);
       
       double len = L2Norm(dist);
       double theta, phi;
@@ -321,7 +372,10 @@ namespace ngfem
         phi = atan2(dist(1), dist(0));
         
       
-      MultiPole<RADIAL> tmp(*this);
+      // MultiPole<RADIAL,entry_type> tmp{*this};
+      MultiPole<RADIAL,entry_type> tmp(Order(), kappa, rtyp);
+      tmp.SH().Coefs() = SH().Coefs();
+      
       tmp.SH().RotateZ(phi);
       tmp.SH().RotateY(theta);
 
@@ -332,18 +386,18 @@ namespace ngfem
     }
     
     template <typename TARGET>
-    void TransformAdd (MultiPole<TARGET> & target, Vec<3> dist) const
+    void TransformAdd (MultiPole<TARGET,entry_type> & target, Vec<3> dist) const
     {
       if (SH().Order() < 0) return;
       if (target.SH().Order() < 0) return;      
       
-      MultiPole<TARGET> tmp{target};
+      MultiPole<TARGET,entry_type> tmp{target};
       Transform(tmp, dist);
       target.SH().Coefs() += tmp.SH().Coefs();
     }
 
     template <typename TARGET>
-    void ShiftZ (double z, MultiPole<TARGET> & target);
+    void ShiftZ (double z, MultiPole<TARGET,entry_type> & target);
     
   };
   
@@ -351,12 +405,14 @@ namespace ngfem
 
   // ***************** parameters ****************
 
-  static int MPOrder (double rho_kappa)
+  static constexpr int MPOrder (double rho_kappa)
   {
     return max (20, int(2*rho_kappa));
   }
   static constexpr int maxdirect = 100;
 
+
+  template <typename entry_type=Complex>
   class SingularMLMultiPole
   {
     static Array<size_t> nodes_on_level;    
@@ -367,17 +423,16 @@ namespace ngfem
       double r;
       int level;
       std::array<unique_ptr<Node>,8> childs;
-      MultiPole<MPSingular> mp;
+      MultiPole<MPSingular, entry_type> mp;
 
-      Array<tuple<Vec<3>, Complex>> charges;
-      Array<tuple<Vec<3>, Vec<3>, Complex>> dipoles;
+      Array<tuple<Vec<3>, entry_type>> charges;
+      Array<tuple<Vec<3>, Vec<3>, entry_type>> dipoles;
+      Array<tuple<Vec<3>, Vec<3>, Complex,int>> currents;
       int total_sources;
       
-      Node (Vec<3> acenter, double ar, int alevel, int order, double kappa)
-        : center(acenter), r(ar), level(alevel), mp(MPOrder(ar*kappa), kappa, min(1.0, 1*r*kappa))
-          // : center(acenter), r(ar), level(alevel), mp(MPOrder(ar*kappa), kappa, 1.0)
+      Node (Vec<3> acenter, double ar, int alevel, double akappa)
+        : center(acenter), r(ar), level(alevel), mp(MPOrder(ar*akappa), akappa, ar) // min(1.0, ar*akappa))
       {
-        // cout << "singml, add node, level = " << level << endl;
         if (level < nodes_on_level.Size())
           nodes_on_level[level]++;
       }
@@ -392,12 +447,12 @@ namespace ngfem
             cc(0) += (i&1) ? r/2 : -r/2;
             cc(1) += (i&2) ? r/2 : -r/2;
             cc(2) += (i&4) ? r/2 : -r/2;
-            childs[i] = make_unique<Node> (cc, r/2, level+1, max(mp.SH().Order()/2, 8), mp.Kappa());
+            childs[i] = make_unique<Node> (cc, r/2, level+1, mp.Kappa());
           }
       }
       
 
-      void AddCharge (Vec<3> x, Complex c)
+      void AddCharge (Vec<3> x, entry_type c)
       {
         if (childs[0])
           {
@@ -412,7 +467,8 @@ namespace ngfem
 
         charges.Append( tuple{x,c} );
 
-        if (r*mp.Kappa() < 1e-8) return;
+        // if (r*mp.Kappa() < 1e-8) return;
+        if (level > 20) return;
         if (charges.Size() < maxdirect && r*mp.Kappa() < 1)
           return;
 
@@ -422,13 +478,16 @@ namespace ngfem
           AddCharge (x,c);
         for (auto [x,d,c] : dipoles)
           AddDipole (x,d,c);
+        for (auto [sp,ep,j,num] : currents)
+          AddCurrent (sp,ep,j,num);
         
         charges.SetSize0();
-        dipoles.SetSize0();        
+        dipoles.SetSize0();
+        currents.SetSize0();
       }
 
 
-      void AddDipole (Vec<3> x, Vec<3> d, Complex c)
+      void AddDipole (Vec<3> x, Vec<3> d, entry_type c)
       {
         if (childs[0])
           {
@@ -453,15 +512,70 @@ namespace ngfem
           AddCharge (x,c);
         for (auto [x,d,c] : dipoles)
           AddDipole (x,d,c);
+        for (auto [sp,ep,j,num] : currents)
+          AddCurrent (sp,ep,j,num);
 
         charges.SetSize0();
         dipoles.SetSize0();        
+        currents.SetSize0();        
       }
 
-      
-      Complex Evaluate(Vec<3> p) const
+      void AddCurrent (Vec<3> sp, Vec<3> ep, Complex j, int num)
       {
-        Complex sum = 0;
+        if (childs[0])
+          {
+            // split line and send to childs
+            Array<double> split;
+            split.Append(0);
+            for (int i = 0; i < 3; i++)
+              if (sp(i) < center(i) != ep(i) < center(i))
+                split += (center(i)-sp(i)) / (ep(i)-sp(i));  // segment cuts i-th coordinate plane
+            split.Append(1);
+            BubbleSort(split);
+
+            for (int i = 0; i < split.Size()-1; i++)
+              if (split[i+1] > split[i])
+                {
+                  Vec<3> spi = sp + split[i]*(ep-sp);
+                  Vec<3> epi = sp + split[i+1]*(ep-sp);
+                  
+                  Vec<3> x = 0.5*(spi+epi);
+                  
+                  int childnum  = 0;
+                  if (x(0) > center(0)) childnum += 1;
+                  if (x(1) > center(1)) childnum += 2;
+                  if (x(2) > center(2)) childnum += 4;
+                  childs[childnum] -> AddCurrent(spi, epi, j, num);
+                }
+            return;
+          }
+        
+        currents.Append (tuple{sp,ep,j,num});
+
+        // if (currents.Size() < maxdirect || r < 1e-8)
+        if (currents.Size() < 4 || r < 1e-8)        
+          return;
+        
+        CreateChilds();
+
+        for (auto [x,c] : charges)
+          AddCharge (x,c);
+        for (auto [x,d,c] : dipoles)
+          AddDipole (x,d,c);
+        for (auto [sp,ep,j,num] : currents)
+          AddCurrent (sp,ep,j,num);
+
+        charges.SetSize0();
+        dipoles.SetSize0();
+        currents.SetSize0();
+      }
+
+
+      
+      
+      entry_type Evaluate(Vec<3> p) const
+      {
+        entry_type sum{0.0};
         if (childs[0])
           {
             for (auto & child : childs)
@@ -469,19 +583,73 @@ namespace ngfem
             return sum;
           }
 
-        for (auto [x,c] : charges)
-          if (double rho = L2Norm(p-x); rho > 0)
-            sum += c*(1/(4*M_PI))*exp(Complex(0,rho*mp.Kappa())) / rho;
+        // static Timer t("fmm direct eval"); RegionTimer reg(t);
+        if (mp.Kappa() < 1e-8)
+          {
+            for (auto [x,c] : charges)
+              if (double rho = L2Norm(p-x); rho > 0)
+                sum += (1/(4*M_PI))*Complex(1,rho*mp.Kappa()) / rho * c;
+          }
+        else
+          for (auto [x,c] : charges)
+            if (double rho = L2Norm(p-x); rho > 0)
+              sum += (1/(4*M_PI))*exp(Complex(0,rho*mp.Kappa())) / rho * c;
         
         for (auto [x,d,c] : dipoles)
           if (double rho = L2Norm(p-x); rho > 0)
             {
               Vec<3> drhodp = 1.0/rho * (p-x);
-              Complex dGdrho = c*(1/(4*M_PI))*exp(Complex(0,rho*mp.Kappa())) *
+              Complex dGdrho = (1/(4*M_PI))*exp(Complex(0,rho*mp.Kappa())) *
                 (Complex(0, mp.Kappa())/rho - 1.0/sqr(rho));
-              sum += dGdrho * InnerProduct(drhodp, d);
+              sum += dGdrho * InnerProduct(drhodp, d) * c;
             }
 
+        for (auto [sp,ep,j,num] : currents)
+          {
+            // should use explizit formula instead ...
+            
+            Vec<3> tau = ep-sp;
+            Vec<3> tau_num = 1.0/num *  tau;
+            for (int i = 0; i < num; i++)
+              {
+                Vec<3> x = sp+(i+0.5)*tau_num;
+                
+                if (double rho = L2Norm(p-x); rho > 0)
+                  {
+                    Vec<3> drhodp = 1.0/rho * (p-x);
+                    Complex dGdrho = (1/(4*M_PI))*exp(Complex(0,rho*mp.Kappa())) *
+                      (Complex(0, mp.Kappa())/rho - 1.0/sqr(rho));
+
+                    if constexpr (std::is_same<entry_type, Vec<3,Complex>>())
+                      sum += j*dGdrho * Cross(drhodp, tau_num);
+                  }
+              }
+          }
+        
+        return sum;
+      }
+
+      entry_type EvaluateDeriv(Vec<3> p, Vec<3> d) const
+      {
+        entry_type sum{0.0};
+        if (childs[0])
+        {
+            for (auto & child : childs)
+              sum += child->EvaluateDeriv(p, d);
+            return sum;
+        }
+
+        if (dipoles.Size())
+            throw Exception("EvaluateDeriv not implemented for dipoles in SingularMLMultiPole");
+
+        for (auto [x,c] : charges)
+          if (double rho = L2Norm(p-x); rho > 0)
+          {
+            Vec<3> drhodp = 1.0/rho * (p-x);
+            Complex dGdrho = (1/(4*M_PI))*exp(Complex(0,rho*mp.Kappa())) *
+            (Complex(0, mp.Kappa())/rho - 1.0/sqr(rho));
+            sum += dGdrho * InnerProduct(drhodp, d) * c;
+          }
         return sum;
       }
 
@@ -516,9 +684,9 @@ namespace ngfem
           }
         else
           {
-            if (charges.Size()+dipoles.Size() == 0)
+            if (charges.Size()+dipoles.Size()+currents.Size() == 0)
               {
-                mp = MultiPole<MPSingular> (-1, mp.Kappa());
+                mp = MultiPole<MPSingular,entry_type> (-1, mp.Kappa(), 1.);
                 return;
               }
 
@@ -527,10 +695,13 @@ namespace ngfem
             
             for (auto [x,d,c] : dipoles)
               mp.AddDipole (x-center, d, c);
+
+            for (auto [sp,ep,j,num] : currents)
+              mp.AddCurrent (sp-center, ep-center, j, num);
           }
       }
       
-      Complex EvaluateMP(Vec<3> p) const
+      entry_type EvaluateMP(Vec<3> p) const
       {
         if (charges.Size() || dipoles.Size())
           return Evaluate(p);
@@ -541,22 +712,43 @@ namespace ngfem
         if (!childs[0]) //  || level==1)
           return Evaluate(p);
           
-        Complex sum = 0.0;
+        entry_type sum{0.0};
         for (auto & child : childs)
           sum += child->EvaluateMP(p);
         return sum;
       }
-      
-      
-      void Print (ostream & ost) const
+
+      entry_type EvaluateMPDeriv(Vec<3> p, Vec<3> d) const
       {
-        ost << "c = " << center << ", r = " << r << endl;
+        // cout << "EvaluateMPDeriv Singular, p = " << p << ", d = " << d << ", r = " << r << ", center = " << center <<  endl;
+        // cout << "Norm: " << L2Norm(p-center) << " > " << 3*r << endl;
+        // cout << "charges.Size() = " << charges.Size() << ", dipoles.Size() = " << dipoles.Size() << endl;
+        if (charges.Size() || dipoles.Size() || !childs[0])
+          return EvaluateDeriv(p, d);
+
+        if (L2Norm(p-center) > 3*r)
+          return mp.EvalDirectionalDerivative(p-center, d);
+
+        entry_type sum{0.0};
+        for (auto & child : childs)
+          sum += child->EvaluateMPDeriv(p, d);
+        return sum;
+      }
+
+      void Print (ostream & ost, size_t childnr = -1) const
+      {
+        if (childnr == -1)
+          ost << "c = " << center << ", r = " << r << ", level = " << level << endl;
+        else
+          ost << "c = " << center << ", r = " << r << ", level = " << level << ", childnr = " << childnr << endl;
         // for (int i = 0; i < loc_pnts.Size(); i++)
         for (auto [x,c] : charges)
           ost << "xi = " << x << ", ci = " << c << endl;
+        for (auto [x,d,c] : dipoles)
+          ost << "xi = " << x << ", di = " << d << ", ci = " << c << endl;
 
         for (int i = 0; i < 8; i++)
-          if (childs[i]) childs[i] -> Print (ost);
+          if (childs[i]) childs[i] -> Print (ost, i);
       }
 
       double Norm () const
@@ -582,8 +774,8 @@ namespace ngfem
     bool havemp = false;
     
   public:
-    SingularMLMultiPole (Vec<3> center, double r, int order, double kappa)
-      : root(center, r, 0, order, kappa)
+    SingularMLMultiPole (Vec<3> center, double r, double kappa)
+      : root(center, r, 0, kappa)
     {
       nodes_on_level = 0;
       nodes_on_level[0] = 1;
@@ -591,14 +783,39 @@ namespace ngfem
 
     double Kappa() const { return root.mp.Kappa(); }
     
-    void AddCharge(Vec<3> x, Complex c)
+    void AddCharge(Vec<3> x, entry_type c)
     {
       root.AddCharge(x, c);
     }
 
-    void AddDipole(Vec<3> x, Vec<3> d, Complex c)
+    void AddDipole(Vec<3> x, Vec<3> d, entry_type c)
     {
       root.AddDipole(x, d, c);
+    }
+
+    void AddCurrent (Vec<3> sp, Vec<3> ep, Complex j, int num)
+    {
+      if constexpr (!std::is_same<entry_type, Vec<3,Complex>>())
+        throw Exception("AddCurrent needs a singular vectorial MP");
+      
+      root.AddCurrent (sp, ep, j, num);
+      /*
+         // for testing
+      Vec<3> tau = ep-sp;
+      Vec<3> tau_num = 1.0/num *  tau;
+      for (int i = 0; i < num; i++)
+        {
+          for (int k = 0; k < 3; k++)
+            {
+              Vec<3> ek{0.0}; ek(k) = 1;
+              Vec<3> cp = Cross(tau, ek);
+              Vec<3,Complex> source{0.0};
+              source(k) = j/double(num);
+              if constexpr (std::is_same<entry_type, Vec<3,Complex>>())
+                root.AddDipole (sp+(i+0.5)*tau_num, cp, source);
+            }
+        }
+      */
     }
 
     void Print (ostream & ost) const
@@ -628,13 +845,14 @@ namespace ngfem
       for (int i = 0; i <= maxlevel; i++)
         cout << "sing " <<  i << ": " << nodes_on_level[i] << endl;
       */
+      
       root.CalcTotalSources();
       root.CalcMP();
       
       havemp = true;
     }
 
-    Complex Evaluate (Vec<3> p) const
+    entry_type Evaluate (Vec<3> p) const
     {
       if (havemp)
         return root.EvaluateMP(p);
@@ -642,17 +860,20 @@ namespace ngfem
         return root.Evaluate(p);
     }
 
+    template <typename entry_type2>
     friend class RegularMLMultiPole;
   };
 
 
-  inline ostream & operator<< (ostream & ost, const SingularMLMultiPole & mlmp)
+  template <typename entry_type>
+  inline ostream & operator<< (ostream & ost, const SingularMLMultiPole<entry_type> & mlmp)
   {
     mlmp.Print(ost);
     return ost;
   }
 
 
+  template <typename elem_type=Complex>
   class NGS_DLL_HEADER RegularMLMultiPole
   {
     static Array<size_t> nodes_on_level;
@@ -663,14 +884,14 @@ namespace ngfem
       double r;
       int level;
       std::array<unique_ptr<Node>,8> childs;
-      MultiPole<MPRegular> mp;
+      MultiPole<MPRegular,elem_type> mp;
       Array<Vec<3>> targets;
       int total_targets;
 
-      Array<const SingularMLMultiPole::Node*> singnodes;
+      Array<const typename SingularMLMultiPole<elem_type>::Node*> singnodes;
 
-      Node (Vec<3> acenter, double ar, int alevel, int order, double kappa)
-        : center(acenter), r(ar), level(alevel), mp(MPOrder(ar*kappa), kappa, 1.0/min(1.0, 0.25*r*kappa))
+      Node (Vec<3> acenter, double ar, int alevel, double kappa)
+        : center(acenter), r(ar), level(alevel), mp(MPOrder(ar*kappa), kappa, ar) // 1.0/min(1.0, 0.25*r*kappa))
           // : center(acenter), r(ar), level(alevel), mp(MPOrder(ar*kappa), kappa, 1.0)
       {
         if (level < nodes_on_level.Size())
@@ -688,11 +909,11 @@ namespace ngfem
             cc(0) += (i&1) ? r/2 : -r/2;
             cc(1) += (i&2) ? r/2 : -r/2;
             cc(2) += (i&4) ? r/2 : -r/2;
-            childs[i] = make_unique<Node> (cc, r/2, level+1, max(mp.SH().Order()/2, 8), mp.Kappa());
+            childs[i] = make_unique<Node> (cc, r/2, level+1, mp.Kappa());
           }
       }
 
-      void AddSingularNode (const SingularMLMultiPole::Node & singnode, bool allow_refine)
+      void AddSingularNode (const typename SingularMLMultiPole<elem_type>::Node & singnode, bool allow_refine)
       {
         if (mp.SH().Order() < 0) return;
         if (singnode.mp.SH().Order() < 0) return;
@@ -781,15 +1002,15 @@ namespace ngfem
                   mp.TransformAdd (ch->mp, ch->center-center);
                 ch->LocalizeExpansion(allow_refine);
               }
-            mp = MultiPole<MPRegular>(-1, mp.Kappa());
+            mp = MultiPole<MPRegular,elem_type>(-1, mp.Kappa(), 1.);
             //mp.SH().Coefs()=0.0;
           }
       }
       
-      Complex Evaluate (Vec<3> p) const
+      elem_type Evaluate (Vec<3> p) const
       {
         // *testout << "eval p = " << p << ", level = " << level << ", center = " << center <<  ", r = " << r << endl;
-        Complex sum = 0.0;
+        elem_type sum{0.0};
         /*
         if (childs[0])
           {
@@ -810,9 +1031,31 @@ namespace ngfem
           sum = mp.Eval(p-center);
 
 
-        static Timer t("mptool direct evaluate"); RegionTimer r(t);
+        // static Timer t("mptool direct evaluate"); RegionTimer r(t);
         for (auto sn : singnodes)
           sum += sn->EvaluateMP(p);
+
+        return sum;
+      }
+
+      elem_type EvaluateDirectionalDerivative (Vec<3> p, Vec<3> d) const
+      {
+        elem_type sum{0.0};
+        // cout << "EvaluateDirectionalDerivative RegularMLMP, r = " << r << ", level = " << level << ", center = " << center << endl;
+        // cout << "Singnodes: " << singnodes.Size() << ", childs: " << childs[0] << endl;
+
+        int childnum = 0;
+        if (p(0) > center(0)) childnum += 1;
+        if (p(1) > center(1)) childnum += 2;
+        if (p(2) > center(2)) childnum += 4;
+        if (childs[childnum])
+          sum = childs[childnum]->EvaluateDirectionalDerivative(p, d);
+        else
+          sum = mp.EvalDirectionalDerivative(p-center, d);
+
+        static Timer t("mptool direct evaluate deriv"); RegionTimer r(t);
+        for (auto sn : singnodes)
+          sum += sn->EvaluateMPDeriv(p, d);
 
         return sum;
       }
@@ -850,7 +1093,8 @@ namespace ngfem
 
         targets.Append( x );
 
-        if (r*mp.Kappa() < 1e-8) return;
+        // if (r*mp.Kappa() < 1e-8) return;
+        if (level > 20) return;        
         if (targets.Size() < maxdirect && r*mp.Kappa() < 1)
           return;
 
@@ -883,17 +1127,31 @@ namespace ngfem
             }
 
         if (total_targets == 0)
-          mp = MultiPole<MPRegular>(-1, mp.Kappa());
+          mp = MultiPole<MPRegular,elem_type>(-1, mp.Kappa(),1.);
       }
       
+
+      void Print (ostream & ost, size_t childnr = -1) const
+      {
+        if (childnr == -1)
+          ost << "c = " << center << ", r = " << r << ", level = " << level << endl;
+        else
+          ost << "c = " << center << ", r = " << r << ", level = " << level << ", childnr = " << childnr << endl;
+        for (auto x : targets)
+          ost << "xi = " << x << endl;
+
+        for (int i = 0; i < 8; i++)
+          if (childs[i]) childs[i] -> Print (ost, i);
+      }
+
     };
     
     Node root;
-    shared_ptr<SingularMLMultiPole> singmp;
+    shared_ptr<SingularMLMultiPole<elem_type>> singmp;
     
   public:
-    RegularMLMultiPole (shared_ptr<SingularMLMultiPole> asingmp, Vec<3> center, double r, int order)
-      : root(center, r, 0, order, asingmp->Kappa()), singmp(asingmp)
+  RegularMLMultiPole (shared_ptr<SingularMLMultiPole<elem_type>> asingmp, Vec<3> center, double r)
+      : root(center, r, 0, asingmp->Kappa()), singmp(asingmp)
     {
       if (!singmp->havemp) throw Exception("first call Calc for singular MP");
 
@@ -922,8 +1180,8 @@ namespace ngfem
       }
     }
 
-    RegularMLMultiPole (Vec<3> center, double r, int order, double kappa)
-      : root(center, r, 0, order, kappa)
+    RegularMLMultiPole (Vec<3> center, double r, double kappa)
+      : root(center, r, 0, kappa)
     {
       nodes_on_level = 0;
       nodes_on_level[0] = 1;
@@ -934,8 +1192,10 @@ namespace ngfem
       root.AddTarget (t);
     }
 
-    void CalcMP(shared_ptr<SingularMLMultiPole> asingmp)
+    void CalcMP(shared_ptr<SingularMLMultiPole<elem_type>> asingmp)
     {
+      static Timer t("mptool regular MLMP"); RegionTimer rg(t);
+      
       singmp = asingmp;
 
       root.CalcTotalTargets();
@@ -952,7 +1212,13 @@ namespace ngfem
         cout << "reg " << i << ": " << RegularMLMultiPole::nodes_on_level[i] << endl;
       */
 
+      static Timer tloc("mptool regular localize expansion"); RegionTimer rloc(tloc);      
       root.LocalizeExpansion(false);
+    }
+
+    void Print (ostream & ost) const
+    {
+      root.Print(ost);
     }
 
     double Norm() const
@@ -965,132 +1231,32 @@ namespace ngfem
       return root.NumCoefficients();
     }
 
-    Complex Evaluate (Vec<3> p) const
+    elem_type Evaluate (Vec<3> p) const
     {
       // static Timer t("mptool Eval MLMP regular"); RegionTimer r(t);
-      if (L2Norm(p-root.center) > root.r) return 0.0;
+      if (L2Norm(p-root.center) > root.r) return elem_type{0.0};
       return root.Evaluate(p);
     }
 
-    
-  };
-  
+    elem_type EvaluateDirectionalDerivative (Vec<3> p, Vec<3> d) const
+    {
+        if (L2Norm(p-root.center) > root.r) return elem_type{0.0};
+        return root.EvaluateDirectionalDerivative(p, d);
+    }
 
-  inline ostream & operator<< (ostream & ost, const RegularMLMultiPole & mlmp)
+  };
+
+  template <typename elem_type>
+  inline ostream & operator<< (ostream & ost, const RegularMLMultiPole<elem_type> & mlmp)
   {
-    // mlmp.Print(ost);
-    ost << "RegularMLMultiPole" << endl;
+    mlmp.Print(ost);
+    // ost << "RegularMLMultiPole" << endl;
     return ost;
   }
 
 
 
 
-
-  
-  // ******************** Coefficient Functions *********************
-
-  
-  class SphericalHarmonicsCF : public CoefficientFunction
-  {
-    SphericalHarmonics sh;
-  public:
-    SphericalHarmonicsCF (int order)
-      : CoefficientFunction(1, true), sh(order) { }
-    Complex & Coef(int n, int m) { return sh.Coef(n,m); } 
-    
-    virtual double Evaluate (const BaseMappedIntegrationPoint & ip) const override
-    { throw Exception("real eval not available"); }
-
-    virtual void Evaluate (const BaseMappedIntegrationPoint & mip, FlatVector<Complex> values) const override
-    {
-      values(0) = sh.Eval(mip.GetPoint());
-    }
-    
-    virtual void Evaluate (const BaseMappedIntegrationRule & ir, BareSliceMatrix<Complex> values) const override
-    {
-      for (int i = 0; i < ir.Size(); i++)
-        {
-          auto & mip = ir[i];
-          values(i,0) = sh.Eval(mip.GetPoint());
-        }
-    }
-
-    auto & SH() { return sh; }
-  };
-
-
-
-  template <typename RADIAL>
-  class MultiPoleCF : public CoefficientFunction
-  {
-    MultiPole<RADIAL> mp;
-    Vec<3> center;
-  public:
-    MultiPoleCF (int order, double kappa, Vec<3> acenter, double scale = 1)
-      : CoefficientFunction(1, true), mp(order, kappa, scale), center(acenter) { }
-
-    Complex & Coef(int n, int m) { return mp.Coef(n,m); } 
-    auto & SH() { return mp.SH(); }
-    auto & MP() { return mp; }
-    Vec<3> Center() const { return center; }
-    
-    virtual double Evaluate (const BaseMappedIntegrationPoint & ip) const override
-    { throw Exception("real eval not available"); }
-
-    virtual void Evaluate (const BaseMappedIntegrationPoint & mip, FlatVector<Complex> values) const override
-    {
-      values(0) = mp.Eval(mip.GetPoint()-center);
-    }
-
-    template <typename TARGET>
-    void ShiftZ (double z, MultiPole<TARGET> & target) { mp.ShiftZ(z, target); }
-
-    using CoefficientFunction::Transform;        
-    template <typename TARGET>
-    void Transform (MultiPoleCF<TARGET> & target)
-    {
-      mp.Transform (target.MP(), target.Center()-center);
-    }
-  };
-
-  
-  class SingularMLMultiPoleCF : public CoefficientFunction
-  {
-    shared_ptr<SingularMLMultiPole> mlmp;
-  public:
-    SingularMLMultiPoleCF (Vec<3> center, double r, int order, double kappa)
-      : CoefficientFunction(1, true), mlmp{make_shared<SingularMLMultiPole>(center, r, order, kappa)} { }
-    
-    virtual double Evaluate (const BaseMappedIntegrationPoint & ip) const override
-    { throw Exception("real eval not available"); }
-    
-    virtual void Evaluate (const BaseMappedIntegrationPoint & mip, FlatVector<Complex> values) const override
-    {
-      values(0) = mlmp->Evaluate(mip.GetPoint());
-    }
-    
-    shared_ptr<SingularMLMultiPole> MLMP() { return mlmp; }
-  };
-  
-
-  class RegularMLMultiPoleCF : public CoefficientFunction
-  {
-    shared_ptr<RegularMLMultiPole> mlmp;
-  public:
-    RegularMLMultiPoleCF (shared_ptr<SingularMLMultiPoleCF> asingmp, Vec<3> center, double r, int order)
-      : CoefficientFunction(1, true), mlmp{make_shared<RegularMLMultiPole>(asingmp->MLMP(), center, r, order)} { } 
-    
-    virtual double Evaluate (const BaseMappedIntegrationPoint & ip) const override
-    { throw Exception("real eval not available"); }
-
-    virtual void Evaluate (const BaseMappedIntegrationPoint & mip, FlatVector<Complex> values) const override
-    {
-      values(0) = mlmp->Evaluate(mip.GetPoint());
-    }
-
-    shared_ptr<RegularMLMultiPole> MLMP() { return mlmp; }
-  };
 
   
 }

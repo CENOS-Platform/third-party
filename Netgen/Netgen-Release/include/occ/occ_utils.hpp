@@ -1,15 +1,17 @@
 #ifndef FILE_OCC_UTILS_INCLUDED
 #define FILE_OCC_UTILS_INCLUDED
 
+
+
 #include <variant>
 
 // #pragma clang diagnostic push
 // #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
+#include <Standard_Version.hxx>
 #include <BRepGProp.hxx>
 #include <BRep_Tool.hxx>
 #include <GProp_GProps.hxx>
-#include <Standard_Version.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <TopoDS.hxx>
@@ -17,11 +19,17 @@
 #include <gp_Trsf.hxx>
 #include <gp_GTrsf.hxx>
 
+#define NETGEN_OCC_VERSION_AT_LEAST(MAJOR, MINOR) \
+  ((OCC_VERSION_MAJOR > MAJOR) ||                               \
+   ((OCC_VERSION_MAJOR == MAJOR) && (OCC_VERSION_MINOR >= MINOR)))
+#define NETGEN_OCC_VERSION_AT_LEAST_MAJOR(MAJOR) \
+  (NETGEN_OCC_VERSION_AT_LEAST(MAJOR, 0))
+
 // #pragma clang diagnostic pop
 
 #include "meshing.hpp"
 
-#if OCC_VERSION_MAJOR>=7 && OCC_VERSION_MINOR>=4
+#if NETGEN_OCC_VERSION_AT_LEAST(7, 4)
 #define OCC_HAVE_DUMP_JSON
 #endif
 

@@ -51,28 +51,94 @@ namespace ngla
                  FlatArray<TM> val, size_t h, size_t w)
   {
     static Timer t("SparseMatrix::CreateFromCOO"); RegionTimer r(t);
-    Array<int> cnt(h);
+    static Timer t1("SparseMatrix::CreateFromCOO 1");
+    static Timer t2("SparseMatrix::CreateFromCOO 2");
+    static Timer t3("SparseMatrix::CreateFromCOO 3");
 
     /*
-    cnt = 0;
-    for (auto i : indi) cnt[i]++;
-    */
+    {
+    Array<int> cnt(h);
 
+    t1.Start();
     DynamicTable<int> tab(h);
     for (size_t i = 0; i < indi.Size(); i++)
       tab.AddUnique(indi[i], indj[i]);
+    t1.Stop();
     for (size_t i = 0; i < h; i++)
       cnt[i] = tab.EntrySize(i);
     
     auto matrix = make_shared<SparseMatrix<TM>> (cnt, w);
+    t2.Start();
     for (auto k : ngstd::Range(indi))
       matrix->CreatePosition(indi[k], indj[k]);
+    t2.Stop();
     matrix->SetZero();
 
+    t3.Start();
     for (auto k : ngstd::Range(indi))
       (*matrix)(indi[k], indj[k]) += val[k];
+    t3.Stop();
+    // return matrix;
+    }
+    */
+    
+    Array<int> cnt(h);
+    cnt = 0;
+    for (auto i : indi)
+      cnt[i]++;
+    
+    Table<int> tab(cnt);
+    cnt = 0;
+    
+    for (auto [i,j] : Zip(indi, indj))
+      tab[i][cnt[i]++] = j;
 
-    return matrix;
+    cnt = 0;
+    // for (int i = 0; i < tab.Size(); i++)
+    ParallelFor (tab.Size(), [&] (size_t i)
+      {
+        QuickSort (tab[i]);
+
+        int prev = -1;
+        for (auto j : tab[i])
+          {
+            if (j != prev) cnt[i]++;
+            prev = j;
+          }
+      });
+    
+    auto matrix = make_shared<SparseMatrix<TM>> (cnt, w);
+    t2.Start();
+    // for (auto k : ngstd::Range(indi))
+    // matrix->CreatePosition(indi[k], indj[k]);
+
+    cnt = 0;
+    for (int i = 0; i < tab.Size(); i++)
+      {
+        int prev = -1;
+        for (auto j : tab[i])
+          {
+            auto cols = matrix->GetRowIndices(i);
+            if (j != prev)
+              cols[cnt[i]++] = j;
+            prev = j;
+          }
+      }
+    
+    t2.Stop();
+    matrix->SetZero();
+
+    t3.Start();
+    /*
+    for (auto k : ngstd::Range(indi))
+      (*matrix)(indi[k], indj[k]) += val[k];
+    */
+    ParallelFor (indi.Size(), [&](size_t k)
+    {
+      AtomicAdd ( (*matrix)(indi[k], indj[k]),  val[k]);
+    });
+    t3.Stop();
+    return matrix;    
   }
   
 

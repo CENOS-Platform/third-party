@@ -92,6 +92,7 @@ ANY                  1 1 1 1 | 15
 
 
   class FESpace;
+  class BilinearForm;
 
   // will be size_t some day 
   typedef int DofId;
@@ -255,7 +256,7 @@ ANY                  1 1 1 1 | 15
 
     virtual void UpdateDofTables() { ; } 
     virtual void UpdateCouplingDofArray() { ; } 
-
+    virtual void UpdateFreeDofs();
     /// update element coloring
     virtual void FinalizeUpdate();
 
@@ -639,7 +640,7 @@ ANY                  1 1 1 1 | 15
     /// Set multigrid prolongation
     // void SetProlongation (ngmg::Prolongation * aprol)
     // { prol = aprol; }
-
+    virtual void SetHarmonicProlongation (shared_ptr<BilinearForm> bfa, string inverse);
 
     /// returns function-evaluator
     shared_ptr<DifferentialOperator> GetEvaluator (VorB vb = VOL) const
@@ -1108,6 +1109,7 @@ ANY                  1 1 1 1 | 15
 
     /// copies dofcoupling from components
     void UpdateCouplingDofArray() override;
+    virtual void UpdateFreeDofs() override;
     
     void SetDefinedOn (VorB vb, const BitArray& defon) override;
 
