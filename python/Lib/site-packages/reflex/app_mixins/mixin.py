@@ -1,9 +1,10 @@
 """Default mixin for all app mixins."""
 
-from reflex.base import Base
+import dataclasses
 
 
-class AppMixin(Base):
+@dataclasses.dataclass
+class AppMixin:
     """Define the base class for all app mixins."""
 
     def _init_mixin(self):
@@ -11,4 +12,3 @@ class AppMixin(Base):
 
         Any App mixin can override this method to perform any initialization.
         """
-        ...
