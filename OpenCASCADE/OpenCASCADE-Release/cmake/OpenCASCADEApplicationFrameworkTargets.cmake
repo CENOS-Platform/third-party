@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget TKCDF TKLCAF TKCAF TKVCAF TKXmlL TKXml TKBinL TKBin)
+foreach(_expectedTarget TKCAF TKCDF TKLCAF TKVCAF TKBin TKBinL TKBinTObj TKStd TKXml TKXmlL TKXmlTObj TKStdL TKTObj)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -48,10 +48,19 @@ if(_IMPORT_PREFIX STREQUAL "/")
   set(_IMPORT_PREFIX "")
 endif()
 
+# Create imported target TKCAF
+add_library(TKCAF SHARED IMPORTED)
+
+set_target_properties(TKCAF PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
+  INTERFACE_LINK_LIBRARIES "TKernel;TKGeomBase;TKBRep;TKTopAlgo;TKMath;TKG2d;TKG3d;TKCDF;TKLCAF;TKBO"
+)
+
 # Create imported target TKCDF
 add_library(TKCDF SHARED IMPORTED)
 
 set_target_properties(TKCDF PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKernel"
 )
 
@@ -59,49 +68,88 @@ set_target_properties(TKCDF PROPERTIES
 add_library(TKLCAF SHARED IMPORTED)
 
 set_target_properties(TKLCAF PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKCDF;TKernel"
-)
-
-# Create imported target TKCAF
-add_library(TKCAF SHARED IMPORTED)
-
-set_target_properties(TKCAF PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKernel;TKGeomBase;TKBRep;TKTopAlgo;TKMath;TKG2d;TKG3d;TKCDF;TKLCAF;TKBO"
 )
 
 # Create imported target TKVCAF
 add_library(TKVCAF SHARED IMPORTED)
 
 set_target_properties(TKVCAF PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKernel;TKGeomBase;TKBRep;TKTopAlgo;TKMath;TKService;TKG2d;TKG3d;TKCDF;TKLCAF;TKBO;TKCAF;TKV3d"
-)
-
-# Create imported target TKXmlL
-add_library(TKXmlL SHARED IMPORTED)
-
-set_target_properties(TKXmlL PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKMath;TKLCAF"
-)
-
-# Create imported target TKXml
-add_library(TKXml SHARED IMPORTED)
-
-set_target_properties(TKXml PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKMath;TKBRep;TKG2d;TKGeomBase;TKG3d;TKLCAF;TKCAF;TKXmlL"
-)
-
-# Create imported target TKBinL
-add_library(TKBinL SHARED IMPORTED)
-
-set_target_properties(TKBinL PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKLCAF"
 )
 
 # Create imported target TKBin
 add_library(TKBin SHARED IMPORTED)
 
 set_target_properties(TKBin PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKG2d;TKG3d;TKCAF;TKCDF;TKLCAF;TKBinL"
+)
+
+# Create imported target TKBinL
+add_library(TKBinL SHARED IMPORTED)
+
+set_target_properties(TKBinL PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
+  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKLCAF"
+)
+
+# Create imported target TKBinTObj
+add_library(TKBinTObj SHARED IMPORTED)
+
+set_target_properties(TKBinTObj PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
+  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKTObj;TKMath;TKLCAF;TKBinL"
+)
+
+# Create imported target TKStd
+add_library(TKStd SHARED IMPORTED)
+
+set_target_properties(TKStd PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
+  INTERFACE_LINK_LIBRARIES "TKernel;TKCDF;TKCAF;TKLCAF;TKBRep;TKMath;TKG2d;TKG3d;TKStdL"
+)
+
+# Create imported target TKXml
+add_library(TKXml SHARED IMPORTED)
+
+set_target_properties(TKXml PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
+  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKMath;TKBRep;TKG2d;TKGeomBase;TKG3d;TKLCAF;TKCAF;TKXmlL"
+)
+
+# Create imported target TKXmlL
+add_library(TKXmlL SHARED IMPORTED)
+
+set_target_properties(TKXmlL PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
+  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKMath;TKLCAF"
+)
+
+# Create imported target TKXmlTObj
+add_library(TKXmlTObj SHARED IMPORTED)
+
+set_target_properties(TKXmlTObj PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
+  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKTObj;TKMath;TKLCAF;TKXmlL"
+)
+
+# Create imported target TKStdL
+add_library(TKStdL SHARED IMPORTED)
+
+set_target_properties(TKStdL PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
+  INTERFACE_LINK_LIBRARIES "TKernel;TKCDF;TKLCAF"
+)
+
+# Create imported target TKTObj
+add_library(TKTObj SHARED IMPORTED)
+
+set_target_properties(TKTObj PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
+  INTERFACE_LINK_LIBRARIES "TKCDF;TKernel;TKMath;TKLCAF"
 )
 
 if(CMAKE_VERSION VERSION_LESS 2.8.12)

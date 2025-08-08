@@ -52,6 +52,7 @@ endif()
 add_library(TKernel SHARED IMPORTED)
 
 set_target_properties(TKernel PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "advapi32.lib;gdi32.lib;user32.lib;wsock32.lib;psapi.lib"
 )
 
@@ -59,6 +60,7 @@ set_target_properties(TKernel PROPERTIES
 add_library(TKMath SHARED IMPORTED)
 
 set_target_properties(TKMath PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKernel"
 )
 

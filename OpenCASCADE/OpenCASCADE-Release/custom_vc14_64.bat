@@ -14,8 +14,9 @@ if /I "%VCVER%" == "vc14" (
     set "EGL_DIR="
     set "GLES2_DIR="
     set "TBB_DIR="
-    set "VTK_DIR=D:/source/cenos/backend/third-party/VTK/vtk-Release/bin"
+    set "VTK_DIR=D:/source/third-party-auto/VTK/vtk-Release/bin"
     set "FFMPEG_DIR="
+    set "JEMALLOC_DIR="
     set "OPENVR_DIR="
 
     if not "" == "" (
