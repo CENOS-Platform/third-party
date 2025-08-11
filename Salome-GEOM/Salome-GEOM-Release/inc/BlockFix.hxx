@@ -1,4 +1,4 @@
-// Copyright (C) 2007-2021  CEA/DEN, EDF R&D, OPEN CASCADE
+// Copyright (C) 2007-2025  CEA, EDF, OPEN CASCADE
 //
 // Copyright (C) 2003-2007  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,
 // CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
@@ -39,7 +39,10 @@ class BlockFix_CheckTool;
 class BlockFix {
 
 public:
-  Standard_EXPORT static  TopoDS_Shape RotateSphereSpace(const TopoDS_Shape& S,const Standard_Real Tol);
+  Standard_EXPORT static  TopoDS_Shape RotateSphereSpace
+                                      (const TopoDS_Shape& S,
+                                       const Standard_Real Tol,
+                                       const Standard_Boolean theTrySmallRotation = Standard_True);
   Standard_EXPORT static  TopoDS_Shape RefillProblemFaces(const TopoDS_Shape& S);
   Standard_EXPORT static  TopoDS_Shape FixRanges(const TopoDS_Shape& S,const Standard_Real Tol);
 

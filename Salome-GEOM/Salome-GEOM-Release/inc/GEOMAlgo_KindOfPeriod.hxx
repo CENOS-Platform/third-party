@@ -1,4 +1,7 @@
-// Copyright (C) 2007-2025  CEA, EDF, OPEN CASCADE
+// Copyright (C) 2007-2025  CEA/DEN, EDF R&D, OPEN CASCADE
+//
+// Copyright (C) 2003-2007  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,
+// CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -16,29 +19,18 @@
 //
 // See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 //
-// File:        GEOMAlgo_DataMapOfShapePnt.hxx
-// Created:     Wed Feb 22 11:10:15 2012
-// Author:
-//              <pkv@BDEURI37616>
+#ifndef _GEOMAlgo_KindOfPeriod_HeaderFile
+#define _GEOMAlgo_KindOfPeriod_HeaderFile
 
 
-#ifndef GEOMAlgo_DataMapOfShapePnt_HeaderFile
-#define GEOMAlgo_DataMapOfShapePnt_HeaderFile
+enum GEOMAlgo_KindOfPeriod {
+GEOMAlgo_KP_UNKNOWN,
+GEOMAlgo_KP_PERIODIC,
+GEOMAlgo_KP_NONPERIODIC
+};
 
-
-#include <TopoDS_Shape.hxx>
-#include <gp_Pnt.hxx>
-#include <TopTools_ShapeMapHasher.hxx>
-
-#define _NCollection_MapHasher
-#include <NCollection_DataMap.hxx>
-#include <gp_Pnt.hxx>
-
-typedef NCollection_DataMap<TopoDS_Shape, gp_Pnt, TopTools_ShapeMapHasher> GEOMAlgo_DataMapOfShapePnt;
-typedef GEOMAlgo_DataMapOfShapePnt::Iterator GEOMAlgo_DataMapIteratorOfDataMapOfShapePnt;
-
-#undef _NCollection_MapHasher
-
-
+#ifndef _Standard_PrimitiveTypes_HeaderFile
+#include <Standard_PrimitiveTypes.hxx>
+#endif
 
 #endif

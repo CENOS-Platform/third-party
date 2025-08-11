@@ -1,4 +1,4 @@
-// Copyright (C) 2007-2021  CEA/DEN, EDF R&D, OPEN CASCADE
+// Copyright (C) 2007-2025  CEA, EDF, OPEN CASCADE
 //
 // Copyright (C) 2003-2007  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,
 // CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
@@ -41,6 +41,8 @@
 #include <TopTools_MapOfShape.hxx>
 
 #include <BOPAlgo_Builder.hxx>
+
+#include <Basics_OCCTVersion.hxx>
 
 //=======================================================================
 //class    : GEOMAlgo_Splitter
@@ -85,7 +87,11 @@ class GEOMAlgo_Splitter : public BOPAlgo_Builder
     virtual void BuildResult(const TopAbs_ShapeEnum theType);
 
   Standard_EXPORT
+#if OCC_VERSION_LARGE < 0x07070000
     virtual void PostTreat();
+#else
+    virtual void PostTreat(const Message_ProgressRange& theRange);
+#endif
   
  protected:
   TopTools_ListOfShape myTools; 

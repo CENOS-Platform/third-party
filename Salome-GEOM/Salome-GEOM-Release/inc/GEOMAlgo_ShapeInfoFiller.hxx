@@ -1,4 +1,4 @@
-// Copyright (C) 2007-2021  CEA/DEN, EDF R&D, OPEN CASCADE
+// Copyright (C) 2007-2025  CEA, EDF, OPEN CASCADE
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -111,9 +111,6 @@ class GEOMAlgo_ShapeInfoFiller  : public GEOMAlgo_Algo
 
   Standard_EXPORT
     void FillDetails(const TopoDS_Face& aF,const gp_Cylinder& aCyl) ;
-
-  Standard_EXPORT
-    void FillDetails(const TopoDS_Face& aF,const gp_Cone& aCone) ;
 
   Standard_EXPORT
     void FillDetails(const TopoDS_Face& aF,const gp_Torus& aTorus) ;

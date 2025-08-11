@@ -1,4 +1,4 @@
-// Copyright (C) 2007-2021  CEA/DEN, EDF R&D, OPEN CASCADE
+// Copyright (C) 2007-2025  CEA, EDF, OPEN CASCADE
 //
 // Copyright (C) 2003-2007  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,
 // CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
@@ -42,6 +42,7 @@
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Edge.hxx>
+#include <TopoDS_Compound.hxx>
 
 #include <TopTools_ListOfShape.hxx>
 #include <TopTools_IndexedDataMapOfShapeListOfShape.hxx>
@@ -75,12 +76,16 @@ class GEOMAlgo_AlgoTools  {
 				       gp_Pnt& theP,
 				       gp_Pnt2d& theP2D) ;
 
+  //! Computes a set of points inside the face <theF>. <br>
+  //!          Returns 0 in case of success. <br>
+  Standard_EXPORT
+    static  Standard_Integer PointCloudInFace(const TopoDS_Face& theF,
+                                              const int          theNbPnts,
+                                              TopoDS_Compound&   theCompound) ;
+
   Standard_EXPORT
     static  Standard_Boolean IsCompositeShape(const TopoDS_Shape& aS) ;
 
-
-  Standard_EXPORT
-    static  Standard_Boolean BuildTriangulation(const TopoDS_Shape& aS) ;
 
   Standard_EXPORT
     static  Standard_Integer RefineSDShapes
