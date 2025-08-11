@@ -426,6 +426,20 @@ namespace ngcore
       else               return { a.Lo()!=b.Lo(), a.Hi()!=b.Hi() };
     }
 
+  template <int N>
+  NETGEN_INLINE SIMD<int64_t,N> operator& (SIMD<int64_t,N> a, SIMD<int64_t,N> b)
+    {
+      if constexpr(N==1) return a.Data() & b.Data();
+      else               return { (a.Lo()&b.Lo()), (a.Hi()&b.Hi()) };
+    }
+  template <int N>
+  NETGEN_INLINE SIMD<int64_t,N> operator| (SIMD<int64_t,N> a, SIMD<int64_t,N> b)
+    {
+      if constexpr(N==1) return a.Data() & b.Data();
+      else               return { (a.Lo()|b.Lo()), (a.Hi()|b.Hi()) };
+    }
+
+  
   // int64_t operators with scalar operand (implement overloads to allow implicit casts for second operand)
   template <int N>
   NETGEN_INLINE SIMD<int64_t,N> operator+ (SIMD<int64_t,N> a, int64_t b) { return a+SIMD<int64_t,N>(b); }
@@ -457,6 +471,7 @@ namespace ngcore
   NETGEN_INLINE SIMD<int64_t,N> & operator*= (SIMD<int64_t,N> & a, int64_t b) { a*=SIMD<int64_t,N>(b); return a; }
   template <int N>
   NETGEN_INLINE SIMD<int64_t,N> & operator/= (SIMD<int64_t,N> & a, SIMD<int64_t,N> b) { a = a/b; return a; }
+
 
   // double operators with scalar operand (implement overloads to allow implicit casts for second operand)
   template <int N>
@@ -490,6 +505,10 @@ namespace ngcore
   template <int N>
   NETGEN_INLINE SIMD<double,N> & operator/= (SIMD<double,N> & a, SIMD<double,N> b) { a = a/b; return a; }
 
+  template <int N>
+  NETGEN_INLINE auto operator> (SIMD<double,N> & a, double b) { return a > SIMD<double,N>(b); }
+
+  
   // double functions
 
   template <int N>
@@ -580,6 +599,69 @@ namespace ngcore
   }
 
 
+  template<typename T2, typename T1>
+  T2 BitCast(T1 a)
+  {
+    T2 result;
+    static_assert(sizeof(T1) == sizeof(T2), "BitCast requires same size");
+    memcpy(&result, &a, sizeof(T1));
+    return result;
+  }
+
+  template <typename T, typename T1, int N>
+  SIMD<T, N> Reinterpret (SIMD<T1,N> a)
+  {
+    if constexpr (N == 1)
+      return SIMD<T,N> ( * (T*)(void*) & a.Data());
+    else if constexpr (N == 2)
+      return SIMD<T,N> { BitCast<T> (a.Lo()),
+                         BitCast<T> (a.Hi()) };
+    else
+      return SIMD<T,N> (Reinterpret<T> (a.Lo()), Reinterpret<T> (a.Hi()));
+  }
+
+  
+  using std::round;  
+  template <int N>
+  SIMD<double,N> round (SIMD<double,N> x)
+  {
+    if constexpr (N == 1) return round(x);
+    else                  return { round(x.Lo()), round(x.Hi()) };
+  }
+
+  // NETGEN_INLINE int64_t RoundI (double x) { return lround(x); }
+  using std::lround;
+  template <int N>  
+  SIMD<int64_t,N> lround (SIMD<double,N> x)
+  {
+    if constexpr (N == 1) return SIMD<int64_t,1> (lround(x));
+    else                  return { lround(x.Lo()), lround(x.Hi()) };
+  }
+
+  /*
+    reciprocal square root 
+    Quake III algorithm, or intrinsics 
+   */
+  NETGEN_INLINE double rsqrt (double x) { return 1.0/sqrt(x); }
+  template <int N>  
+  SIMD<double,N> rsqrt (SIMD<double,N> x)
+  {
+    if constexpr (N == 1) return 1.0/sqrt(x.Data()); 
+    else                  return { rsqrt(x.Lo()), rsqrt(x.Hi()) };
+  }
+
+  template <int N>  
+  int64_t operator<< (int64_t a, IC<N> n) { return a << n.value; }
+  
+  template <int S, int N>
+  SIMD<int64_t,S> operator<< (SIMD<int64_t,S> a, IC<N> n)
+  {
+    if constexpr (S == 1) return SIMD<int64_t,1> (a.Data() << n);
+    else                  return SIMD<int64_t,S> (a.Lo() << n, a.Hi() << n);
+  }
+
+
+  
   template <typename T, int N>
   ostream & operator<< (ostream & ost, SIMD<T,N> simd)
   {
@@ -597,8 +679,11 @@ namespace ngcore
 
   using std::sqrt;
   template <int N>
-  NETGEN_INLINE ngcore::SIMD<double,N> sqrt (ngcore::SIMD<double,N> a) {
-    return ngcore::SIMD<double,N>([a](int i)->double { return sqrt(a[i]); } );
+  NETGEN_INLINE ngcore::SIMD<double,N> sqrt (ngcore::SIMD<double,N> a)
+  {
+    if constexpr (N == 1) return sqrt(a.Data());
+    else return { sqrt(a.Lo()), sqrt(a.Hi()) }; 
+    // return ngcore::SIMD<double,N>([a](int i)->double { return sqrt(a[i]); } );
   }
 
   using std::fabs;

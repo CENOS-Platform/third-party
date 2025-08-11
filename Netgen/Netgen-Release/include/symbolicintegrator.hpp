@@ -604,6 +604,7 @@ public:
 
   class SymbolicFacetLinearFormIntegrator : public FacetLinearFormIntegrator
   {
+  protected:
     shared_ptr<CoefficientFunction> cf;
     Array<ProxyFunction*> proxies;
     Array<CoefficientFunction*> cache_cfs;
@@ -614,7 +615,7 @@ public:
     SIMD_IntegrationRule simd_ir;   // if non-empty use this integration-rule
 
   public:
-    SymbolicFacetLinearFormIntegrator (shared_ptr<CoefficientFunction> acf, VorB avb);
+    NGS_DLL_HEADER SymbolicFacetLinearFormIntegrator (shared_ptr<CoefficientFunction> acf, VorB avb);
 
     virtual VorB VB() const override { return vb; }
     virtual bool BoundaryForm() const override { return vb == BND; }

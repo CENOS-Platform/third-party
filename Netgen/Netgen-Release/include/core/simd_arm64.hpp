@@ -30,6 +30,66 @@ namespace ngcore
     auto Hi() const { return mask[1]; }
   };
 
+
+  // *************************** int64 ***************************
+ 
+  template<>
+  class SIMD<int64_t,2>
+  {
+    int64x2_t data;
+  public:
+    static constexpr int Size() { return 2; }
+    SIMD() {}
+    SIMD (int64_t val) : data{val,val} {}
+    SIMD (int64_t v0, int64_t v1) : data{vcombine_s64(int64x1_t{v0}, int64x1_t{v1})} { }
+    SIMD (std::array<int64_t, 2> arr) : data{arr[0], arr[1]} { } 
+    
+    SIMD (int64x2_t _data) { data = _data; }
+
+    NETGEN_INLINE auto Data() const { return data; }
+    NETGEN_INLINE auto & Data() { return data; }
+
+    int64_t Lo() const { return Get<0>(); } 
+    int64_t Hi() const { return Get<1>(); } 
+    
+    int64_t operator[] (int i) const { return data[i]; }
+    int64_t & operator[] (int i)  { return ((int64_t*)&data)[i]; }
+
+    template <int I>
+    int64_t Get() const { return data[I]; }
+    static SIMD FirstInt(int n0=0) { return { n0+0, n0+1 }; }
+  };
+
+  NETGEN_INLINE SIMD<int64_t,2> operator& (SIMD<int64_t,2> a, SIMD<int64_t,2> b)
+  {
+    return vandq_s64(a.Data(), b.Data());
+  }
+
+  NETGEN_INLINE SIMD<int64_t,2> operator+ (SIMD<int64_t,2> a, SIMD<int64_t,2> b)
+  {
+    return vaddq_s64(a.Data(), b.Data());
+  }
+
+  NETGEN_INLINE SIMD<mask64,2> operator== (SIMD<int64_t> a, SIMD<int64_t> b)
+  {
+    return vceqq_u64(a.Data(), b.Data());
+  }
+  
+  NETGEN_INLINE SIMD<mask64,2> operator> (SIMD<int64_t> a, SIMD<int64_t> b)
+  {
+    return vcgtq_s64(a.Data(), b.Data());
+  }
+
+  
+  template <int N>
+  SIMD<int64_t,2> operator<< (SIMD<int64_t,2> a, IC<N> n)
+  {
+    return vshlq_n_s64(a.Data(), N);
+  }
+  
+  
+  
+  // *************************** double ***************************
   
   template<>
   class SIMD<double,2>
@@ -162,6 +222,16 @@ namespace ngcore
     auto tmp = vcmlaq_f64(c.Data(), a.Data(), b.Data());   // are * b
     c = vcmlaq_rot90_f64(tmp, a.Data(), b.Data());    // += i*aim * b
   }
+
+  NETGEN_INLINE void FMAComplex (SIMD<double,4> a, SIMD<double,4> b, SIMD<double,4> & c)
+  {
+    SIMD<double,2> clo = c.Lo();
+    SIMD<double,2> chi = c.Hi();
+    FMAComplex (a.Lo(), b.Lo(), clo);
+    FMAComplex (a.Hi(), b.Hi(), chi);
+    c = SIMD<double,4> (clo, chi);
+  }
+
   
 
   NETGEN_INLINE SIMD<double,2> operator+ (SIMD<double,2> a, SIMD<double,2> b)
@@ -178,6 +248,43 @@ namespace ngcore
   NETGEN_INLINE SIMD<double,2> operator/ (SIMD<double,2> a, SIMD<double,2> b)
   { return a.Data()/b.Data(); }
 
+  NETGEN_INLINE SIMD<double,2> sqrt (SIMD<double,2> x)
+  { return vsqrtq_f64(x.Data()); }
+
+  
+  NETGEN_INLINE SIMD<double,2> round (SIMD<double,2> x)
+  {
+    return vrndnq_f64(x.Data());
+  }
+  
+  NETGEN_INLINE SIMD<int64_t,2> lround (SIMD<double,2> x)
+  {
+    return vcvtq_s64_f64(x.Data());
+  }
+
+
+
+  NETGEN_INLINE SIMD<double,2> rsqrt (SIMD<double,2> x)
+  {
+    // return 1.0 / sqrt(x);
+  
+    SIMD<double,2> y = vrsqrteq_f64(x.Data());
+    auto x_half = 0.5*x;
+    y = y * (1.5 - (x_half * y * y));
+    y = y * (1.5 - (x_half * y * y));
+    // y = y * (1.5 - (x_half * y * y));
+    y = y + 0.5 * (x*y*y-1);
+    return y;
+  }
+  
+  
+  
+
+  template <>
+  NETGEN_INLINE SIMD<double,2> Reinterpret (SIMD<int64_t,2> a)
+  {
+    return vreinterpretq_f64_s64(a.Data());
+  }
 
   
   NETGEN_INLINE SIMD<double,2> If (SIMD<mask64,2> a, SIMD<double,2> b, SIMD<double,2> c)
@@ -188,7 +295,9 @@ namespace ngcore
   }
   NETGEN_INLINE SIMD<int64_t,2> If (SIMD<mask64,2> a, SIMD<int64_t,2> b, SIMD<int64_t,2> c)
   {
-    return SIMD<int64_t,2> (a[0] ? b[0] : c[0], a[1] ? b[1] : c[1]);
+    // return SIMD<int64_t,2> (a[0] ? b[0] : c[0], a[1] ? b[1] : c[1]);
+    uint64x2_t mask = vreinterpretq_u64_s64(a.Data());
+    return vbslq_s64(mask, b.Data(), c.Data());
   }
 
   NETGEN_INLINE SIMD<mask64,2> operator&& (SIMD<mask64,2> a, SIMD<mask64,2> b)

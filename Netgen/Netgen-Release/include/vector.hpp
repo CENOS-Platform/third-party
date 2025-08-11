@@ -701,7 +701,8 @@ namespace ngbla
     */
     
     Vec (const Vec &) = default;
-    auto & HTData() const { return data; }                                    
+    auto & HTData() { return data; }
+    const auto & HTData() const { return data; }                                        
     template <typename T2>
     Vec (const Vec<S,T2> & v2) : data(v2.HTData()) { ; }
 
@@ -920,7 +921,7 @@ namespace ngbla
   INLINE auto Cross (const TA & a, const TB & b)
   {
     typedef decltype (a(0)*b(0)) T;
-    return Vec<3,T>({ a(1)*b(2)-a(2)*b(1), a(2)*b(0)-a(0)*b(2), a(0)*b(1)-a(1)*b(0) });
+    return Vec<3,T>{ a(1)*b(2)-a(2)*b(1), a(2)*b(0)-a(0)*b(2), a(0)*b(1)-a(1)*b(0) };
   }
 
   template <typename S>
@@ -1196,9 +1197,21 @@ namespace ngbla
     for (int i = 0; i < DIM; i++)
       AtomicAdd (x(i), y(i));
   }
-  
 
+
+  template <typename T, typename TS, typename TDIST, typename TB>
+  inline void AtomicAdd (VectorView<T,TS,TDIST> v, const Expr<TB> & v2)
+  {
+    auto viewv2 = v2.View();
+    auto combsize = CombinedSize(v.Size(), v2.Height());
+    for (size_t i = 0; i < combsize; i++)
+      AtomicAdd (v(i), viewv2(i));
+  }
+
+  
 }
+
+
 
 namespace ngstd
 {
@@ -1214,6 +1227,34 @@ namespace ngstd
 
 namespace ngcore
 {
+
+  template <typename T, size_t S> class MakeSimdCl;
+  
+  template <typename T, size_t S, int VS>
+  class MakeSimdCl<ngbla::Vec<VS,T>,S>
+  {
+    std::array<ngbla::Vec<VS,T>,S> a;
+  public:
+    MakeSimdCl (std::array<ngbla::Vec<VS,T>,S> aa) : a(aa)  { ; }
+    
+    auto Get() const
+    {
+      std::array<T,S> ai;
+      ngbla::Vec<VS, decltype(MakeSimd(ai))> res;
+      for (int i = 0; i < VS; i++)
+        {
+          for (int j = 0; j < S; j++)
+            ai[j] = a[j](i);
+          res(i) = MakeSimd(ai);
+        }
+      return res;
+    }
+  };
+  
+  
+
+
+  
   template<typename T> struct MPI_typetrait;
   
   template<int S, typename T>
