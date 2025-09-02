@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget netgen_libs ngs_lapack netgen_python ngstd ngbla ngla ngfem ngsbem ngcomp ngsolve)
+foreach(_expectedTarget netgen_libs ngs_lapack ngstd ngbla ngla ngfem ngsbem ngcomp ngsolve)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -61,14 +61,6 @@ add_library(ngs_lapack INTERFACE IMPORTED)
 set_target_properties(ngs_lapack PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "D:/source/cenos/backend/third-party/python/Library/include"
   INTERFACE_LINK_LIBRARIES "D:/source/cenos/backend/third-party/python/Library/lib/mkl_rt.lib"
-)
-
-# Create imported target netgen_python
-add_library(netgen_python INTERFACE IMPORTED)
-
-set_target_properties(netgen_python PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "D:/source/cenos/backend/third-party/python/include"
-  INTERFACE_LINK_LIBRARIES "D:/source/cenos/backend/third-party/python/libs/python310.lib"
 )
 
 # Create imported target ngstd
