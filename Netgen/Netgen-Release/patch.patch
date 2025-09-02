@@ -1,0 +1,15 @@
+diff --git a/libsrc/occ/python_occ_shapes.cpp b/libsrc/occ/python_occ_shapes.cpp
+index baee9817..95eac9c8 100644
+--- a/libsrc/occ/python_occ_shapes.cpp
++++ b/libsrc/occ/python_occ_shapes.cpp
+@@ -880,7 +880,9 @@ DLL_HEADER void ExportNgOCCShapes(py::module &m)
+            return builder.Shape();
+          }, py::arg("p"), py::arg("s"),
+          "copy shape, and scale copy by factor 's'")
+-
++	.def("get_shape_capsule", [](const TopoDS_Shape &shape) {
++		return py::capsule(&shape, "TopoDS_Shape");
++	})
+     .def("WriteStep", [](const TopoDS_Shape & shape, string & filename)
+             { step_utils::WriteSTEP(shape, filename); }
+          , py::arg("filename"), "export shape in STEP - format")
