@@ -44,7 +44,9 @@ namespace ngsbem
 
 
 
-
+namespace ngsbem
+{
+  using namespace ngfem;
   
   inline std::tuple<double, double, double> SphericalCoordinates(Vec<3> dist){
     double len, theta, phi;
