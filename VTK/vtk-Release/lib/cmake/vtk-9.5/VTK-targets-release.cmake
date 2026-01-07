@@ -1781,6 +1781,17 @@ set_target_properties(VTK::IOCGNSReader PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS VTK::IOCGNSReader )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::IOCGNSReader "${_IMPORT_PREFIX}/lib/vtkIOCGNSReader-9.5.lib" "${_IMPORT_PREFIX}/bin/vtkIOCGNSReader-9.5.dll" )
 
+# Import target "VTK::IOAvmesh" for configuration "Release"
+set_property(TARGET VTK::IOAvmesh APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::IOAvmesh PROPERTIES
+  IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/lib/vtkIOAvmesh-9.5.lib"
+  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELEASE "VTK::CommonDataModel"
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/vtkIOAvmesh-9.5.dll"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::IOAvmesh )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::IOAvmesh "${_IMPORT_PREFIX}/lib/vtkIOAvmesh-9.5.lib" "${_IMPORT_PREFIX}/bin/vtkIOAvmesh-9.5.dll" )
+
 # Import target "VTK::IOAsynchronous" for configuration "Release"
 set_property(TARGET VTK::IOAsynchronous APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::IOAsynchronous PROPERTIES

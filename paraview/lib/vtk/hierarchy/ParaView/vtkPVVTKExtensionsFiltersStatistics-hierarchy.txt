@@ -269,6 +269,7 @@ vtkCellArray::StorageArrayList = vtkTypeList::Create<ArrayType32, ArrayType64> ;
 vtkCellArray::Superclass = vtkAbstractCellArray ; vtkCellArray.h ; vtkCommonDataModel
 vtkCellArrayIterator : vtkObject ; vtkCellArrayIterator.h ; vtkCommonDataModel
 vtkCellArrayIterator::Superclass = vtkObject ; vtkCellArrayIterator.h ; vtkCommonDataModel
+vtkCellArray_detail::CellPointAtIdImpl ; vtkCellArray.h ; vtkCommonDataModel ; WRAPEXCLUDE
 vtkCellArray_detail::GetCellAtIdImpl ; vtkCellArray.h ; vtkCommonDataModel ; WRAPEXCLUDE
 vtkCellArray_detail::GetCellAtIdImpl::CanShareConnPtr<CellStateT> ; vtkCellArray.h ; vtkCommonDataModel ; WRAPEXCLUDE
 vtkCellArray_detail::GetCellAtIdImpl::CanShareConnPtr<CellStateT>::AOSArrayType = vtkAOSDataArrayTemplate<ValueType> ; vtkCellArray.h ; vtkCommonDataModel
@@ -931,6 +932,9 @@ vtkIntArray : vtkDataArray ; vtkIntArray.h ; vtkCommonCore
 vtkIntArray::RealSuperclass = vtkAOSDataArrayTemplate<int> ; vtkIntArray.h ; vtkCommonCore
 vtkIntArray::Superclass = vtkDataArray ; vtkIntArray.h ; vtkCommonCore
 vtkIntersectionCounter ; vtkIntersectionCounter.h ; vtkCommonDataModel
+vtkInvoker : vtkObject ; vtkInvoker.h ; vtkCommonCore
+vtkInvoker::HandlerType = std::function<vtknlohmann::json(vtkInvoker *, vtkObjectBase *, const char *, const vtknlohmann::json &)> ; vtkInvoker.h ; vtkCommonCore
+vtkInvoker::Superclass = vtkObject ; vtkInvoker.h ; vtkCommonCore
 vtkIterativeClosestPointTransform : vtkLinearTransform ; vtkIterativeClosestPointTransform.h ; vtkCommonDataModel
 vtkIterativeClosestPointTransform::Superclass = vtkLinearTransform ; vtkIterativeClosestPointTransform.h ; vtkCommonDataModel
 vtkKMeansDistanceFunctor : vtkObject ; vtkKMeansDistanceFunctor.h ; vtkFiltersStatistics
@@ -1565,6 +1569,7 @@ vtkTypedDataArrayIterator<Scalar>::iterator_category = std::random_access_iterat
 vtkTypedDataArrayIterator<Scalar>::pointer = * Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
 vtkTypedDataArrayIterator<Scalar>::reference = & Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
 vtkTypedDataArrayIterator<Scalar>::value_type = Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
+vtkTypesDataObject : enum ; vtkType.h ; vtkCommonCore
 vtkUndirectedGraph : vtkGraph ; vtkUndirectedGraph.h ; vtkCommonDataModel
 vtkUndirectedGraph::Superclass = vtkGraph ; vtkUndirectedGraph.h ; vtkCommonDataModel
 vtkUndirectedGraphAlgorithm : vtkAlgorithm ; vtkUndirectedGraphAlgorithm.h ; vtkCommonExecutionModel

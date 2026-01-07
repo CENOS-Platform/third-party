@@ -282,6 +282,10 @@ vtkAxisAlignedReflectionFilter : vtkCompositeDataSetAlgorithm ; vtkAxisAlignedRe
 vtkAxisAlignedReflectionFilter::PlaneAxis : enum ; vtkAxisAlignedReflectionFilter.h ; vtkFiltersGeneral
 vtkAxisAlignedReflectionFilter::PlaneModes : enum ; vtkAxisAlignedReflectionFilter.h ; vtkFiltersGeneral
 vtkAxisAlignedReflectionFilter::Superclass = vtkCompositeDataSetAlgorithm ; vtkAxisAlignedReflectionFilter.h ; vtkFiltersGeneral
+vtkAxisAlignedTransformFilter : vtkDataObjectAlgorithm ; vtkAxisAlignedTransformFilter.h ; vtkFiltersGeneral
+vtkAxisAlignedTransformFilter::Angle : enum ; vtkAxisAlignedTransformFilter.h ; vtkFiltersGeneral
+vtkAxisAlignedTransformFilter::Axis : enum ; vtkAxisAlignedTransformFilter.h ; vtkFiltersGeneral
+vtkAxisAlignedTransformFilter::Superclass = vtkDataObjectAlgorithm ; vtkAxisAlignedTransformFilter.h ; vtkFiltersGeneral
 vtkBSPCuts : vtkDataObject ; vtkBSPCuts.h ; vtkCommonDataModel
 vtkBSPCuts::Superclass = vtkDataObject ; vtkBSPCuts.h ; vtkCommonDataModel
 vtkBSPIntersections : vtkObject ; vtkBSPIntersections.h ; vtkCommonDataModel
@@ -384,6 +388,7 @@ vtkCellArray::StorageArrayList = vtkTypeList::Create<ArrayType32, ArrayType64> ;
 vtkCellArray::Superclass = vtkAbstractCellArray ; vtkCellArray.h ; vtkCommonDataModel
 vtkCellArrayIterator : vtkObject ; vtkCellArrayIterator.h ; vtkCommonDataModel
 vtkCellArrayIterator::Superclass = vtkObject ; vtkCellArrayIterator.h ; vtkCommonDataModel
+vtkCellArray_detail::CellPointAtIdImpl ; vtkCellArray.h ; vtkCommonDataModel ; WRAPEXCLUDE
 vtkCellArray_detail::GetCellAtIdImpl ; vtkCellArray.h ; vtkCommonDataModel ; WRAPEXCLUDE
 vtkCellArray_detail::GetCellAtIdImpl::CanShareConnPtr<CellStateT> ; vtkCellArray.h ; vtkCommonDataModel ; WRAPEXCLUDE
 vtkCellArray_detail::GetCellAtIdImpl::CanShareConnPtr<CellStateT>::AOSArrayType = vtkAOSDataArrayTemplate<ValueType> ; vtkCellArray.h ; vtkCommonDataModel
@@ -1247,8 +1252,12 @@ vtkHyperTreeGridAxisCut::Superclass = vtkHyperTreeGridAlgorithm ; vtkHyperTreeGr
 vtkHyperTreeGridAxisReflection : vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridAxisReflection.h ; vtkFiltersHyperTree
 vtkHyperTreeGridAxisReflection::AxisReflectionPlane : enum ; vtkHyperTreeGridAxisReflection.h ; vtkFiltersHyperTree
 vtkHyperTreeGridAxisReflection::Superclass = vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridAxisReflection.h ; vtkFiltersHyperTree
+vtkHyperTreeGridCellCenterStrategy : vtkHyperTreeGridGenerateFieldStrategy ; vtkHyperTreeGridCellCenterStrategy.h ; vtkFiltersHyperTree
+vtkHyperTreeGridCellCenterStrategy::Superclass = vtkHyperTreeGridGenerateFieldStrategy ; vtkHyperTreeGridCellCenterStrategy.h ; vtkFiltersHyperTree
 vtkHyperTreeGridCellCenters : vtkCellCenters ; vtkHyperTreeGridCellCenters.h ; vtkFiltersHyperTree
 vtkHyperTreeGridCellCenters::Superclass = vtkCellCenters ; vtkHyperTreeGridCellCenters.h ; vtkFiltersHyperTree
+vtkHyperTreeGridCellSizeStrategy : vtkHyperTreeGridGenerateFieldStrategy ; vtkHyperTreeGridCellSizeStrategy.h ; vtkFiltersHyperTree
+vtkHyperTreeGridCellSizeStrategy::Superclass = vtkHyperTreeGridGenerateFieldStrategy ; vtkHyperTreeGridCellSizeStrategy.h ; vtkFiltersHyperTree
 vtkHyperTreeGridContour : vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridContour.h ; vtkFiltersHyperTree
 vtkHyperTreeGridContour::CellStrategy3D : enum ; vtkHyperTreeGridContour.h ; vtkFiltersHyperTree
 vtkHyperTreeGridContour::Superclass = vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridContour.h ; vtkFiltersHyperTree
@@ -1260,6 +1269,11 @@ vtkHyperTreeGridExtractGhostCells : vtkHyperTreeGridAlgorithm ; vtkHyperTreeGrid
 vtkHyperTreeGridExtractGhostCells::Superclass = vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridExtractGhostCells.h ; vtkFiltersHyperTree
 vtkHyperTreeGridFeatureEdges : vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridFeatureEdges.h ; vtkFiltersHyperTree
 vtkHyperTreeGridFeatureEdges::Superclass = vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridFeatureEdges.h ; vtkFiltersHyperTree
+vtkHyperTreeGridGenerateFieldStrategy : vtkObject ; vtkHyperTreeGridGenerateFieldStrategy.h ; vtkFiltersHyperTree
+vtkHyperTreeGridGenerateFieldStrategy::Field ; vtkHyperTreeGridGenerateFieldStrategy.h ; vtkFiltersHyperTree ; WRAPEXCLUDE
+vtkHyperTreeGridGenerateFieldStrategy::Superclass = vtkObject ; vtkHyperTreeGridGenerateFieldStrategy.h ; vtkFiltersHyperTree
+vtkHyperTreeGridGenerateFields : vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridGenerateFields.h ; vtkFiltersHyperTree
+vtkHyperTreeGridGenerateFields::Superclass = vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridGenerateFields.h ; vtkFiltersHyperTree
 vtkHyperTreeGridGenerateGlobalIds : vtkPassInputTypeAlgorithm ; vtkHyperTreeGridGenerateGlobalIds.h ; vtkFiltersParallel
 vtkHyperTreeGridGenerateGlobalIds::Superclass = vtkPassInputTypeAlgorithm ; vtkHyperTreeGridGenerateGlobalIds.h ; vtkFiltersParallel
 vtkHyperTreeGridGenerateProcessIds : vtkPassInputTypeAlgorithm ; vtkHyperTreeGridGenerateProcessIds.h ; vtkFiltersParallel
@@ -1323,8 +1337,12 @@ vtkHyperTreeGridToDualGrid : vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridToDualG
 vtkHyperTreeGridToDualGrid::Superclass = vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridToDualGrid.h ; vtkFiltersHyperTree
 vtkHyperTreeGridToUnstructuredGrid : vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridToUnstructuredGrid.h ; vtkFiltersHyperTree
 vtkHyperTreeGridToUnstructuredGrid::Superclass = vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridToUnstructuredGrid.h ; vtkFiltersHyperTree
-vtkHyperTreeGridVisibleLeavesSize : vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridVisibleLeavesSize.h ; vtkFiltersHyperTree
-vtkHyperTreeGridVisibleLeavesSize::Superclass = vtkHyperTreeGridAlgorithm ; vtkHyperTreeGridVisibleLeavesSize.h ; vtkFiltersHyperTree
+vtkHyperTreeGridTotalVisibleVolumeStrategy : vtkHyperTreeGridGenerateFieldStrategy ; vtkHyperTreeGridTotalVisibleVolumeStrategy.h ; vtkFiltersHyperTree
+vtkHyperTreeGridTotalVisibleVolumeStrategy::Superclass = vtkHyperTreeGridGenerateFieldStrategy ; vtkHyperTreeGridTotalVisibleVolumeStrategy.h ; vtkFiltersHyperTree
+vtkHyperTreeGridValidCellStrategy : vtkHyperTreeGridGenerateFieldStrategy ; vtkHyperTreeGridValidCellStrategy.h ; vtkFiltersHyperTree
+vtkHyperTreeGridValidCellStrategy::Superclass = vtkHyperTreeGridGenerateFieldStrategy ; vtkHyperTreeGridValidCellStrategy.h ; vtkFiltersHyperTree
+vtkHyperTreeGridVisibleLeavesSize : vtkHyperTreeGridGenerateFields ; vtkHyperTreeGridVisibleLeavesSize.h ; vtkFiltersHyperTree
+vtkHyperTreeGridVisibleLeavesSize::Superclass = vtkHyperTreeGridGenerateFields ; vtkHyperTreeGridVisibleLeavesSize.h ; vtkFiltersHyperTree
 vtkIconGlyphFilter : vtkPolyDataAlgorithm ; vtkIconGlyphFilter.h ; vtkFiltersGeneral
 vtkIconGlyphFilter::Superclass = vtkPolyDataAlgorithm ; vtkIconGlyphFilter.h ; vtkFiltersGeneral
 vtkIdFilter : vtkDataSetAlgorithm ; vtkIdFilter.h ; vtkFiltersCore
@@ -1538,6 +1556,12 @@ vtkIntegrateAttributes::CommunicationIds : enum ; vtkIntegrateAttributes.h ; vtk
 vtkIntegrateAttributes::Superclass = vtkUnstructuredGridAlgorithm ; vtkIntegrateAttributes.h ; vtkFiltersParallel
 vtkIntegrateFlowThroughSurface : vtkUnstructuredGridAlgorithm ; vtkIntegrateFlowThroughSurface.h ; vtkPVVTKExtensionsFiltersGeneral
 vtkIntegrateFlowThroughSurface::Superclass = vtkUnstructuredGridAlgorithm ; vtkIntegrateFlowThroughSurface.h ; vtkPVVTKExtensionsFiltersGeneral
+vtkIntegrationGaussianStrategy : vtkIntegrationStrategy ; vtkIntegrationGaussianStrategy.h ; vtkFiltersParallel
+vtkIntegrationGaussianStrategy::Superclass = vtkIntegrationStrategy ; vtkIntegrationGaussianStrategy.h ; vtkFiltersParallel
+vtkIntegrationLinearStrategy : vtkIntegrationStrategy ; vtkIntegrationLinearStrategy.h ; vtkFiltersParallel
+vtkIntegrationLinearStrategy::Superclass = vtkIntegrationStrategy ; vtkIntegrationLinearStrategy.h ; vtkFiltersParallel
+vtkIntegrationStrategy : vtkObject ; vtkIntegrationStrategy.h ; vtkFiltersParallel
+vtkIntegrationStrategy::Superclass = vtkObject ; vtkIntegrationStrategy.h ; vtkFiltersParallel
 vtkInterpolateDataSetAttributes : vtkDataSetAlgorithm ; vtkInterpolateDataSetAttributes.h ; vtkFiltersGeneral
 vtkInterpolateDataSetAttributes::Superclass = vtkDataSetAlgorithm ; vtkInterpolateDataSetAttributes.h ; vtkFiltersGeneral
 vtkInterpolatingSubdivisionFilter : vtkSubdivisionFilter ; vtkInterpolatingSubdivisionFilter.h ; vtkFiltersGeneral
@@ -1545,6 +1569,9 @@ vtkInterpolatingSubdivisionFilter::Superclass = vtkSubdivisionFilter ; vtkInterp
 vtkIntersectionCounter ; vtkIntersectionCounter.h ; vtkCommonDataModel
 vtkIntersectionPolyDataFilter : vtkPolyDataAlgorithm ; vtkIntersectionPolyDataFilter.h ; vtkFiltersGeneral
 vtkIntersectionPolyDataFilter::Superclass = vtkPolyDataAlgorithm ; vtkIntersectionPolyDataFilter.h ; vtkFiltersGeneral
+vtkInvoker : vtkObject ; vtkInvoker.h ; vtkCommonCore
+vtkInvoker::HandlerType = std::function<vtknlohmann::json(vtkInvoker *, vtkObjectBase *, const char *, const vtknlohmann::json &)> ; vtkInvoker.h ; vtkCommonCore
+vtkInvoker::Superclass = vtkObject ; vtkInvoker.h ; vtkCommonCore
 vtkIsoVolume : vtkDataObjectAlgorithm ; vtkIsoVolume.h ; vtkPVVTKExtensionsFiltersGeneral
 vtkIsoVolume::Superclass = vtkDataObjectAlgorithm ; vtkIsoVolume.h ; vtkPVVTKExtensionsFiltersGeneral
 vtkIterativeClosestPointTransform : vtkLinearTransform ; vtkIterativeClosestPointTransform.h ; vtkCommonDataModel
@@ -2746,6 +2773,7 @@ vtkTypedDataArrayIterator<Scalar>::iterator_category = std::random_access_iterat
 vtkTypedDataArrayIterator<Scalar>::pointer = * Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
 vtkTypedDataArrayIterator<Scalar>::reference = & Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
 vtkTypedDataArrayIterator<Scalar>::value_type = Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
+vtkTypesDataObject : enum ; vtkType.h ; vtkCommonCore
 vtkUncertaintyTubeFilter : vtkPolyDataAlgorithm ; vtkUncertaintyTubeFilter.h ; vtkFiltersGeneral
 vtkUncertaintyTubeFilter::Superclass = vtkPolyDataAlgorithm ; vtkUncertaintyTubeFilter.h ; vtkFiltersGeneral
 vtkUndirectedGraph : vtkGraph ; vtkUndirectedGraph.h ; vtkCommonDataModel

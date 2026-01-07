@@ -955,6 +955,16 @@ set_target_properties(VTK::vtkIOCGNSReaderPython PROPERTIES
 list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOCGNSReaderPython )
 list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOCGNSReaderPython "${_IMPORT_PREFIX}/lib/site-packages/vtkmodules/vtkIOCGNSReader.cp310-win_amd64.pyd" )
 
+# Import target "VTK::vtkIOAvmeshPython" for configuration "Release"
+set_property(TARGET VTK::vtkIOAvmeshPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(VTK::vtkIOAvmeshPython PROPERTIES
+  IMPORTED_COMMON_LANGUAGE_RUNTIME_RELEASE ""
+  IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/lib/site-packages/vtkmodules/vtkIOAvmesh.cp310-win_amd64.pyd"
+  )
+
+list(APPEND _IMPORT_CHECK_TARGETS VTK::vtkIOAvmeshPython )
+list(APPEND _IMPORT_CHECK_FILES_FOR_VTK::vtkIOAvmeshPython "${_IMPORT_PREFIX}/lib/site-packages/vtkmodules/vtkIOAvmesh.cp310-win_amd64.pyd" )
+
 # Import target "VTK::vtkIOAsynchronousPython" for configuration "Release"
 set_property(TARGET VTK::vtkIOAsynchronousPython APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(VTK::vtkIOAsynchronousPython PROPERTIES

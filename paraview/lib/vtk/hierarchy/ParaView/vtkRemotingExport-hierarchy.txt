@@ -308,6 +308,10 @@ vtkAxisAlignedReflectionFilter : vtkCompositeDataSetAlgorithm ; vtkAxisAlignedRe
 vtkAxisAlignedReflectionFilter::PlaneAxis : enum ; vtkAxisAlignedReflectionFilter.h ; vtkFiltersGeneral
 vtkAxisAlignedReflectionFilter::PlaneModes : enum ; vtkAxisAlignedReflectionFilter.h ; vtkFiltersGeneral
 vtkAxisAlignedReflectionFilter::Superclass = vtkCompositeDataSetAlgorithm ; vtkAxisAlignedReflectionFilter.h ; vtkFiltersGeneral
+vtkAxisAlignedTransformFilter : vtkDataObjectAlgorithm ; vtkAxisAlignedTransformFilter.h ; vtkFiltersGeneral
+vtkAxisAlignedTransformFilter::Angle : enum ; vtkAxisAlignedTransformFilter.h ; vtkFiltersGeneral
+vtkAxisAlignedTransformFilter::Axis : enum ; vtkAxisAlignedTransformFilter.h ; vtkFiltersGeneral
+vtkAxisAlignedTransformFilter::Superclass = vtkDataObjectAlgorithm ; vtkAxisAlignedTransformFilter.h ; vtkFiltersGeneral
 vtkBMPReader : vtkImageReader ; vtkBMPReader.h ; vtkIOImage
 vtkBMPReader::Superclass = vtkImageReader ; vtkBMPReader.h ; vtkIOImage
 vtkBMPWriter : vtkImageWriter ; vtkBMPWriter.h ; vtkIOImage
@@ -430,6 +434,7 @@ vtkCellArray::StorageArrayList = vtkTypeList::Create<ArrayType32, ArrayType64> ;
 vtkCellArray::Superclass = vtkAbstractCellArray ; vtkCellArray.h ; vtkCommonDataModel
 vtkCellArrayIterator : vtkObject ; vtkCellArrayIterator.h ; vtkCommonDataModel
 vtkCellArrayIterator::Superclass = vtkObject ; vtkCellArrayIterator.h ; vtkCommonDataModel
+vtkCellArray_detail::CellPointAtIdImpl ; vtkCellArray.h ; vtkCommonDataModel ; WRAPEXCLUDE
 vtkCellArray_detail::GetCellAtIdImpl ; vtkCellArray.h ; vtkCommonDataModel ; WRAPEXCLUDE
 vtkCellArray_detail::GetCellAtIdImpl::CanShareConnPtr<CellStateT> ; vtkCellArray.h ; vtkCommonDataModel ; WRAPEXCLUDE
 vtkCellArray_detail::GetCellAtIdImpl::CanShareConnPtr<CellStateT>::AOSArrayType = vtkAOSDataArrayTemplate<ValueType> ; vtkCellArray.h ; vtkCommonDataModel
@@ -1715,6 +1720,9 @@ vtkInterpolatingSubdivisionFilter::Superclass = vtkSubdivisionFilter ; vtkInterp
 vtkIntersectionCounter ; vtkIntersectionCounter.h ; vtkCommonDataModel
 vtkIntersectionPolyDataFilter : vtkPolyDataAlgorithm ; vtkIntersectionPolyDataFilter.h ; vtkFiltersGeneral
 vtkIntersectionPolyDataFilter::Superclass = vtkPolyDataAlgorithm ; vtkIntersectionPolyDataFilter.h ; vtkFiltersGeneral
+vtkInvoker : vtkObject ; vtkInvoker.h ; vtkCommonCore
+vtkInvoker::HandlerType = std::function<vtknlohmann::json(vtkInvoker *, vtkObjectBase *, const char *, const vtknlohmann::json &)> ; vtkInvoker.h ; vtkCommonCore
+vtkInvoker::Superclass = vtkObject ; vtkInvoker.h ; vtkCommonCore
 vtkIterativeClosestPointTransform : vtkLinearTransform ; vtkIterativeClosestPointTransform.h ; vtkCommonDataModel
 vtkIterativeClosestPointTransform::Superclass = vtkLinearTransform ; vtkIterativeClosestPointTransform.h ; vtkCommonDataModel
 vtkJPEGReader : vtkImageReader2 ; vtkJPEGReader.h ; vtkIOImage
@@ -2176,6 +2184,8 @@ vtkOpenGLPolyDataMapper::ExtraAttributeValue ; vtkOpenGLPolyDataMapper.h ; vtkRe
 vtkOpenGLPolyDataMapper::PrimitiveTypes : enum ; vtkOpenGLPolyDataMapper.h ; vtkRenderingOpenGL2
 vtkOpenGLPolyDataMapper::Superclass = vtkPolyDataMapper ; vtkOpenGLPolyDataMapper.h ; vtkRenderingOpenGL2
 vtkOpenGLPolyDataMapper::primitiveInfo ; vtkOpenGLPolyDataMapper.h ; vtkRenderingOpenGL2 ; WRAPEXCLUDE
+vtkOpenGLPolyDataMapper::primitiveInfo::LightingTypeEnum : enum ; vtkOpenGLPolyDataMapper.h ; vtkRenderingOpenGL2 ; WRAPEXCLUDE
+vtkOpenGLPolyDataMapper::texinfo = std::pair<vtkTexture *, std::string> ; vtkOpenGLPolyDataMapper.h ; vtkRenderingOpenGL2
 vtkOpenGLProperty : vtkProperty ; vtkOpenGLProperty.h ; vtkRenderingOpenGL2
 vtkOpenGLProperty::Superclass = vtkProperty ; vtkOpenGLProperty.h ; vtkRenderingOpenGL2
 vtkOpenGLQuadHelper ; vtkOpenGLQuadHelper.h ; vtkRenderingOpenGL2
@@ -2729,6 +2739,7 @@ vtkRemoteWriterHelper : vtkDataObjectAlgorithm ; vtkRemoteWriterHelper.h ; vtkRe
 vtkRemoteWriterHelper::Superclass = vtkDataObjectAlgorithm ; vtkRemoteWriterHelper.h ; vtkRemotingServerManager
 vtkRemotingCoreConfiguration : vtkObject ; vtkRemotingCoreConfiguration.h ; vtkRemotingCore
 vtkRemotingCoreConfiguration::DisplaysAssignmentModeEnum : enum ; vtkRemotingCoreConfiguration.h ; vtkRemotingCore
+vtkRemotingCoreConfiguration::OpenGLWindowBackendEnum : enum ; vtkRemotingCoreConfiguration.h ; vtkRemotingCore
 vtkRemotingCoreConfiguration::Superclass = vtkObject ; vtkRemotingCoreConfiguration.h ; vtkRemotingCore
 vtkRemoveDuplicatePolys : vtkPolyDataAlgorithm ; vtkRemoveDuplicatePolys.h ; vtkFiltersCore
 vtkRemoveDuplicatePolys::Superclass = vtkPolyDataAlgorithm ; vtkRemoveDuplicatePolys.h ; vtkFiltersCore
@@ -3621,6 +3632,7 @@ vtkTypedDataArrayIterator<Scalar>::iterator_category = std::random_access_iterat
 vtkTypedDataArrayIterator<Scalar>::pointer = * Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
 vtkTypedDataArrayIterator<Scalar>::reference = & Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
 vtkTypedDataArrayIterator<Scalar>::value_type = Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
+vtkTypesDataObject : enum ; vtkType.h ; vtkCommonCore
 vtkURI : vtkObject ; vtkURI.h ; vtkIOCore
 vtkURI::Superclass = vtkObject ; vtkURI.h ; vtkIOCore
 vtkURIComponent ; vtkURI.h ; vtkIOCore

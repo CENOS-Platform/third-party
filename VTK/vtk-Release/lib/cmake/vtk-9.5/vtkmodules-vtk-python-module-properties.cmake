@@ -93,6 +93,7 @@ set_property(TARGET "VTK::IOChemistry" PROPERTY "INTERFACE_vtk_module_python_pac
 set_property(TARGET "VTK::IOCesium3DTiles" PROPERTY "INTERFACE_vtk_module_python_package" "vtkmodules")
 set_property(TARGET "VTK::IOCONVERGECFD" PROPERTY "INTERFACE_vtk_module_python_package" "vtkmodules")
 set_property(TARGET "VTK::IOCGNSReader" PROPERTY "INTERFACE_vtk_module_python_package" "vtkmodules")
+set_property(TARGET "VTK::IOAvmesh" PROPERTY "INTERFACE_vtk_module_python_package" "vtkmodules")
 set_property(TARGET "VTK::IOAsynchronous" PROPERTY "INTERFACE_vtk_module_python_package" "vtkmodules")
 set_property(TARGET "VTK::IOAMR" PROPERTY "INTERFACE_vtk_module_python_package" "vtkmodules")
 set_property(TARGET "VTK::InteractionImage" PROPERTY "INTERFACE_vtk_module_python_package" "vtkmodules")

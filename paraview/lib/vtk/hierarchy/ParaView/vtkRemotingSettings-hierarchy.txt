@@ -419,6 +419,9 @@ vtkInformationVector::Superclass = vtkObject ; vtkInformationVector.h ; vtkCommo
 vtkIntArray : vtkDataArray ; vtkIntArray.h ; vtkCommonCore
 vtkIntArray::RealSuperclass = vtkAOSDataArrayTemplate<int> ; vtkIntArray.h ; vtkCommonCore
 vtkIntArray::Superclass = vtkDataArray ; vtkIntArray.h ; vtkCommonCore
+vtkInvoker : vtkObject ; vtkInvoker.h ; vtkCommonCore
+vtkInvoker::HandlerType = std::function<vtknlohmann::json(vtkInvoker *, vtkObjectBase *, const char *, const vtknlohmann::json &)> ; vtkInvoker.h ; vtkCommonCore
+vtkInvoker::Superclass = vtkObject ; vtkInvoker.h ; vtkCommonCore
 vtkLargeInteger ; vtkLargeInteger.h ; vtkCommonCore ; WRAPEXCLUDE
 vtkLibHandle = vtksys::DynamicLoader::LibraryHandle ; vtkDynamicLoader.h ; vtkCommonCore
 vtkLogger : vtkObjectBase ; vtkLogger.h ; vtkCommonCore
@@ -637,6 +640,7 @@ vtkTypedDataArrayIterator<Scalar>::iterator_category = std::random_access_iterat
 vtkTypedDataArrayIterator<Scalar>::pointer = * Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
 vtkTypedDataArrayIterator<Scalar>::reference = & Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
 vtkTypedDataArrayIterator<Scalar>::value_type = Scalar ; vtkTypedDataArrayIterator.h ; vtkCommonCore
+vtkTypesDataObject : enum ; vtkType.h ; vtkCommonCore
 vtkUnsignedCharArray : vtkDataArray ; vtkUnsignedCharArray.h ; vtkCommonCore
 vtkUnsignedCharArray::RealSuperclass = vtkAOSDataArrayTemplate<unsigned char> ; vtkUnsignedCharArray.h ; vtkCommonCore
 vtkUnsignedCharArray::Superclass = vtkDataArray ; vtkUnsignedCharArray.h ; vtkCommonCore
