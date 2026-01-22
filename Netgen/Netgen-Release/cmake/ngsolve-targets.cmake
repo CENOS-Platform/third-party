@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget netgen_libs ngs_lapack ngstd ngbla ngla ngfem ngsbem ngcomp ngsolve)
+foreach(_expectedTarget netgen_lib netgen_core_lib ngs_lapack ngstd ngbla ngla ngfem ngsbem ngcomp ngsolve)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -48,11 +48,18 @@ if(_IMPORT_PREFIX STREQUAL "/")
   set(_IMPORT_PREFIX "")
 endif()
 
-# Create imported target netgen_libs
-add_library(netgen_libs INTERFACE IMPORTED)
+# Create imported target netgen_lib
+add_library(netgen_lib INTERFACE IMPORTED)
 
-set_target_properties(netgen_libs PROPERTIES
-  INTERFACE_LINK_LIBRARIES "nglib;ngcore"
+set_target_properties(netgen_lib PROPERTIES
+  INTERFACE_LINK_LIBRARIES "nglib"
+)
+
+# Create imported target netgen_core_lib
+add_library(netgen_core_lib INTERFACE IMPORTED)
+
+set_target_properties(netgen_core_lib PROPERTIES
+  INTERFACE_LINK_LIBRARIES "ngcore"
 )
 
 # Create imported target ngs_lapack
@@ -69,7 +76,7 @@ add_library(ngstd INTERFACE IMPORTED)
 set_target_properties(ngstd PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS "HAVE_NETGEN_SOURCES;USE_TIMEOFDAY;TCL;LAPACK;USE_PARDISO;NGS_PYTHON"
   INTERFACE_COMPILE_OPTIONS "/std:c++17;/bigobj;/wd4068;-DMAX_SYS_DIM=3"
-  INTERFACE_LINK_LIBRARIES "netgen_libs;\$<LINK_ONLY:>"
+  INTERFACE_LINK_LIBRARIES "netgen_core_lib;\$<LINK_ONLY:>"
 )
 
 # Create imported target ngbla
@@ -104,14 +111,14 @@ set_target_properties(ngsbem PROPERTIES
 add_library(ngcomp INTERFACE IMPORTED)
 
 set_target_properties(ngcomp PROPERTIES
-  INTERFACE_LINK_LIBRARIES "ngfem;ngla;ngbla;ngstd;\$<LINK_ONLY:>"
+  INTERFACE_LINK_LIBRARIES "ngfem;ngla;ngbla;ngstd;\$<LINK_ONLY:>;netgen_lib"
 )
 
 # Create imported target ngsolve
 add_library(ngsolve SHARED IMPORTED)
 
 set_target_properties(ngsolve PROPERTIES
-  INTERFACE_LINK_LIBRARIES "netgen_libs;ngsolve;ngcomp;ngfem;ngsbem;ngbla;ngla;ngstd"
+  INTERFACE_LINK_LIBRARIES "netgen_lib;netgen_core_lib;ngsolve;ngcomp;ngfem;ngsbem;ngbla;ngla;ngstd"
 )
 
 if(CMAKE_VERSION VERSION_LESS 3.0.0)

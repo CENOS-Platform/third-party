@@ -291,9 +291,9 @@ namespace ngbla
   struct undefined_size
     {
       undefined_size() = default;
-      undefined_size(size_t s) { }
+      INLINE undefined_size(size_t s) { }
       template <int S>
-      explicit constexpr undefined_size(IC<S> s) { }
+      INLINE explicit constexpr undefined_size(IC<S> s) { }
   };
   
   inline ostream & operator<< (ostream & ost, undefined_size s) { ost << "undefined"; return ost; }
@@ -515,7 +515,7 @@ namespace ngbla
         }
 
 
-      if (TB::IsLinear())
+      if constexpr (TB::IsLinear())
 	{
 	  if (T::IsLinear())
 	    {
@@ -572,9 +572,6 @@ namespace ngbla
     using Expr<T>::Width;
 
     enum { COL_MAJOR = 0 };  // matrix is stored col-major
-
-    void Dump (ostream & ost) const { ost << "Matrix"; }
-
 
 
     template<typename TOP, typename TB>
@@ -735,6 +732,11 @@ namespace ngbla
     {
       return (*this) *= (1./s);
     }
+
+
+    void Dump (ostream & ost) const
+    { ost << "Matexpr (h=" << Height() << ", w=" << Width() << ")"; }
+    
   };
 
 
@@ -838,6 +840,7 @@ namespace ngbla
   {
     TA a;
   public:
+    MinusExpr (const MinusExpr&) = default;
     MinusExpr (TA aa) : a(aa) { ; }
 
     template <typename ...I>
@@ -850,7 +853,10 @@ namespace ngbla
     INLINE auto Width() const { return a.Width(); }
     INLINE TA A() const { return a; }
 
-    static constexpr bool IsLinear() { return TA::IsLinear(); } 
+    static constexpr bool IsLinear() { return TA::IsLinear(); }
+    void Dump (ostream & ost) const
+    { ost << "-("; a.Dump(ost); ost << ")"; }
+    
   };
 
   template <typename TA>
@@ -934,6 +940,7 @@ namespace ngbla
   public:
     static constexpr bool IsLinear() { return TA::IsLinear(); }
 
+    ScaleExpr (const ScaleExpr&) = default;
     INLINE ScaleExpr (TA aa, TS as) : a(aa), s(as) { ; }
     
     // INLINE auto operator() (size_t i) const { return s * a(i); }
@@ -1492,8 +1499,39 @@ namespace ngbla
   }
 
 
+  /* ************************* OuterProduct ********************** */
+  
+  template <class TA, class TB>
+  class OuterProductExpr : public Expr<OuterProductExpr<TA,TB>>
+  {
+    TA a;
+    TB b;
+  public:
+    OuterProductExpr (TA aa, TB ab) : a(aa), b(ab) { ; }
+
+    // INLINE auto operator() (size_t i) const { return a[i] * b(i); }  
+    INLINE auto operator() (size_t i, size_t j) const { return a[i] * b[j]; }
+
+    INLINE auto View() const { return *this; }
+    INLINE auto Shape() const
+    {
+      return tuple<size_t,size_t> (a.Size(), b.Width());
+    }
+    
+    INLINE const auto A() const { return a; }
+    INLINE const auto B() const { return b; }
+    INLINE auto Height() const { return a.Size(); }
+    INLINE auto Width() const { return b.Size(); }
+
+    static constexpr bool IsLinear() { return false; }         
+  };
 
 
+  template <typename TA, typename TB>
+  INLINE auto OuterProduct (const Expr<TA> & a, const Expr<TB> & b)
+  {
+    return OuterProductExpr (a.View(), b.View());
+  }
 
 
 

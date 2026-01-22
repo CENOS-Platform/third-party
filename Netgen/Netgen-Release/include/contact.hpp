@@ -89,6 +89,7 @@ namespace ngcomp
     shared_ptr<CoefficientFunction> cf;
     shared_ptr<FESpace> fes;
     Array<ProxyFunction*> trial_proxies;
+    Array<CoefficientFunction*> cf_gridfunctions;
     bool deformed;
 
   public:
@@ -123,6 +124,9 @@ namespace ngcomp
     shared_ptr<CoefficientFunction> cf;
     shared_ptr<FESpace> fes;
     Array<ProxyFunction*> trial_proxies, test_proxies;
+    Array<CoefficientFunction*> cf_gridfunctions;
+    Array<shared_ptr<CoefficientFunction>> dcf_dtest;  // derivatives by test-functions
+    Matrix<shared_ptr<CoefficientFunction>> ddcf_dtest_dtrial;  // derivatives by test- and trial-functions
     bool deformed;
   public:
     ContactIntegrator(shared_ptr<CoefficientFunction> _cf,
@@ -187,6 +191,10 @@ namespace ngcomp
     const auto& GetIntegrators(bool def) const { return def ? deformed_integrators : undeformed_integrators; }    
     shared_ptr<FESpace> GetFESpace() const { return fes; }
     tuple<FlatArray<Vec<3>>, FlatArray<Vec<3>>> GetDrawingPairs() { return {primary_points, secondary_points}; }
+    auto GetCArgs() {
+      return std::make_tuple(master, other, draw_pairs, volume, element_boundary);
+    }
+    void DoArchive(Archive& ar);
   };
 
   template<int DIM>

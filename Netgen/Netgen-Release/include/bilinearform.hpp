@@ -915,7 +915,7 @@ namespace ngcomp
   };
 
 
-
+  // template <int DIM_ELEMENT, int DIM_SPACE>
   class ApplyIntegrationPoints : public BaseMatrix
   {
     Array<shared_ptr<CoefficientFunction>> coefs;
@@ -952,6 +952,9 @@ namespace ngcomp
     size_t GetDimX() const { return dimx; }
     size_t GetDimY() const { return dimy; }
     size_t GetNIP() const { return nip; }
+
+    FlatMatrix<double> GetPoints() const { return points; }
+    FlatMatrix<double> GetNormals() const { return normals; }
   };  
   
 

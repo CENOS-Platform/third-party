@@ -1,4 +1,4 @@
-set(PACKAGE_VERSION "6.2.2505")
+set(PACKAGE_VERSION "6.2.2601-17-gbd02366ba")
 find_package(Netgen CONFIG REQUIRED HINTS
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
@@ -76,18 +76,13 @@ if(NGSOLVE_USE_PYTHON)
     endif()
     add_library(${target} SHARED ${ARGN})
 
-    find_package(PythonInterp 3 REQUIRED)
-    find_package(PythonLibs 3 REQUIRED)
-    target_include_directories(${target} PRIVATE ${PYTHON_INCLUDE_DIR})
+    find_package(Python3 REQUIRED Development)
 
-    if(NETGEN_BUILD_FOR_CONDA AND NOT WIN32)
-        if(APPLE)
-            target_link_options(${target} PUBLIC -undefined dynamic_lookup)
-        endif(APPLE)
-    else(NETGEN_BUILD_FOR_CONDA AND NOT WIN32)
-        target_link_libraries(${target} PUBLIC ${PYTHON_LIBRARY})
-    endif(NETGEN_BUILD_FOR_CONDA AND NOT WIN32)
+    if(NETGEN_BUILD_FOR_CONDA AND APPLE)
+        target_link_options(${target} PUBLIC -undefined dynamic_lookup)
+    endif(NETGEN_BUILD_FOR_CONDA AND APPLE)
 
+    target_link_libraries(${target} PRIVATE Python3::Module)
     set_target_properties(${target} PROPERTIES PREFIX "" CXX_STANDARD 17)
     target_link_libraries(${target} PUBLIC ngsolve)
 

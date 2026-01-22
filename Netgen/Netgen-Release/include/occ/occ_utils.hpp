@@ -71,6 +71,20 @@ namespace netgen
         return gp_Pnt(p(0), p(1), p(2));
     }
 
+    inline void CheckValidPropertyType(const TopoDS_Shape & shape)
+    {
+        switch (shape.ShapeType())
+        {
+          case TopAbs_SOLID:
+          case TopAbs_FACE:
+          case TopAbs_EDGE:
+          case TopAbs_VERTEX:
+            break;
+          default:
+            throw Exception("Cannot query properties of compound shapes - setting properties sets property on all highest dimension subshape type");
+        }
+    }
+
     DLL_HEADER Box<3> GetBoundingBox( const TopoDS_Shape & shape );
 
     struct OCCIdentification
@@ -152,6 +166,10 @@ namespace netgen
       {
         return SubShapes(TopAbs_SOLID);
       }
+      ListOfShapes Shells() const
+      {
+        return SubShapes(TopAbs_SHELL);
+      }
       ListOfShapes Faces() const
       {
         return SubShapes(TopAbs_FACE);
@@ -195,6 +213,14 @@ namespace netgen
     {
       ListOfShapes sub;
       for (TopExp_Explorer e(shape, TopAbs_SOLID); e.More(); e.Next())
+        sub.push_back(e.Current());
+      return sub;
+    }
+
+    inline ListOfShapes GetShells(const TopoDS_Shape & shape)
+    {
+      ListOfShapes sub;
+      for (TopExp_Explorer e(shape, TopAbs_SHELL); e.More(); e.Next())
         sub.push_back(e.Current());
       return sub;
     }

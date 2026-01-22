@@ -903,7 +903,7 @@ namespace netgen
     int HasFace(const Element2d& el) const;
   };
 
-  ostream & operator<<(ostream  & s, const Element2d & el);
+  DLL_HEADER ostream & operator<<(ostream  & s, const Element2d & el);
 
 
 
@@ -1334,6 +1334,7 @@ namespace netgen
     auto PNums() const { return FlatArray<const PointIndex> (GetNP(), &pnums[0]); }
     auto PNums() { return FlatArray<PointIndex> (GetNP(), &pnums[0]); }
     
+    auto Vertices() const { return FlatArray<const PointIndex> (2, &pnums[0]); }
     
     ELEMENT_TYPE GetType() const
     {
