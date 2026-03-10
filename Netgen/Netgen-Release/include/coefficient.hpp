@@ -1171,7 +1171,7 @@ public:
 
   void CalcEquivalenceKey() override
   {
-    this->equivalence_key = name + "(" + c1->EquivalenceKey() + ")";
+    this->equivalence_key = name + "(" + c1->EquivalenceKey() + ToString(this->Dimensions()) + ")";
   }
   
   virtual void GenerateCode(Code &code, FlatArray<int> inputs, int index) const override
@@ -1848,9 +1848,22 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> operator+ (shared_ptr<CoefficientFunction> c1, shared_ptr<CoefficientFunction> c2);
-  
+
+  INLINE shared_ptr<CoefficientFunction> operator+ (double d, shared_ptr<CoefficientFunction> c2)
+  {
+    return make_shared<ConstantCoefficientFunction>(d)+c2;
+  }
+
+
+
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> operator- (shared_ptr<CoefficientFunction> c1, shared_ptr<CoefficientFunction> c2);
+
+  INLINE shared_ptr<CoefficientFunction> operator- (double d, shared_ptr<CoefficientFunction> c2)
+  {
+    return make_shared<ConstantCoefficientFunction>(d)-c2;
+  }
+
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> operator* (shared_ptr<CoefficientFunction> c1, shared_ptr<CoefficientFunction> c2);
@@ -1862,6 +1875,21 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
   shared_ptr<CoefficientFunction> operator* (double v1, shared_ptr<CoefficientFunction> c2);
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> operator* (Complex v1, shared_ptr<CoefficientFunction> c2);
+
+  INLINE
+  shared_ptr<CoefficientFunction> operator* (std::variant<double, Complex> v1, shared_ptr<CoefficientFunction> c2)
+  {
+    return std::visit ([&](auto val) {
+      return val * c2; 
+    }, v1);
+                
+    /*
+    if (std::holds_alternative<double>(v1))
+      return std::get<double>(v1) * c2;
+    else
+      return std::get<Complex>(v1) * c2;
+    */
+  }
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> operator- (shared_ptr<CoefficientFunction> c1);
@@ -1959,6 +1987,8 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
   shared_ptr<CoefficientFunction> Real(shared_ptr<CoefficientFunction> cf);
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> Imag(shared_ptr<CoefficientFunction> cf);
+  NGS_DLL_HEADER
+  shared_ptr<CoefficientFunction> RealImag(shared_ptr<CoefficientFunction> cf);
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> Freeze (shared_ptr<CoefficientFunction> cf);

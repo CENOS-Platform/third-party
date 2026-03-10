@@ -549,6 +549,25 @@ namespace ngfem
     {
       static_cast<const FEL&> (fel).CalcMappedShape (bmip, mat);  
     }
+
+    static int DimRef() { return D-1; } 
+    
+    template <typename IP, typename MAT>
+    static void GenerateMatrixRef (const FiniteElement & fel, const IP & ip,
+                                   MAT && mat, LocalHeap & lh)
+    {
+      static_cast<const FEL&> (fel).CalcShape (ip, Trans(mat));
+    }
+
+    template <typename MIP, typename MAT>
+    static void CalcTransformationMatrix (const MIP & mip,
+                                          MAT & mat, LocalHeap & lh)
+    {
+      mat = Trans(static_cast<const MappedIntegrationPoint<D-1,D>&>(mip).GetJacobianInverse());
+    }
+    
+
+
     
 
     static void GenerateMatrixSIMDIR (const FiniteElement & fel,
@@ -734,9 +753,31 @@ public:
   static const FEL & Cast (const FiniteElement & fel) 
   { return static_cast<const FEL&> (fel); }
 
+  static int DimRef() { return 1; }
+
+  template<typename IP, typename MAT>
+  static void GenerateMatrixRef (const FiniteElement & fel, const IP & ip,
+                                 MAT && mat, LocalHeap & lh)
+  {
+    Cast(fel).CalcCurlShape (ip, Trans(mat));
+  }
+
+  template <typename MIP, typename MAT>
+  static void CalcTransformationMatrix (const MIP & mip,
+                                        MAT & mat, LocalHeap & lh)
+  {
+    /*
+      mat = 0.0;
+      auto scaled_nv = (1.0/mip.GetJacobiDet()) * mip.GetNV();
+      for (int i = 0; i < DIM_DMAT; i++)
+          mat(i,0) = scaled_nv(i);
+    */
+    mat.Col(0) = (1.0/mip.GetJacobiDet()) * mip.GetNV();
+  }
+
   template <typename AFEL, typename MIP, typename MAT>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-			      MAT && mat, LocalHeap & lh)
+                             MAT && mat, LocalHeap & lh)
   {
     auto scaled_nv = (1.0/mip.GetJacobiDet()) * mip.GetNV();
     mat = scaled_nv * Trans(Cast(fel).GetCurlShape (mip.IP(), lh));

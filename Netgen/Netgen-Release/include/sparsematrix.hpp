@@ -428,8 +428,8 @@ namespace ngla
 
     }
 
-    SparseMatrixTM (int size, int width, const Table<int> & rowelements, 
-		    const Table<int> & colelements, bool symmetric)
+    SparseMatrixTM (int size, int width, FlatTable<int> rowelements, 
+		    FlatTable<int> colelements, bool symmetric)
       : BASE (size, width, rowelements, colelements, symmetric), 
 	data(nze), nul(TSCAL(0))
     { 
@@ -594,8 +594,8 @@ namespace ngla
     SparseMatrix (const Array<int> & aelsperrow, int awidth)
       : SparseMatrixTM<TM> (aelsperrow, awidth) { ; }
 
-    SparseMatrix (int height, int width, const Table<int> & rowelements, 
-		  const Table<int> & colelements, bool symmetric)
+    SparseMatrix (int height, int width, FlatTable<int> rowelements, 
+		  FlatTable<int> colelements, bool symmetric)
       : SparseMatrixTM<TM> (height, width, rowelements, colelements, symmetric) { ; }
 
     SparseMatrix (const MatrixGraph & agraph);
@@ -741,7 +741,7 @@ namespace ngla
       : SparseMatrix<TM,TV,TV> (elsperrow, elsperrow.Size())
     { ; }
 
-    SparseMatrixSymmetric (int size, const Table<int> & rowelements)
+    SparseMatrixSymmetric (int size, FlatTable<int> rowelements)
       : SparseMatrix<TM,TV,TV> (size, size, rowelements, rowelements, true)
     { ; }
 
@@ -870,6 +870,11 @@ namespace ngla
   NGS_DLL_HEADER shared_ptr<SparseMatrixTM<double>>
   MatAdd (double sa, const SparseMatrixTM<double> & mata,
           double sb, const SparseMatrixTM<double> & matb);
+
+  NGS_DLL_HEADER shared_ptr<SparseMatrixTM<Complex>>
+  MatAdd (Complex sa, const SparseMatrixTM<Complex> & mata,
+          Complex sb, const SparseMatrixTM<Complex> & matb);
+
   
   NGS_DLL_HEADER shared_ptr<SparseMatrixTM<double>>
   MatMult (const SparseMatrixTM<double> & mata, const SparseMatrixTM<double> & matb, bool sort_output = true);

@@ -547,6 +547,13 @@ namespace ngfem
                 BareSliceMatrix<SIMD<double>> bmat) const override;
 
     NGS_DLL_HEADER virtual void
+    Apply (const FiniteElement & fel,
+	   const BaseMappedIntegrationPoint & mip,
+	   BareSliceVector<double> x, 
+	   FlatVector<double> flux,
+	   LocalHeap & lh) const override;
+    
+    NGS_DLL_HEADER virtual void
     Apply (const FiniteElement & bfel,
            const SIMD_BaseMappedIntegrationRule & bmir,
            BareSliceVector<double> x,
@@ -902,9 +909,14 @@ namespace ngfem
            BareSliceVector<double> x, 
            BareSliceMatrix<SIMD<double>> flux) const override
     {
+      // cout << "in Apply, typeid(bfel) = " << typeid(bfel).name() << endl;
       const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      // const CompoundFiniteElement & fel = dynamic_cast<const CompoundFiniteElement&> (bfel);
+      // cout << "cast worked" << endl;
       IntRange r = BlockDim() * fel.GetRange(comp);
       diffop->Apply (fel[comp], bmir, x.Range(r), flux);
+      // cout << "func complete" << endl;
+      
     }
 
     virtual void

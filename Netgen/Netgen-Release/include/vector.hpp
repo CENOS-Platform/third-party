@@ -8,7 +8,7 @@
 /**************************************************************************/
 
 #include "expr.hpp"
-#include "core/archive.hpp"
+// #include "core/archive.hpp"
 #include <core/hashtable.hpp>   // for SparseVector
 
 namespace ngbla
@@ -589,12 +589,20 @@ namespace ngbla
 
 
 
+  template <typename TS, typename TDIST>
+  auto Real(VectorView<Complex, TS, TDIST> vec) {
+    auto dist2 = vec.Dist() + vec.Dist();
+    return VectorView<double, TS, decltype(dist2)>(vec.Size(), dist2, (double*)vec.Data());
+  }
+
+  template <typename TS, typename TDIST>
+  auto Imag(VectorView<Complex, TS, TDIST> vec) {
+    auto dist2 = vec.Dist() + vec.Dist();
+    return VectorView<double, TS, decltype(dist2)>(vec.Size(), dist2, ((double*)vec.Data())+1);
+  }
 
 
 
-
-
-  
 
   /**
      A Vector class with memory allocation/deallocation
@@ -1032,7 +1040,9 @@ namespace ngbla
     INLINE /* const */ FlatVector<T> Range(size_t first, size_t next) 
     { return FlatVector<T> (next-first, data+first); }
 
-    void DoArchive(Archive & ar)
+    
+    template<typename ARCHIVE>
+    void DoArchive(ARCHIVE & ar)
     {
       for (size_t i = 0; i < S; i++)
         ar & data[i];
