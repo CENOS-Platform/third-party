@@ -23,6 +23,9 @@ namespace ngsbem
   class BaseKernel
   {
   public:
+    static constexpr bool needs_target_normal = true;
+    static constexpr bool needs_source_normal = true;
+
     shared_ptr<SingularMLExpansion<Complex>> CreateMultipoleExpansion (Vec<3> c, double r) const
     {
       throw Exception("Create Multipole Expansion not implemented");
@@ -241,6 +244,9 @@ namespace ngsbem
   class LaplaceSLKernel<3, COMPS> : public BaseKernel
   {
   public:
+    static constexpr bool needs_target_normal = false;
+    static constexpr bool needs_source_normal = false;
+
     LaplaceSLKernel<3,COMPS>()
     {
       for (size_t i = 0; i < COMPS; i++)
@@ -306,6 +312,8 @@ namespace ngsbem
   class LaplaceDLKernel<3, COMPS> : public BaseKernel
   {
   public:
+    static constexpr bool needs_target_normal = false;
+
     LaplaceDLKernel<3,COMPS>()
     {
       for (size_t i = 0; i < COMPS; i++)
@@ -382,6 +390,9 @@ namespace ngsbem
   {
     T_Kappa kappa;
   public:
+    static constexpr bool needs_target_normal = false;
+    static constexpr bool needs_source_normal = false;
+
     typedef Complex value_type;
     using mp_type = typename std::conditional<COMPS == 1,
                                               Complex,
@@ -399,9 +410,7 @@ namespace ngsbem
     auto Evaluate (Vec<3,T> x, Vec<3,T> y, Vec<3,T> nx, Vec<3,T> ny) const
     {
       T norm = L2Norm(x-y);
-      // auto kern = exp(Complex(0,kappa)*norm) / (4 * M_PI * norm);
       auto kern = exp(kappa*Complex(0,1)*norm) / (4 * M_PI * norm);
-      // return kern;
       return Vec<1,decltype(kern)> (kern);
     }
     T_Kappa GetKappa() const { return kappa; }
@@ -481,6 +490,8 @@ namespace ngsbem
   {
     T_Kappa kappa;
   public:
+    static constexpr bool needs_target_normal = false;
+
     typedef Complex value_type;
     using mp_type = typename std::conditional<COMPS == 1,
                                               Complex,
@@ -498,11 +509,8 @@ namespace ngsbem
     {
       T norm = L2Norm(x-y);
       T nxy = InnerProduct(ny, (x-y));
-      // auto kern = exp(Complex(0,kappa)*norm) / (4 * M_PI * norm*norm*norm)
-      //   * nxy * (Complex(1,0)*T(1.) - Complex(0,kappa)*norm);
       auto kern = exp(kappa*Complex(0,1)*norm) / (4 * M_PI * norm*norm*norm)
         * nxy * (Complex(1,0)*T(1.) - kappa*Complex(0,1)*norm);
-      // return kern;
       return Vec<1,decltype(kern)> (kern);
     }
     T_Kappa GetKappa() const { return kappa; }
@@ -520,7 +528,6 @@ namespace ngsbem
 
     void AddSource (SingularMLExpansion<mp_type,T_Kappa> & mp, Vec<3> pnt, Vec<3> nv, BareSliceVector<Complex> val) const
     {
-      // mp.AddDipole(pnt, -nv, val(0));
       if constexpr (COMPS == 1)
         mp.AddDipole(pnt, -nv, val(0));
       else
@@ -529,7 +536,6 @@ namespace ngsbem
 
     void AddSourceTrans(SingularMLExpansion<mp_type,T_Kappa> & mp, Vec<3> pnt, Vec<3> nv, BareSliceVector<Complex> val) const
     {
-      // mp.AddCharge(pnt, val(0));
       if constexpr (COMPS == 1)
         mp.AddCharge (pnt, val(0));
       else
@@ -538,7 +544,6 @@ namespace ngsbem
 
     void EvaluateMP (RegularMLExpansion<mp_type,T_Kappa> & mp, Vec<3> pnt, Vec<3> nv, BareSliceVector<Complex> val) const
     {
-      // val(0) = mp.Evaluate (pnt);
       if constexpr (COMPS == 1)
         val(0) = mp.Evaluate (pnt);
       else
@@ -547,7 +552,6 @@ namespace ngsbem
 
     void EvaluateMPTrans(RegularMLExpansion<mp_type,T_Kappa> & mp, Vec<3> pnt, Vec<3> nv, BareSliceVector<Complex> val) const
     {
-      // val(0) = mp.EvaluateDirectionalDerivative(pnt, nv);
       if constexpr (COMPS == 1)
         val(0) = mp.EvaluateDirectionalDerivative(pnt, nv);
       else
@@ -584,7 +588,7 @@ namespace ngsbem
         KernelTerm{1.0, 0, 0, 0},
         KernelTerm{1.0, 0, 1, 1},
         KernelTerm{1.0, 0, 2, 2},
-	KernelTerm{1.0, 1, 3, 3},
+    	KernelTerm{1.0, 1, 3, 3},
       };
 
     auto CreateMultipoleExpansion (Vec<3> c, double r, FMM_Parameters fmm_params) const
@@ -623,6 +627,8 @@ namespace ngsbem
   {
     T_Kappa kappa;
   public:
+    static constexpr bool needs_target_normal = false;
+
     typedef Complex value_type;
     using mp_type = typename std::conditional<COMPS == 1,
                                                   Complex,
@@ -640,11 +646,8 @@ namespace ngsbem
     {
       T norm = L2Norm(x-y);
       T nxy = InnerProduct(ny, (x-y));
-      // auto kern = exp(Complex(0,kappa)*norm) / (4 * M_PI * norm*norm*norm)
-      //   * ( nxy * (Complex(1,0)*T(1.) - Complex(0,kappa)*norm)  - Complex(0,kappa)*norm*norm);
       auto kern = exp(kappa*Complex(0,1)*norm) / (4 * M_PI * norm*norm*norm)
         * ( nxy * (Complex(1,0)*T(1.) - kappa*Complex(0,1)*norm)  - kappa*Complex(0,1)*norm*norm);
-      // return kern;
       return Vec<1,decltype(kern)> (kern);
     }
     T_Kappa GetKappa() const { return kappa; }
@@ -662,10 +665,6 @@ namespace ngsbem
 
     void AddSource (SingularMLExpansion<mp_type,T_Kappa> & mp, Vec<3> pnt, Vec<3> nv, BareSliceVector<Complex> val) const
     {
-      // mp.AddCharge(pnt, Complex(0, -kappa)*val(0));
-      // mp.AddDipole(pnt, -nv, val(0));
-
-      // mp.AddChargeDipole (pnt, Complex(0, -kappa)*val(0), -nv, val(0));
       if constexpr (COMPS == 1)
         mp.AddChargeDipole (pnt, -kappa * Complex(0, 1)*val(0), -nv, val(0));
       else
@@ -689,6 +688,9 @@ namespace ngsbem
     double kappa;
   public:
     typedef Complex value_type;
+
+    static constexpr bool needs_target_normal = false;
+    static constexpr bool needs_source_normal = false;
     static string Name() { return "MaxwellSL"; }
     static auto Shape() { return IVec<2>(4,4); }
     
@@ -747,6 +749,9 @@ namespace ngsbem
   {
     T_Kappa kappa;
   public:
+    static constexpr bool needs_target_normal = false;
+    static constexpr bool needs_source_normal = false;
+
     typedef Complex value_type;
     static string Name() { return "MaxwellDL"; }
     static auto Shape() { return IVec<2>(3,3); }
@@ -757,8 +762,6 @@ namespace ngsbem
     auto Evaluate (Vec<3,T> x, Vec<3,T> y, Vec<3,T> nx, Vec<3,T> ny) const
     {
       T norm = L2Norm(x-y);
-      // auto kern = exp(Complex(0,kappa)*norm) / (4 * M_PI * norm*norm*norm)
-      //   * (Complex(0,kappa)*norm - Complex(1,0)*T(1.)) * (x-y);
       auto kern = exp(kappa*Complex(0,1)*norm) / (4 * M_PI * norm*norm*norm)
         * (kappa*Complex(0,1)*norm - Complex(1,0)*T(1.)) * (x-y);
       return kern;
@@ -829,7 +832,8 @@ namespace ngsbem
     double alpha;
   public:
     typedef double value_type;
-    
+    static constexpr bool needs_target_normal = false;
+    static constexpr bool needs_source_normal = false;
     static string Name() { return "LameSL"; }
     static auto Shape() { return IVec<2>(3,3); }
     
