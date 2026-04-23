@@ -38,11 +38,11 @@ namespace ngfem
   class DiffOpIdEdge : public DiffOp<DiffOpIdEdge<D, FEL> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D };
-    enum { DIM_DMAT = D };
-    enum { DIFFORDER = 0 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = D;
+    static constexpr int DIM_ELEMENT = D;
+    static constexpr int DIM_DMAT = D;
+    static constexpr int DIFFORDER = 0;
 
     static const FEL & Cast (const FiniteElement & fel) 
     { return static_cast<const FEL&> (fel); }
@@ -220,11 +220,11 @@ namespace ngfem
     : public DiffOp<DiffOpCurlEdge<2, FEL> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = 2 };
-    enum { DIM_ELEMENT = 2 };
-    enum { DIM_DMAT = 1 };
-    enum { DIFFORDER = 1 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = 2;
+    static constexpr int DIM_ELEMENT = 2;
+    static constexpr int DIM_DMAT = 1;
+    static constexpr int DIFFORDER = 1;
 
     static string Name() { return "curl"; }
 
@@ -285,11 +285,11 @@ namespace ngfem
   template <typename FEL> class DiffOpCurlEdge<3,FEL> : public DiffOp<DiffOpCurlEdge<3,FEL> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = 3 };
-    enum { DIM_ELEMENT = 3 };
-    enum { DIM_DMAT = 3 };
-    enum { DIFFORDER = 1 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = 3;
+    static constexpr int DIM_ELEMENT = 3;
+    static constexpr int DIM_DMAT = 3;
+    static constexpr int DIFFORDER = 1;
 
     static string Name() { return "curl"; }
 
@@ -415,11 +415,11 @@ namespace ngfem
   class DiffOpTangentialComponentEdge : public DiffOp<DiffOpTangentialComponentEdge<D> >
   {
   public:
-    enum { DIM = D };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D };
-    enum { DIM_DMAT = 1 };
-    enum { DIFFORDER = 0 };
+    static constexpr int DIM = D;
+    static constexpr int DIM_SPACE = D;
+    static constexpr int DIM_ELEMENT = D;
+    static constexpr int DIM_DMAT = 1;
+    static constexpr int DIFFORDER = 0;
     static constexpr bool SUPPORT_PML = true;
 
     template <typename FEL, typename MIP, typename MAT>
@@ -439,11 +439,11 @@ namespace ngfem
   class DiffOpIdBBoundaryEdge : public DiffOp<DiffOpIdBBoundaryEdge<D,FEL> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D-2 };
-    enum { DIM_DMAT = D };
-    enum { DIFFORDER = 0 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = D;
+    static constexpr int DIM_ELEMENT = D-2;
+    static constexpr int DIM_DMAT = D;
+    static constexpr int DIFFORDER = 0;
     static constexpr bool SUPPORT_PML = true;
 
     template <typename FEL1, typename MIP, typename MAT>
@@ -519,11 +519,11 @@ namespace ngfem
   class DiffOpIdBoundaryEdge : public DiffOp<DiffOpIdBoundaryEdge<D,FEL> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D-1 };
-    enum { DIM_DMAT = D };
-    enum { DIFFORDER = 0 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = D;
+    static constexpr int DIM_ELEMENT = D-1;
+    static constexpr int DIM_DMAT = D;
+    static constexpr int DIFFORDER = 0;
 
     static constexpr bool SUPPORT_PML = true;
     template <typename FEL1, typename MIP, typename MAT>
@@ -549,6 +549,25 @@ namespace ngfem
     {
       static_cast<const FEL&> (fel).CalcMappedShape (bmip, mat);  
     }
+
+    static int DimRef() { return D-1; } 
+    
+    template <typename IP, typename MAT>
+    static void GenerateMatrixRef (const FiniteElement & fel, const IP & ip,
+                                   MAT && mat, LocalHeap & lh)
+    {
+      static_cast<const FEL&> (fel).CalcShape (ip, Trans(mat));
+    }
+
+    template <typename MIP, typename MAT>
+    static void CalcTransformationMatrix (const MIP & mip,
+                                          MAT & mat, LocalHeap & lh)
+    {
+      mat = Trans(static_cast<const MappedIntegrationPoint<D-1,D>&>(mip).GetJacobianInverse());
+    }
+    
+
+
     
 
     static void GenerateMatrixSIMDIR (const FiniteElement & fel,
@@ -637,12 +656,23 @@ namespace ngfem
   class DiffOpCurlBoundaryEdge : public DiffOp<DiffOpCurlBoundaryEdge<FEL> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = 3 };
-    enum { DIM_ELEMENT = 2 };
-    enum { DIM_DMAT = 1 };
-    enum { DIFFORDER = 1 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = 3;
+    static constexpr int DIM_ELEMENT = 2;
+    static constexpr int DIM_DMAT = 1;
+    static constexpr int DIFFORDER = 1;
 
+    static string Name() { return "curl"; }
+
+    static const FEL & Cast(const FiniteElement & fel)
+    {
+        return static_cast<const FEL&> (fel);
+    }
+
+    
+    static int DimRef() { return 1; }
+
+    
     static constexpr bool SUPPORT_PML = true;
     template <typename AFEL, typename MIP, typename MAT>
     static void GenerateMatrix (const AFEL & fel, const MIP & mip,
@@ -651,6 +681,22 @@ namespace ngfem
       mat = 1.0/mip.GetJacobiDet() * 
 	Trans (static_cast<const FEL&>(fel).GetCurlShape(mip.IP(),lh));
     }
+    
+    template<typename IP, typename MAT>
+    static void GenerateMatrixRef (const FiniteElement & fel, const IP & ip,
+                                   MAT && mat, LocalHeap & lh)
+    {
+      Cast(fel).CalcCurlShape (ip, Trans(mat));
+    }
+
+    template <typename MIP, typename MAT>
+    static void CalcTransformationMatrix (const MIP & mip,
+                                          MAT & mat, LocalHeap & lh)
+    {
+      // auto & mip = static_cast<const MappedIntegrationPoint<D-1,D>&>(bmip);
+      mat = 1./mip.GetJacobiDet();
+    }
+    
 
     static void GenerateMatrixSIMDIR (const FiniteElement & fel,
                                       const SIMD_BaseMappedIntegrationRule & mir,
@@ -695,19 +741,43 @@ template <typename FEL = HCurlFiniteElement<2> >
 class DiffOpCurlBoundaryEdgeVec : public DiffOp<DiffOpCurlBoundaryEdgeVec<FEL> >
 {
 public:
-  enum { DIM = 1 };
-  enum { DIM_SPACE = 3 };
-  enum { DIM_ELEMENT = 2 };
-  enum { DIM_DMAT = 3 };
-  enum { DIFFORDER = 1 };
+  static constexpr int DIM = 1;
+  static constexpr int DIM_SPACE = 3;
+  static constexpr int DIM_ELEMENT = 2;
+  static constexpr int DIM_DMAT = 3;
+  static constexpr int DIFFORDER = 1;
 
+  static string Name() { return "curl"; }
+  
     static constexpr bool SUPPORT_PML = true;
   static const FEL & Cast (const FiniteElement & fel) 
   { return static_cast<const FEL&> (fel); }
 
+  static int DimRef() { return 1; }
+
+  template<typename IP, typename MAT>
+  static void GenerateMatrixRef (const FiniteElement & fel, const IP & ip,
+                                 MAT && mat, LocalHeap & lh)
+  {
+    Cast(fel).CalcCurlShape (ip, Trans(mat));
+  }
+
+  template <typename MIP, typename MAT>
+  static void CalcTransformationMatrix (const MIP & mip,
+                                        MAT & mat, LocalHeap & lh)
+  {
+    /*
+      mat = 0.0;
+      auto scaled_nv = (1.0/mip.GetJacobiDet()) * mip.GetNV();
+      for (int i = 0; i < DIM_DMAT; i++)
+          mat(i,0) = scaled_nv(i);
+    */
+    mat.Col(0) = (1.0/mip.GetJacobiDet()) * mip.GetNV();
+  }
+
   template <typename AFEL, typename MIP, typename MAT>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
-			      MAT && mat, LocalHeap & lh)
+                             MAT && mat, LocalHeap & lh)
   {
     auto scaled_nv = (1.0/mip.GetJacobiDet()) * mip.GetNV();
     mat = scaled_nv * Trans(Cast(fel).GetCurlShape (mip.IP(), lh));
@@ -1248,11 +1318,11 @@ public:
   class DiffOpGradientBoundaryHCurl : public DiffOp<DiffOpGradientBoundaryHCurl<D> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D-1 };
-    enum { DIM_DMAT = D*D };
-    enum { DIFFORDER = 1 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = D;
+    static constexpr int DIM_ELEMENT = D-1;
+    static constexpr int DIM_DMAT = D*D;
+    static constexpr int DIFFORDER = 1;
 
     static string Name() { return "gradboundary"; }
 

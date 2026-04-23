@@ -25,6 +25,7 @@ namespace ngsbem
 
   constexpr int FMM_SW = 4;
 
+  
 
   // ************************ SIMD - creation (should end up in simd.hpp) ************* 
 
@@ -42,11 +43,30 @@ namespace ngsbem
   }
   
 
+  class NGS_DLL_HEADER PrecomputedSqrts
+  {
+  public:
+    Array<double> sqrt_int;
+    // Array<double> inv_sqrt_int;
+    Array<double> sqrt_n_np1;    // sqrt(n*(n+1))
+    Array<double> inv_sqrt_2np1_2np3;  // 1/sqrt( (2n+1)*(2n+3) )
+    
+    PrecomputedSqrts();
+  };
+  
+  extern NGS_DLL_HEADER PrecomputedSqrts presqrt;
+  
 
 
-namespace ngsbem
-{
-  using namespace ngfem;
+  class FMM_Parameters
+  {
+  public:
+    int maxdirect = 100;
+    int minorder = 20;    // order = minorder + 2 kappa r 
+  };
+
+
+  
   
   inline std::tuple<double, double, double> SphericalCoordinates(Vec<3> dist){
     double len, theta, phi;
@@ -191,18 +211,26 @@ namespace ngsbem
     void RotateY (double alpha, bool parallel = false);
 
     
+    
     static double CalcAmn (int m, int n)
     {
       if (m < 0) m=-m;
       if (n < m) return 0;
-      return sqrt( (n+1.0+m)*(n+1.0-m) / ( (2*n+1)*(2*n+3) ));
+
+      if (2*n+1 < presqrt.sqrt_int.Size())
+        return presqrt.sqrt_int[n+1+m]*presqrt.sqrt_int[n+1-m] * presqrt.inv_sqrt_2np1_2np3[n];
+      else
+        return sqrt( (n+1.0+m)*(n+1.0-m) / ( (2*n+1)*(2*n+3) ));
     }
   
     static double CalcBmn (int m, int n)
     {
       double sgn = (m >= 0) ? 1 : -1;
-      if ( (m > n) || (-m > n) ) return 0;
-      return sgn * sqrt( (n-m-1.0)*(n-m) / ( (2*n-1.0)*(2*n+1))); 
+      if ( (m >= n) || (-m > n) ) return 0;
+      if (n <= presqrt.inv_sqrt_2np1_2np3.Size())
+        return sgn * presqrt.sqrt_n_np1[n-m-1] * presqrt.inv_sqrt_2np1_2np3[n-1];
+      else
+        return sgn * sqrt( (n-m-1.0)*(n-m) / ( (2*n-1.0)*(2*n+1)));
     }
   
     static double CalcDmn (int m, int n)
@@ -246,8 +274,8 @@ namespace ngsbem
 
 
   
-  template <typename T>
-  void SphericalBessel (int n, double rho, double scale, T && values)
+  template <typename T, typename U>
+  void SphericalBessel (int n, U rho, double scale, T && values)
   {
     besseljs3d (n, rho, scale,  values);
     /*
@@ -258,8 +286,8 @@ namespace ngsbem
   }
 
 
-  template <typename T>
-  void SphericalHankel1 (int n, double rho, double scale, T && values)
+  template <typename T, typename T_Kappa>
+  void SphericalHankel1 (int n, T_Kappa rho, double scale, T && values)
   {
     // Complex imag(0,1);
     /*
@@ -272,23 +300,23 @@ namespace ngsbem
       values(i) = (2*i-1)/rho * values(i-1) - values(i-2);
     */
     
-    if (rho < 1e-100)
+    if (abs(rho) < 1e-100)
       {
         values = Complex(0);
         return;
       }
-    Vector j(n+1), y(n+1), jp(n+1), yp(n+1);
+    Vector<T_Kappa> j(n+1), y(n+1), jp(n+1), yp(n+1);
     
     // the bessel-evaluation with scale
     besseljs3d (n, rho, 1/scale,  j, jp);
 
     // Bessel y directly with the recurrence formula for (y, yp):
-    double x = rho;
-    double xinv = 1/x;
+    T_Kappa x = rho;
+    T_Kappa xinv = T_Kappa{1}/x;
     y(0) = -xinv * cos(x);
     yp(0) = j(0)-xinv*y(0);
 
-    double sl = 0;
+    T_Kappa sl = 0;
     for (int l = 1; l <= n; l++)
       {
         y(l) = scale * (sl*y(l-1) - yp(l-1));
@@ -297,7 +325,7 @@ namespace ngsbem
       }
     
     for (int i = 0; i <= n; i++)
-      values(i) = Complex (j(i), y(i));
+      values(i) = Complex (j(i)) + Complex(y(i)) * Complex(0,1);
   }
 
 
@@ -305,7 +333,7 @@ namespace ngsbem
 
   
   // hn1 = jn+ i*yn
-  class MPSingular
+  class Singular
   {
   public:
     template <typename T>
@@ -314,24 +342,24 @@ namespace ngsbem
       SphericalHankel1(order, r, scale,  values);
     }
 
-    template <typename T>
-    static void Eval (int order, double kappa, double r, double rtyp, T && values)
+    template <typename T, typename T_Kappa>
+    static void Eval (int order, T_Kappa kappa, double r, double rtyp, T && values)
     {
       double scale = Scale(kappa, rtyp);
       SphericalHankel1(order, r*kappa, scale,  values);
     }
 
-    static double Scale (double kappa, double rtyp)
+    template <typename T_Kappa>
+    static double Scale (T_Kappa kappa, double rtyp)
     {
-      // return min(1.0, rtyp*kappa);
-      return min(1.0, 0.5*rtyp*kappa);      
+      return min(1.0, 0.5*rtyp*abs(kappa));
     }
   };
 
 
   
   // jn
-  class MPRegular
+  class Regular
   {
   public:
     template <typename T>
@@ -340,17 +368,17 @@ namespace ngsbem
       SphericalBessel (order, r, 1.0/scale, values);
     }
 
-    template <typename T>
-    static void Eval (int order, double kappa, double r, double rtyp, T && values)
+    template <typename T, typename T_Kappa>
+    static void Eval (int order, T_Kappa kappa, double r, double rtyp, T && values)
     {
       double scale = Scale(kappa, rtyp);
       SphericalBessel (order, r*kappa, 1.0/scale, values);      
     }
 
-    static double Scale (double kappa, double rtyp)
+    template <typename T_Kappa>
+    static double Scale (T_Kappa kappa, double rtyp)
     {
-      // return 1.0/ min(1.0, 0.25*rtyp*kappa);
-      return 1.0/ min(1.0, 0.5*rtyp*kappa);
+      return 1.0/ min(1.0, 0.5*rtyp*abs(kappa));
     }
     
   };
@@ -358,35 +386,35 @@ namespace ngsbem
   
 
 
-  template <typename RADIAL, typename entry_type=Complex>
-  class NGS_DLL_HEADER MultiPole
+  template <typename RADIAL, typename entry_type=Complex, typename T_Kappa = double>
+  class NGS_DLL_HEADER SphericalExpansion
   {
     SphericalHarmonics<entry_type> sh;
-    double kappa;
+    T_Kappa kappa;
     double rtyp;
   public:
 
-    MultiPole (int aorder, double akappa, double artyp) 
+    SphericalExpansion (int aorder, T_Kappa akappa, double artyp) 
     : sh(aorder), kappa(akappa), rtyp(artyp) { }
 
   
     entry_type & Coef(int n, int m) { return sh.Coef(n,m); }
     auto & SH() { return sh; }
     const auto & SH() const { return sh; }
-    double Kappa() const { return kappa; }
+    T_Kappa Kappa() const { return kappa; }
     double Scale() const { return RADIAL::Scale(kappa, rtyp); }
     double RTyp() const { return rtyp; }
     int Order() const { return sh.Order(); }
     
-    MultiPole Truncate(int neworder) const
+    SphericalExpansion Truncate(int neworder) const
     {
       if (neworder > sh.Order()) neworder=sh.Order();
-      MultiPole nmp(neworder, kappa, rtyp);
+      SphericalExpansion nmp(neworder, kappa, rtyp);
       nmp.sh.Coefs() = sh.Coefs().Range(sqr(neworder+1));
       return nmp;
     }
 
-    MultiPole & operator+= (const MultiPole & mp2)
+    SphericalExpansion & operator+= (const SphericalExpansion & mp2)
     {
       size_t commonsize = min(SH().Coefs().Size(), mp2.SH().Coefs().Size());
       SH().Coefs().Range(commonsize) += mp2.SH().Coefs().Range(commonsize);
@@ -397,27 +425,24 @@ namespace ngsbem
     entry_type EvalDirectionalDerivative (Vec<3> x, Vec<3> d) const;
 
     void AddCharge (Vec<3> x, entry_type c);
-    void AddDipole (Vec<3> x, Vec<3> d, entry_type c);
+    void AddDipole (Vec<3> x, Vec<3> dir, entry_type c);
+    void AddChargeDipole (Vec<3> x, entry_type c, Vec<3> dir, entry_type c2)
+    {
+      // TODO: add them at once
+      AddCharge (x, c);
+      AddDipole (x, dir, c2);
+    }
+    
+    void AddPlaneWave (Vec<3> d, entry_type c);    
     void AddCurrent (Vec<3> ap, Vec<3> ep, Complex j, int num=100);
     
-    /*
-    void ChangeScaleTo (double newscale)
-    {
-      double fac = Scale()/newscale;
-      double prod = 1;
-      for (int n = 0; n <= sh.Order(); n++, prod*= fac)
-        sh.CoefsN(n) *= prod;
-      scale = newscale;
-    }
-    */
+
     void ChangeRTypTo (double new_rtyp)
     {
-      // double fac = Scale()/newscale;
       double fac = RADIAL::Scale(kappa, rtyp) / RADIAL::Scale(kappa, new_rtyp);
       double prod = 1;
       for (int n = 0; n <= sh.Order(); n++, prod*= fac)
         sh.CoefsN(n) *= prod;
-      // scale = newscale;
       rtyp = new_rtyp;
     }
     
@@ -436,7 +461,7 @@ namespace ngsbem
 
     
     template <typename TARGET>
-    void Transform (MultiPole<TARGET,entry_type> & target, Vec<3> dist) const
+    void Transform (SphericalExpansion<TARGET,entry_type,T_Kappa> & target, Vec<3> dist) const
     {
       if (target.SH().Order() < 0) return;
       if (SH().Order() < 0)
@@ -451,8 +476,8 @@ namespace ngsbem
       auto [len, theta, phi] = SphericalCoordinates(dist);
         
       
-      // MultiPole<RADIAL,entry_type> tmp{*this};
-      MultiPole<RADIAL,entry_type> tmp(Order(), kappa, rtyp);
+      // SphericalExpansion<RADIAL,entry_type> tmp{*this};
+      SphericalExpansion<RADIAL,entry_type,T_Kappa> tmp(Order(), kappa, rtyp);
       tmp.SH().Coefs() = SH().Coefs();
       
       tmp.SH().RotateZ(phi);
@@ -465,12 +490,12 @@ namespace ngsbem
     }
     
     template <typename TARGET>
-    void TransformAdd (MultiPole<TARGET,entry_type> & target, Vec<3> dist, bool atomic = false) const
+    void TransformAdd (SphericalExpansion<TARGET,entry_type,T_Kappa> & target, Vec<3> dist, bool atomic = false) const
     {
       if (SH().Order() < 0) return;
       if (target.SH().Order() < 0) return;      
       
-      MultiPole<TARGET,entry_type> tmp{target};
+      SphericalExpansion<TARGET,entry_type,T_Kappa> tmp{target};
       Transform(tmp, dist);
       if (!atomic)
         target.SH().Coefs() += tmp.SH().Coefs();
@@ -480,19 +505,34 @@ namespace ngsbem
     }
 
     template <typename TARGET>
-    void ShiftZ (double z, MultiPole<TARGET,entry_type> & target);
+    void ShiftZ (double z, SphericalExpansion<TARGET,entry_type,T_Kappa> & target);
+
     
+    template <typename TARGET>
+    void In2Out (SphericalExpansion<TARGET,entry_type,T_Kappa> & target, double r) const
+    {
+      Vector<Complex> rad(Order()+1);
+      Vector<Complex> radout(target.Order()+1);      
+      RADIAL::Eval(Order(), kappa, r, RTyp(), rad);
+      TARGET::Eval(target.Order(), kappa, r, target.RTyp(), radout);
+      target.SH().Coefs() = 0;
+      for (int j = 0; j <= std::min(Order(), target.Order()); j++)
+        target.SH().CoefsN(j) = rad(j)/radout(j) * SH().CoefsN(j);
+    }
   };
   
   
 
   // ***************** parameters ****************
 
+  /*
   static constexpr int MPOrder (double rho_kappa)
   {
-    return max (20, int(2*rho_kappa));
+    // return max (20, int(2*rho_kappa));
+    return 20+int(2*rho_kappa);
   }
   static constexpr int maxdirect = 100;
+  */
 
 
   template <typename SCAL, auto S>
@@ -507,23 +547,23 @@ namespace ngsbem
   }
 
 
-  template <typename entry_type=Complex>
-  class SingularMLMultiPole
+  template <typename entry_type=Complex, typename T_Kappa = double>
+  class SingularMLExpansion
   {
     using simd_entry_type = decltype(MakeSimd(declval<std::array<entry_type,FMM_SW>>()));
     static Array<size_t> nodes_on_level;    
     
     struct RecordingSS
     {
-      const MultiPole<MPSingular,entry_type> * mp_source;
-      MultiPole<MPSingular,entry_type> * mp_target;
+      const SphericalExpansion<Singular,entry_type,T_Kappa> * mp_source;
+      SphericalExpansion<Singular,entry_type,T_Kappa> * mp_target;
       Vec<3> dist;
       double len, theta, phi;
       bool flipz;
     public:
       RecordingSS() = default;
-      RecordingSS (const MultiPole<MPSingular,entry_type> * amp_source,
-                   MultiPole<MPSingular,entry_type> * amp_target,
+      RecordingSS (const SphericalExpansion<Singular,entry_type,T_Kappa> * amp_source,
+                   SphericalExpansion<Singular,entry_type,T_Kappa> * amp_target,
                    Vec<3> adist)
         : mp_source(amp_source), mp_target(amp_target), dist(adist)
       {
@@ -535,7 +575,7 @@ namespace ngsbem
     };
 
 
-    static void ProcessBatch(FlatArray<RecordingSS*> batch, double len, double theta) {
+    static void ProcessBatchSS(FlatArray<RecordingSS*> batch, double len, double theta) {
       constexpr int vec_length = VecLength<entry_type>;
       int batch_size = batch.Size();
       int N = batch_size * vec_length;
@@ -547,42 +587,45 @@ namespace ngsbem
         }
       }
       else if (N <= 3) {
-        ProcessVectorizedBatch<3, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchSS<3, vec_length>(batch, len, theta);
       }
       else if (N <= 4) {
-        ProcessVectorizedBatch<4, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchSS<4, vec_length>(batch, len, theta);
       }
       else if (N <= 6) {
-        ProcessVectorizedBatch<6, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchSS<6, vec_length>(batch, len, theta);
       }
       else if (N <= 12) {
-        ProcessVectorizedBatch<12, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchSS<12, vec_length>(batch, len, theta);
       }
       else if (N <= 24) {
-        ProcessVectorizedBatch<24, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchSS<24, vec_length>(batch, len, theta);
       }
       else if (N <= 48) {
-        ProcessVectorizedBatch<48, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchSS<48, vec_length>(batch, len, theta);
       }
       else if (N <= 96) {
-        ProcessVectorizedBatch<96, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchSS<96, vec_length>(batch, len, theta);
       }
       else if (N <= 192) {
-        ProcessVectorizedBatch<192, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchSS<192, vec_length>(batch, len, theta);
       }
       else {
         // Split large batches
-        ProcessBatch(batch.Range(0, 192 / vec_length), len, theta);
-        ProcessBatch(batch.Range(192 / vec_length, batch_size), len, theta);
+        ProcessBatchSS(batch.Range(0, 192 / vec_length), len, theta);
+        ProcessBatchSS(batch.Range(192 / vec_length, batch_size), len, theta);
       }
     }
 
     template<int N, int vec_length>
-    static void ProcessVectorizedBatch(FlatArray<RecordingSS*> batch, double len, double theta) {
+    static void ProcessVectorizedBatchSS(FlatArray<RecordingSS*> batch, double len, double theta) {
 
       // *testout << "Processing vectorized S->S batch of size " << batch.Size() << ", with N = " << N << ", vec_length = " << vec_length << ", len = " << len << ", theta = " << theta << endl;
-      MultiPole<MPSingular, Vec<N,Complex>> vec_source(batch[0]->mp_source->Order(), batch[0]->mp_source->Kappa(), batch[0]->mp_source->RTyp());
-      MultiPole<MPSingular, Vec<N,Complex>> vec_target(batch[0]->mp_target->Order(), batch[0]->mp_target->Kappa(), batch[0]->mp_target->RTyp());
+      T_Kappa kappa = batch[0]->mp_source->Kappa();
+      int so = batch[0]->mp_source->Order();
+      int to = batch[0]->mp_target->Order();
+      SphericalExpansion<Singular, Vec<N,Complex>, T_Kappa> vec_source(so, kappa, batch[0]->mp_source->RTyp());
+      SphericalExpansion<Singular, Vec<N,Complex>, T_Kappa> vec_target(to, kappa, batch[0]->mp_target->RTyp());
 
       // Copy multipoles into vectorized multipole
       for (int i = 0; i < batch.Size(); i++)
@@ -619,28 +662,42 @@ namespace ngsbem
       double r;
       int level;
       std::array<unique_ptr<Node>,8> childs;
-      MultiPole<MPSingular, entry_type> mp;
+      SphericalExpansion<Singular, entry_type,T_Kappa> mp;
 
       Array<tuple<Vec<3>, entry_type>> charges;
       Array<tuple<Vec<3>, Vec<3>, entry_type>> dipoles;
+      Array<tuple<Vec<3>, entry_type, Vec<3>, entry_type>> chargedipoles;
       Array<tuple<Vec<3>, Vec<3>, Complex,int>> currents;
 
       using simd_entry_type = decltype(MakeSimd(declval<std::array<entry_type,FMM_SW>>()));      
       Array<tuple<Vec<3,SIMD<double,FMM_SW>>, simd_entry_type>> simd_charges;
       Array<tuple<Vec<3,SIMD<double,FMM_SW>>, Vec<3,SIMD<double,FMM_SW>>, simd_entry_type>> simd_dipoles;
+      Array<tuple<Vec<3,SIMD<double,FMM_SW>>, simd_entry_type,
+                  Vec<3,SIMD<double,FMM_SW>>, simd_entry_type>> simd_chargedipoles;
       
       int total_sources;
+      const FMM_Parameters & fmm_params;
       std::mutex node_mutex;
       atomic<bool> have_childs{false};
       
-      Node (Vec<3> acenter, double ar, int alevel, double akappa)
-        : center(acenter), r(ar), level(alevel), mp(MPOrder(ar*akappa), akappa, ar) // min(1.0, ar*akappa))
+      Node (Vec<3> acenter, double ar, int alevel, T_Kappa akappa, const FMM_Parameters & afmm_params)
+      // : center(acenter), r(ar), level(alevel), mp(MPOrder(ar*akappa), akappa, ar), fmm_params(afmm_params)
+        // : center(acenter), r(ar), level(alevel), mp(afmm_params.minorder+2*ar*akappa, akappa, ar), fmm_params(afmm_params)
+        : center(acenter), r(ar), level(alevel), mp(afmm_params.minorder+2*ar*abs(akappa), akappa, ar), fmm_params(afmm_params)
       {
         if (level < nodes_on_level.Size())
           nodes_on_level[level]++;
       }
 
-
+      int GetChildNum (Vec<3> x) const
+      {
+        int childnum  = 0;
+        if (x(0) > center(0)) childnum += 1;
+        if (x(1) > center(1)) childnum += 2;
+        if (x(2) > center(2)) childnum += 4;
+        return childnum;
+      }
+      
       void CreateChilds()
       {
         if (childs[0]) throw Exception("have already childs");
@@ -650,21 +707,38 @@ namespace ngsbem
             cc(0) += (i&1) ? r/2 : -r/2;
             cc(1) += (i&2) ? r/2 : -r/2;
             cc(2) += (i&4) ? r/2 : -r/2;
-            childs[i] = make_unique<Node> (cc, r/2, level+1, mp.Kappa());
+            childs[i] = make_unique<Node> (cc, r/2, level+1, mp.Kappa(), fmm_params);
           }
         have_childs = true;
       }
       
 
+      void SendSourcesToChilds()
+      {
+        CreateChilds();
+
+        for (auto [x,c] : charges)
+          AddCharge (x,c);
+        for (auto [x,d,c] : dipoles)
+          AddDipole (x,d,c);
+        for (auto [x,c,d,c2] : chargedipoles)
+          AddChargeDipole (x,c,d,c2);
+        for (auto [sp,ep,j,num] : currents)
+          AddCurrent (sp,ep,j,num);
+        
+        charges.DeleteAll();
+        dipoles.DeleteAll();
+        chargedipoles.DeleteAll();        
+        currents.DeleteAll();
+      }
+
+      
       void AddCharge (Vec<3> x, entry_type c)
       {
         if (have_childs) // quick check without locking 
           {
             // directly send to childs:
-            int childnum  = 0;
-            if (x(0) > center(0)) childnum += 1;
-            if (x(1) > center(1)) childnum += 2;
-            if (x(2) > center(2)) childnum += 4;
+            int childnum = GetChildNum(x);
             childs[childnum] -> AddCharge(x, c);
             return;
           }
@@ -673,36 +747,19 @@ namespace ngsbem
 
         if (have_childs) // test again after locking 
           {
-            // directly send to childs:
-            int childnum  = 0;
-            if (x(0) > center(0)) childnum += 1;
-            if (x(1) > center(1)) childnum += 2;
-            if (x(2) > center(2)) childnum += 4;
+            int childnum  = GetChildNum(x);
             childs[childnum] -> AddCharge(x, c);
             return;
           }
 
-
-        
         charges.Append( tuple{x,c} );
 
         // if (r*mp.Kappa() < 1e-8) return;
         if (level > 20) return;
-        if (charges.Size() < maxdirect && r*mp.Kappa() < 1)
+        if (charges.Size() < fmm_params.maxdirect && r*abs(mp.Kappa()) < 5)
           return;
-
-        CreateChilds();
-
-        for (auto [x,c] : charges)
-          AddCharge (x,c);
-        for (auto [x,d,c] : dipoles)
-          AddDipole (x,d,c);
-        for (auto [sp,ep,j,num] : currents)
-          AddCurrent (sp,ep,j,num);
         
-        charges.SetSize0();
-        dipoles.SetSize0();
-        currents.SetSize0();
+        SendSourcesToChilds();
       }
 
 
@@ -711,11 +768,7 @@ namespace ngsbem
         if (have_childs)
           {
             // directly send to childs:
-
-            int childnum  = 0;
-            if (x(0) > center(0)) childnum += 1;
-            if (x(1) > center(1)) childnum += 2;
-            if (x(2) > center(2)) childnum += 4;
+            int childnum = GetChildNum(x);
             childs[childnum] -> AddDipole(x, d, c);
             return;
           }
@@ -725,37 +778,55 @@ namespace ngsbem
         if (have_childs)
           {
             // directly send to childs:
-
-            int childnum  = 0;
-            if (x(0) > center(0)) childnum += 1;
-            if (x(1) > center(1)) childnum += 2;
-            if (x(2) > center(2)) childnum += 4;
+            int childnum = GetChildNum(x);
             childs[childnum] -> AddDipole(x, d, c);
             return;
           }
-
-
-
         
         dipoles.Append (tuple{x,d,c});
-
-        if (dipoles.Size() < maxdirect || r < 1e-8)
-          return;
         
-        CreateChilds();
+        if (level > 20) return;
+        if (dipoles.Size() < fmm_params.maxdirect)
+          return;
 
-        for (auto [x,c] : charges)
-          AddCharge (x,c);
-        for (auto [x,d,c] : dipoles)
-          AddDipole (x,d,c);
-        for (auto [sp,ep,j,num] : currents)
-          AddCurrent (sp,ep,j,num);
-
-        charges.SetSize0();
-        dipoles.SetSize0();        
-        currents.SetSize0();        
+        SendSourcesToChilds();
       }
 
+
+      void AddChargeDipole (Vec<3> x, entry_type c, Vec<3> dir, entry_type c2)
+      {
+        if (have_childs)
+          {
+            // directly send to childs:
+            int childnum = GetChildNum(x);
+            childs[childnum] -> AddChargeDipole(x, c, dir, c2);
+            return;
+          }
+
+        lock_guard<mutex> guard(node_mutex);
+
+        if (have_childs)
+          {
+            // directly send to childs:
+            int childnum = GetChildNum(x);
+            childs[childnum] -> AddChargeDipole(x, c, dir, c2);
+            return;
+          }
+        
+        chargedipoles.Append (tuple{x,c,dir,c2});
+
+        if (chargedipoles.Size() < fmm_params.maxdirect || r < 1e-8)
+          return;
+
+        SendSourcesToChilds();
+
+        /*
+        AddCharge (x, c);
+        AddDipole (x, dir, c2);
+        */
+      }
+
+      
       // not parallel yet
       void AddCurrent (Vec<3> sp, Vec<3> ep, Complex j, int num)
       {
@@ -765,7 +836,7 @@ namespace ngsbem
             Array<double> split;
             split.Append(0);
             for (int i = 0; i < 3; i++)
-              if (sp(i) < center(i) != ep(i) < center(i))
+              if ((sp(i) < center(i)) != (ep(i) < center(i)))
                 split += (center(i)-sp(i)) / (ep(i)-sp(i));  // segment cuts i-th coordinate plane
             split.Append(1);
             BubbleSort(split);
@@ -792,6 +863,12 @@ namespace ngsbem
         // if (currents.Size() < maxdirect || r < 1e-8)
         if (currents.Size() < 4 || r < 1e-8)        
           return;
+
+        SendSourcesToChilds();
+        /*
+        // if (currents.Size() < maxdirect || r < 1e-8)
+        if (currents.Size() < 4 || r < 1e-8)        
+          return;
         
         CreateChilds();
 
@@ -805,6 +882,7 @@ namespace ngsbem
         charges.SetSize0();
         dipoles.SetSize0();
         currents.SetSize0();
+        */
       }
 
 
@@ -820,17 +898,34 @@ namespace ngsbem
             return sum;
           }
 
-        {
-          // static Timer t("fmm direct eval"); RegionTimer reg(t);
-          // t.AddFlops (charges.Size());
         if (simd_charges.Size())
           {
+            // static Timer t("mptool singmp, evaluate, simd charges"); RegionTimer r(t);
+            // t.AddFlops (charges.Size());
+            
             simd_entry_type vsum{0.0};
-            if (mp.Kappa() < 1e-8)
+            if (abs(mp.Kappa()) < 1e-12)
+              {
+                for (auto [x,c] : simd_charges)
+                  {
+                    auto rho = L2Norm(p-x);
+                    auto kernel = 1/(4*M_PI)/rho;
+                    kernel = If(rho > 0.0, kernel, SIMD<double,FMM_SW>(0.0));
+                    vsum += kernel * c;
+
+                    /*
+                    auto rho2 = L2Norm2(p-x);
+                    auto kernel = (1/(4*M_PI)) * rsqrt(rho2);
+                    kernel = If(rho2 > 0.0, kernel, SIMD<double,FMM_SW>(0.0));
+                    vsum += kernel * c;
+                    */
+                  }
+              }
+            else if (abs(mp.Kappa()) < 1e-8)
               for (auto [x,c] : simd_charges)
                 {
                   auto rho = L2Norm(p-x);
-                  auto kernel = (1/(4*M_PI))*SIMD<Complex,FMM_SW> (1,rho*mp.Kappa()) / rho;
+                  auto kernel = (1/(4*M_PI))*(SIMD<Complex,FMM_SW> (1,0) + rho*mp.Kappa() * SIMD<Complex,FMM_SW> (0,1)) / rho;
                   kernel = If(rho > 0.0, kernel, SIMD<Complex,FMM_SW>(0.0));
                   vsum += kernel * c;
                 }
@@ -838,57 +933,114 @@ namespace ngsbem
               for (auto [x,c] : simd_charges)
                 {
                   auto rho = L2Norm(p-x);
-                  auto [si,co] = sincos(rho*mp.Kappa());
-                  auto kernel = (1/(4*M_PI))*SIMD<Complex,FMM_SW>(co,si) / rho;
+                  auto kappa = mp.Kappa();
+                  auto phase = Real(kappa) * rho;
+                  auto decay = exp(-Imag(kappa)*rho);
+                  auto [si,co] = sincos(phase);
+                  auto kernel = (1/(4*M_PI))*SIMD<Complex,FMM_SW>(co*decay,si*decay) / rho;
                   kernel = If(rho > 0.0, kernel, SIMD<Complex,FMM_SW>(0.0));
                   vsum += kernel * c;
                 }
-              
+            
             sum += HSum(vsum);
           }
         else
           {
-            if (mp.Kappa() < 1e-8)
+            if (abs(mp.Kappa()) < 1e-8)
               {
                 for (auto [x,c] : charges)
                   if (double rho = L2Norm(p-x); rho > 0)
-                    sum += (1/(4*M_PI))*Complex(1,rho*mp.Kappa()) / rho * c;
+                    sum += (1/(4*M_PI))*(Complex(1,0) + rho*mp.Kappa()*Complex(0,1)) / rho * c;
               }
             else
               for (auto [x,c] : charges)
                 if (double rho = L2Norm(p-x); rho > 0)
-                  sum += (1/(4*M_PI))*exp(Complex(0,rho*mp.Kappa())) / rho * c;
+                  sum += (1/(4*M_PI))*exp(mp.Kappa()*Complex(0,rho)) / rho * c;
           }
-        }
 
         if (simd_dipoles.Size())
-        {
-          simd_entry_type vsum{0.0};
-          for (auto [x,d,c] : simd_dipoles)
           {
-            auto rho = L2Norm(p-x);
-            auto drhodp = (1.0/rho) * (p-x);
-            auto [si,co] = sincos(rho*mp.Kappa());
-            auto dGdrho = (1/(4*M_PI))*SIMD<Complex,FMM_SW>(co,si) * 
-                          (-1.0/(rho*rho) + SIMD<Complex,FMM_SW>(0, mp.Kappa())/rho);
-            auto kernel = dGdrho * InnerProduct(drhodp, d);
-            kernel = If(rho > 0.0, kernel, SIMD<Complex,FMM_SW>(0.0));
-            vsum += kernel * c;
+            // static Timer t("mptool singmp, evaluate, simd dipoles"); RegionTimer r(t);
+            
+            simd_entry_type vsum{0.0};
+            for (auto [x,d,c] : simd_dipoles)
+              {
+                auto rho = L2Norm(p-x);
+                auto drhodp = (1.0/rho) * (p-x);
+                auto kappa = mp.Kappa();
+                auto phase = Real(kappa) * rho;
+                auto decay = exp(-Imag(kappa)*rho);
+                auto [si,co] = sincos(phase);
+                auto dGdrho = (1/(4*M_PI))*SIMD<Complex,FMM_SW>(co*decay,si*decay) * 
+                  (-1.0/(rho*rho) + mp.Kappa() * SIMD<Complex,FMM_SW>(0, 1)/rho);
+                auto kernel = dGdrho * InnerProduct(drhodp, d);
+                kernel = If(rho > 0.0, kernel, SIMD<Complex,FMM_SW>(0.0));
+                vsum += kernel * c;
+              }
+            sum += HSum(vsum);
           }
+        else
+          {
+            for (auto [x,d,c] : dipoles)
+              if (double rho = L2Norm(p-x); rho > 0)
+                {
+                  Vec<3> drhodp = 1.0/rho * (p-x);
+                  Complex dGdrho = (1/(4*M_PI))*exp(mp.Kappa()*Complex(0,rho)) *
+                    (mp.Kappa()*Complex(0, 1)/rho - 1.0/sqr(rho));
+                  sum += dGdrho * InnerProduct(drhodp, d) * c;
+                }
+          }
+      
+      
+      
+      if (simd_chargedipoles.Size())
+        {
+          // static Timer t("mptool singmp, evaluate, simd chargedipoles"); RegionTimer r(t);
+          // t.AddFlops (simd_chargedipoles.Size()*FMM_SW);
+          
+          simd_entry_type vsum{0.0};
+          for (auto [x,c,d,c2] : simd_chargedipoles)
+            {
+              auto rho = L2Norm(p-x);
+              auto rhokappa = rho*mp.Kappa();
+              auto invrho = If(rho>0.0, 1.0/rho, SIMD<double,FMM_SW>(0.0));
+              auto kappa = mp.Kappa();
+              auto phase = Real(kappa) * rho;
+              auto decay = exp(-Imag(kappa)*rho);
+              auto [si,co] = sincos(phase);
+              auto kernelc = (1/(4*M_PI))*invrho*SIMD<Complex,FMM_SW>(co*decay,si*decay);
+
+              vsum += kernelc * c;   
+              auto kernel = 
+                invrho*invrho * InnerProduct(p-x, d) * 
+                kernelc * (SIMD<Complex,FMM_SW>(-1.0,0) + rhokappa * SIMD<Complex,FMM_SW>(0, 1));
+              
+              vsum += kernel * c2;
+            }
           sum += HSum(vsum);
         }
-        else
+      else
         {
-          for (auto [x,d,c] : dipoles)
-          if (double rho = L2Norm(p-x); rho > 0)
-          {
-              Vec<3> drhodp = 1.0/rho * (p-x);
-              Complex dGdrho = (1/(4*M_PI))*exp(Complex(0,rho*mp.Kappa())) *
-              (Complex(0, mp.Kappa())/rho - 1.0/sqr(rho));
-              sum += dGdrho * InnerProduct(drhodp, d) * c;
-          }
+          // static Timer t("mptool singmp, evaluate, chargedipoles"); RegionTimer r(t);
+          // t.AddFlops (chargedipoles.Size());
+          
+          for (auto [x,c,d,c2] : chargedipoles)
+            if (double rho = L2Norm(p-x); rho > 0)
+              {
+                sum += (1/(4*M_PI))*exp(mp.Kappa()*Complex(0,rho)) / rho * c;
+                
+                Vec<3> drhodp = 1.0/rho * (p-x);
+                Complex dGdrho = (1/(4*M_PI))*exp(mp.Kappa() * Complex(0,rho)) *
+                  mp.Kappa()*(Complex(0, 1)/rho - 1.0/sqr(rho));
+                
+                sum += dGdrho * InnerProduct(drhodp, d) * c2;
+              }
         }
 
+
+
+
+        
         for (auto [sp,ep,j,num] : currents)
           {
             // should use explizit formula instead ...
@@ -902,8 +1054,8 @@ namespace ngsbem
                 if (double rho = L2Norm(p-x); rho > 0)
                   {
                     Vec<3> drhodp = 1.0/rho * (p-x);
-                    Complex dGdrho = (1/(4*M_PI))*exp(Complex(0,rho*mp.Kappa())) *
-                      (Complex(0, mp.Kappa())/rho - 1.0/sqr(rho));
+                    Complex dGdrho = (1/(4*M_PI))*exp(mp.Kappa()*Complex(0,rho)) *
+                      (mp.Kappa()*Complex(0,1)/rho - 1.0/sqr(rho));
 
                     if constexpr (std::is_same<entry_type, Vec<3,Complex>>())
                       sum += j*dGdrho * Cross(drhodp, tau_num);
@@ -925,14 +1077,23 @@ namespace ngsbem
         }
 
         if (dipoles.Size())
-            throw Exception("EvaluateDeriv not implemented for dipoles in SingularMLMultiPole");
+          {
+            static int cnt = 0;
+            cnt++;
+            if (cnt < 3)
+              cout << "we know what we do - evaluateDeriv not implemented for dipoles in SingularMLExpansion" << endl;
+            // return sum;
+            // throw Exception("EvaluateDeriv not implemented for dipoles in SingularMLExpansion");
+          }
+        if (chargedipoles.Size())
+            throw Exception("EvaluateDeriv not implemented for dipoles in SingularMLExpansion");
 
         for (auto [x,c] : charges)
           if (double rho = L2Norm(p-x); rho > 0)
           {
             Vec<3> drhodp = 1.0/rho * (p-x);
-            Complex dGdrho = (1/(4*M_PI))*exp(Complex(0,rho*mp.Kappa())) *
-            (Complex(0, mp.Kappa())/rho - 1.0/sqr(rho));
+            Complex dGdrho = (1/(4*M_PI))*exp(mp.Kappa()*Complex(0,rho)) *
+                (mp.Kappa()*Complex(0,1)/rho - 1.0/sqr(rho));
             sum += dGdrho * InnerProduct(drhodp, d) * c;
           }
         return sum;
@@ -940,7 +1101,7 @@ namespace ngsbem
 
       void CalcTotalSources()
       {
-        total_sources = charges.Size() + dipoles.Size();
+        total_sources = charges.Size() + dipoles.Size() + chargedipoles.Size();
         for (auto & child : childs)
           if (child)
             {
@@ -973,9 +1134,9 @@ namespace ngsbem
           }
         else
           {
-            if (charges.Size()+dipoles.Size()+currents.Size() == 0)
+            if (charges.Size()+dipoles.Size()+chargedipoles.Size()+currents.Size() == 0)
               {
-                mp = MultiPole<MPSingular,entry_type> (-1, mp.Kappa(), 1.);
+                mp = SphericalExpansion<Singular,entry_type,T_Kappa> (-1, mp.Kappa(), 1.);
                 return;
               }
 
@@ -1014,6 +1175,24 @@ namespace ngsbem
                 simd_dipoles[ii] = MakeSimd(di);
               }
 
+
+            simd_chargedipoles.SetSize( (chargedipoles.Size()+FMM_SW-1)/FMM_SW);
+            i = 0, ii = 0;
+            for ( ; i+FMM_SW <= chargedipoles.Size(); i+=FMM_SW, ii++)
+              {
+                std::array<tuple<Vec<3>,entry_type,Vec<3>,entry_type>, FMM_SW> di;
+                for (int j = 0; j < FMM_SW; j++) di[j] = chargedipoles[i+j];
+                simd_chargedipoles[ii] = MakeSimd(di);
+              }
+            if (i < chargedipoles.Size())
+              {
+                std::array<tuple<Vec<3>,entry_type,Vec<3>,entry_type>, FMM_SW> di;
+                int j = 0;
+                for ( ; i+j < chargedipoles.Size(); j++) di[j] = chargedipoles[i+j];
+                for ( ; j < FMM_SW; j++) di[j] = tuple( get<0>(di[0]), entry_type{0.0}, get<2>(di[0]), entry_type{0.0} );
+                simd_chargedipoles[ii] = MakeSimd(di);
+              }
+
             
             if (nodes_to_process)
                 *nodes_to_process += this;
@@ -1024,6 +1203,9 @@ namespace ngsbem
               for (auto [x,d,c] : dipoles)
                 mp.AddDipole (x-center, d, c);
 
+              for (auto [x,c,d,c2] : chargedipoles)
+                mp.AddChargeDipole (x-center, c, d, c2);
+              
               for (auto [sp,ep,j,num] : currents)
                 mp.AddCurrent (sp-center, ep-center, j, num);
             }
@@ -1032,7 +1214,7 @@ namespace ngsbem
       
       entry_type EvaluateMP(Vec<3> p) const
       {
-        if (charges.Size() || dipoles.Size())
+        if (charges.Size() || dipoles.Size() || chargedipoles.Size())
           return Evaluate(p);
         
         if (L2Norm(p-center) > 3*r)
@@ -1049,10 +1231,7 @@ namespace ngsbem
 
       entry_type EvaluateMPDeriv(Vec<3> p, Vec<3> d) const
       {
-        // cout << "EvaluateMPDeriv Singular, p = " << p << ", d = " << d << ", r = " << r << ", center = " << center <<  endl;
-        // cout << "Norm: " << L2Norm(p-center) << " > " << 3*r << endl;
-        // cout << "charges.Size() = " << charges.Size() << ", dipoles.Size() = " << dipoles.Size() << endl;
-        if (charges.Size() || dipoles.Size() || !childs[0])
+        if (charges.Size() || dipoles.Size() || chargedipoles.Size() || !childs[0])
           return EvaluateDeriv(p, d);
 
         if (L2Norm(p-center) > 3*r)
@@ -1070,11 +1249,12 @@ namespace ngsbem
           ost << "c = " << center << ", r = " << r << ", level = " << level << endl;
         else
           ost << "c = " << center << ", r = " << r << ", level = " << level << ", childnr = " << childnr << endl;
-        // for (int i = 0; i < loc_pnts.Size(); i++)
         for (auto [x,c] : charges)
           ost << "xi = " << x << ", ci = " << c << endl;
         for (auto [x,d,c] : dipoles)
           ost << "xi = " << x << ", di = " << d << ", ci = " << c << endl;
+        for (auto [x,c,d,c2] : chargedipoles)
+          ost << "xi = " << x << ", c = " << c << ", di = " << d << ", ci = " << c2 << endl;
 
         for (int i = 0; i < 8; i++)
           if (childs[i]) childs[i] -> Print (ost, i);
@@ -1097,20 +1277,29 @@ namespace ngsbem
             num += ch->NumCoefficients();
         return num;
       }
+
+      void TraverseTree (const std::function<void(Node&)> & func)
+      {
+        func(*this);
+        for (auto & child : childs)
+          if (child)
+            child->TraverseTree(func);
+      }
     };
     
-    Node root;
+    FMM_Parameters fmm_params;
+    Node root;    
     bool havemp = false;
     
   public:
-    SingularMLMultiPole (Vec<3> center, double r, double kappa)
-      : root(center, r, 0, kappa)
+    SingularMLExpansion (Vec<3> center, double r, T_Kappa kappa, FMM_Parameters _params = FMM_Parameters())
+      : fmm_params(_params), root(center, r, 0, kappa, fmm_params)
     {
       nodes_on_level = 0;
       nodes_on_level[0] = 1;
     }
 
-    double Kappa() const { return root.mp.Kappa(); }
+    T_Kappa Kappa() const { return root.mp.Kappa(); }
     
     void AddCharge(Vec<3> x, entry_type c)
     {
@@ -1122,6 +1311,11 @@ namespace ngsbem
       root.AddDipole(x, d, c);
     }
 
+    void AddChargeDipole(Vec<3> x, entry_type c, Vec<3> dir, entry_type c2)
+    {
+      root.AddChargeDipole(x, c, dir, c2);
+    }
+    
     void AddCurrent (Vec<3> sp, Vec<3> ep, Complex j, int num)
     {
       if constexpr (!std::is_same<entry_type, Vec<3,Complex>>())
@@ -1181,87 +1375,93 @@ namespace ngsbem
       
       root.CalcTotalSources();
 
-      if (false)
+      if constexpr (false)
         // direct evaluation of S->S
         root.CalcMP(nullptr, nullptr);
       else
         {
           
-      Array<RecordingSS> recording;
-      Array<Node*> nodes_to_process;
+          Array<RecordingSS> recording;
+          Array<Node*> nodes_to_process;
 
-      {
-        RegionTimer reg(trec);
-      root.CalcMP(&recording, &nodes_to_process);
-      }
+          {
+            RegionTimer reg(trec);
+            root.CalcMP(&recording, &nodes_to_process);
+          }
       
-      {
-        RegionTimer rs2mp(ts2mp);
-        ParallelFor(nodes_to_process.Size(), [&](int i){
-          auto node = nodes_to_process[i];
-          for (auto [x,c]: node->charges)
-            node->mp.AddCharge(x-node->center, c);
-          for (auto [x,d,c]: node->dipoles)
-            node->mp.AddDipole(x-node->center, d, c);
-          for (auto [sp,ep,j,num]: node->currents)
-            node->mp.AddCurrent(sp-node->center, ep-node->center, j, num);
-        }, TasksPerThread(4));
-      }
-
-      {
-      RegionTimer reg(tsort);
-      QuickSort (recording, [] (auto & a, auto & b)
-      {
-        if (a.len < (1-1e-8) * b.len) return true;
-        if (a.len > (1+1e-8) * b.len) return false;
-        return a.theta < b.theta;
-      });
-      }
+          {
+            RegionTimer rs2mp(ts2mp);
+            ParallelFor(nodes_to_process.Size(), [&](int i)
+            {
+              auto node = nodes_to_process[i];
+              for (auto [x,c]: node->charges)
+                node->mp.AddCharge(x-node->center, c);
+              for (auto [x,d,c]: node->dipoles)
+                node->mp.AddDipole(x-node->center, d, c);
+              for (auto [x,c,d,c2]: node->chargedipoles)
+                node->mp.AddChargeDipole(x-node->center, c, d, c2);
+              for (auto [sp,ep,j,num]: node->currents)
+                node->mp.AddCurrent(sp-node->center, ep-node->center, j, num);
+            }, TasksPerThread(4));
+          }
+          
+          {
+            RegionTimer reg(tsort);
+            QuickSort (recording, [] (auto & a, auto & b)
+            {
+              if (a.len < (1-1e-8) * b.len) return true;
+              if (a.len > (1+1e-8) * b.len) return false;
+              return a.theta < b.theta;
+            });
+          }
       
-      double current_len = -1e100;
-      double current_theta = -1e100;
-      Array<RecordingSS*> current_batch;
-      Array<Array<RecordingSS*>> batch_group;
-      Array<double> group_lengths;
-      Array<double> group_thetas;
-      for (auto & record : recording)
-        {
-          bool len_changed = fabs(record.len - current_len) > 1e-8;
-          bool theta_changed = fabs(record.theta - current_theta) > 1e-8;
-          if ((len_changed || theta_changed) && current_batch.Size() > 0) {
+          double current_len = -1e100;
+          double current_theta = -1e100;
+          Array<RecordingSS*> current_batch;
+          Array<Array<RecordingSS*>> batch_group;
+          Array<double> group_lengths;
+          Array<double> group_thetas;
+          for (auto & record : recording)
+            {
+              bool len_changed = fabs(record.len - current_len) > 1e-8;
+              bool theta_changed = fabs(record.theta - current_theta) > 1e-8;
+              if ((len_changed || theta_changed) && current_batch.Size() > 0) {
+                batch_group.Append(current_batch);
+                group_lengths.Append(current_len);
+                group_thetas.Append(current_theta);
+                current_batch.SetSize(0);
+              }
+              
+              current_len = record.len;
+              current_theta = record.theta;
+              current_batch.Append(&record);
+            }
+          
+          if (current_batch.Size() > 0) {
             batch_group.Append(current_batch);
             group_lengths.Append(current_len);
             group_thetas.Append(current_theta);
-            current_batch.SetSize(0);
+          }
+
+          {
+            RegionTimer rS2S(tS2S);
+            // ParallelFor(batch_group.Size(), [&](int i) {
+            for (int i = 0; i < batch_group.Size(); i++){
+              // *testout << "Processing batch " << i << " of size " << batch_group[i].Size() << ", with len = " << group_lengths[i] << ", theta = " << group_thetas[i] << endl;
+              int chunk_size = 24;
+              if (batch_group[i].Size() < chunk_size)
+                ProcessBatchSS(batch_group[i], group_lengths[i], group_thetas[i]);
+              else
+                ParallelForRange(IntRange(batch_group[i].Size()), [&](IntRange range) {
+                  auto sub_batch = batch_group[i].Range(range.First(), range.Next());
+                  ProcessBatchSS(sub_batch, group_lengths[i], group_thetas[i]);
+                }, TasksPerThread(4));
             }
-
-          current_len = record.len;
-          current_theta = record.theta;
-          current_batch.Append(&record);
+          }
         }
-      if (current_batch.Size() > 0) {
-        batch_group.Append(current_batch);
-        group_lengths.Append(current_len);
-        group_thetas.Append(current_theta);
-      }
 
-      {
-        RegionTimer rS2S(tS2S);
-      // ParallelFor(batch_group.Size(), [&](int i) {
-      for (int i = 0; i < batch_group.Size(); i++){
-          // *testout << "Processing batch " << i << " of size " << batch_group[i].Size() << ", with len = " << group_lengths[i] << ", theta = " << group_thetas[i] << endl;
-        int chunk_size = 24;
-        if (batch_group[i].Size() < chunk_size)
-            ProcessBatch(batch_group[i], group_lengths[i], group_thetas[i]);
-        else
-          ParallelForRange(IntRange(batch_group[i].Size()), [&](IntRange range) {
-              auto sub_batch = batch_group[i].Range(range.First(), range.Next());
-              ProcessBatch(sub_batch, group_lengths[i], group_thetas[i]);
-          }, TasksPerThread(4));
-      }
-      }
-        }
-      
+      // cout << "have singular:" << endl;
+      // PrintStatistics (cout);
       havemp = true;
     }
 
@@ -1273,35 +1473,73 @@ namespace ngsbem
         return root.Evaluate(p);
     }
 
-    template <typename entry_type2>
-    friend class RegularMLMultiPole;
+
+    void PrintStatistics (ostream & ost)
+    {
+      int levels = 0;
+      int cnt = 0;
+      root.TraverseTree( [&](Node & node) {
+        levels = max(levels, node.level);
+        cnt++;
+      });
+      ost << "levels: " << levels << endl;
+      ost << "nodes: " << cnt << endl;
+
+      Array<int> num_on_level(levels+1);
+      Array<int> order_on_level(levels+1);
+      Array<size_t> coefs_on_level(levels+1);            
+      num_on_level = 0;
+      order_on_level = 0;
+      root.TraverseTree( [&](Node & node) {
+        num_on_level[node.level]++;
+        order_on_level[node.level] = max(order_on_level[node.level],node.mp.Order());
+        coefs_on_level[node.level] += node.mp.SH().Coefs().Size();
+      });
+
+      cout << "num on level" << endl;
+      for (int i = 0; i < num_on_level.Size(); i++)
+        cout << i << ": " << num_on_level[i] << ", order = " << order_on_level[i] << ", coefs " << coefs_on_level[i] << endl;
+
+      size_t totcoefs = 0;
+      for (auto n : coefs_on_level)
+        totcoefs += n;
+      cout << "total mem in coefs: " << sizeof(entry_type)*totcoefs / sqr(1024) << " MB" << endl;
+    }
+
+
+    
+    template <typename entry_type2, typename T_Kappa2>
+    friend class RegularMLExpansion;
   };
 
 
   template <typename entry_type>
-  inline ostream & operator<< (ostream & ost, const SingularMLMultiPole<entry_type> & mlmp)
+  inline ostream & operator<< (ostream & ost, const SingularMLExpansion<entry_type> & mlmp)
   {
     mlmp.Print(ost);
     return ost;
   }
 
 
-  template <typename elem_type=Complex>
-  class NGS_DLL_HEADER RegularMLMultiPole
+  // *********************************** Regular multilevel Expansion
+  
+
+  template <typename elem_type=Complex, typename T_Kappa=double>
+  class NGS_DLL_HEADER RegularMLExpansion
   {
     static Array<size_t> nodes_on_level;
 
     
     struct RecordingRS
     {
-      const MultiPole<MPSingular,elem_type> * mpS;
-      MultiPole<MPRegular,elem_type> * mpR;
+      const SphericalExpansion<Singular,elem_type,T_Kappa> * mpS;
+      SphericalExpansion<Regular,elem_type,T_Kappa> * mpR;
       Vec<3> dist;
       double len, theta, phi;
     public:
       RecordingRS() = default;
-      RecordingRS (const MultiPole<MPSingular,elem_type> * ampS,
-                   MultiPole<MPRegular,elem_type> * ampR,
+      RecordingRS (const SphericalExpansion<Singular,elem_type,T_Kappa> * ampS,
+                   SphericalExpansion<Regular,elem_type,T_Kappa> * ampR,
                    Vec<3> adist)
         : mpS(ampS), mpR(ampR), dist(adist)
       {
@@ -1322,28 +1560,28 @@ namespace ngsbem
         }
       }
       else if (N <= 3) {
-        ProcessVectorizedBatch<3, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchRS<3, vec_length>(batch, len, theta);
       }
       else if (N <= 4) {
-        ProcessVectorizedBatch<4, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchRS<4, vec_length>(batch, len, theta);
       }
       else if (N <= 6) {
-        ProcessVectorizedBatch<6, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchRS<6, vec_length>(batch, len, theta);
       }
       else if (N <= 12) {
-        ProcessVectorizedBatch<12, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchRS<12, vec_length>(batch, len, theta);
       }
       else if (N <= 24) {
-        ProcessVectorizedBatch<24, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchRS<24, vec_length>(batch, len, theta);
       }
       else if (N <= 48) {
-        ProcessVectorizedBatch<48, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchRS<48, vec_length>(batch, len, theta);
       }
       else if (N <= 96) {
-        ProcessVectorizedBatch<96, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchRS<96, vec_length>(batch, len, theta);
       }
       else if (N <= 192) {
-        ProcessVectorizedBatch<192, vec_length>(batch, len, theta);
+        ProcessVectorizedBatchRS<192, vec_length>(batch, len, theta);
       }
       else {
         // Split large batches
@@ -1375,18 +1613,16 @@ namespace ngsbem
 
 
     template<int N, int vec_length>
-    static void ProcessVectorizedBatch(FlatArray<RecordingRS*> batch, double len, double theta) {
+    static void ProcessVectorizedBatchRS(FlatArray<RecordingRS*> batch, double len, double theta) {
 
       // static Timer t("ProcessVectorizedBatch, N = "+ToString(N) + ", vec_len = " + ToString(vec_length));
       // RegionTimer reg(t, batch[0]->mpS->SH().Order());
       // static Timer ttobatch("mptools - copy to batch 2");
       // static Timer tfrombatch("mptools - copy from batch 2");      
       
-      // *testout << "Processing vectorized batch of size " << batch.Size() << ", with N = " << N << ", vec_length = " << vec_length << ", len = " << len << ", theta = " << theta << endl;
-      MultiPole<MPSingular, Vec<N,Complex>> vec_source(batch[0]->mpS->Order(), batch[0]->mpS->Kappa(), batch[0]->mpS->RTyp());
-      // MultiPole<MPSingular, elem_type> tmp_source{*batch[0]->mpS};
-      MultiPole<MPRegular, elem_type> tmp_target{*batch[0]->mpR};
-      MultiPole<MPRegular, Vec<N,Complex>> vec_target(batch[0]->mpR->Order(), batch[0]->mpR->Kappa(), batch[0]->mpR->RTyp());
+      SphericalExpansion<Singular, Vec<N,Complex>, T_Kappa> vec_source(batch[0]->mpS->Order(), batch[0]->mpS->Kappa(), batch[0]->mpS->RTyp());
+      SphericalExpansion<Regular, elem_type, T_Kappa> tmp_target{*batch[0]->mpR};
+      SphericalExpansion<Regular, Vec<N,Complex>, T_Kappa> vec_target(batch[0]->mpR->Order(), batch[0]->mpR->Kappa(), batch[0]->mpR->RTyp());
 
       // Copy multipoles into vectorized multipole
       // ttobatch.Start();
@@ -1434,24 +1670,34 @@ namespace ngsbem
       double r;
       int level;
       std::array<unique_ptr<Node>,8> childs;
-      MultiPole<MPRegular,elem_type> mp;
+      SphericalExpansion<Regular,elem_type,T_Kappa> mp;
       Array<Vec<3>> targets;
+      Array<tuple<Vec<3>,double>> vol_targets;      
       int total_targets;
       std::mutex node_mutex;
       atomic<bool> have_childs{false};
 
-      Array<const typename SingularMLMultiPole<elem_type>::Node*> singnodes;
+      Array<const typename SingularMLExpansion<elem_type, T_Kappa>::Node*> singnodes;
+      const FMM_Parameters & params;
 
-      Node (Vec<3> acenter, double ar, int alevel, double kappa)
-        : center(acenter), r(ar), level(alevel), mp(MPOrder(ar*kappa), kappa, ar) // 1.0/min(1.0, 0.25*r*kappa))
+      
+      Node (Vec<3> acenter, double ar, int alevel, T_Kappa kappa, const FMM_Parameters & _params)
+        : center(acenter), r(ar), level(alevel),
+          // mp(MPOrder(ar*kappa), kappa, ar) // 1.0/min(1.0, 0.25*r*kappa))
+          mp(-1, kappa, ar), params(_params)
           // : center(acenter), r(ar), level(alevel), mp(MPOrder(ar*kappa), kappa, 1.0)
       {
         if (level < nodes_on_level.Size())
           nodes_on_level[level]++;
       }
 
-
-      void CreateChilds()
+      void Allocate()
+      {
+        mp = SphericalExpansion<Regular,elem_type,T_Kappa>(params.minorder+2*r*abs(mp.Kappa()), mp.Kappa(), r);
+      }
+      
+      
+      void CreateChilds(bool allocate = false)
       {
         if (childs[0]) throw Exception("have already childs");
         // create children nodes:
@@ -1461,12 +1707,14 @@ namespace ngsbem
             cc(0) += (i&1) ? r/2 : -r/2;
             cc(1) += (i&2) ? r/2 : -r/2;
             cc(2) += (i&4) ? r/2 : -r/2;
-            childs[i] = make_unique<Node> (cc, r/2, level+1, mp.Kappa());
+            childs[i] = make_unique<Node> (cc, r/2, level+1, mp.Kappa(), params);
+            if (allocate)
+              childs[i] -> Allocate();
           }
         have_childs = true;
       }
       
-      void AddSingularNode (const typename SingularMLMultiPole<elem_type>::Node & singnode, bool allow_refine,
+      void AddSingularNode (const typename SingularMLExpansion<elem_type, T_Kappa>::Node & singnode, bool allow_refine,
                             Array<RecordingRS> * recording)
       {
         if (mp.SH().Order() < 0) return;
@@ -1514,7 +1762,7 @@ namespace ngsbem
             if (allow_refine)
               {
                 if (!childs[0])
-                  CreateChilds();
+                  CreateChilds(true);
                 
                 for (auto & ch : childs)
                   ch -> AddSingularNode (singnode, allow_refine, recording);
@@ -1534,7 +1782,7 @@ namespace ngsbem
                                    childs[nr] -> AddSingularNode (singnode, allow_refine, recording);
                                });
                 
-                if (targets.Size())
+                if (targets.Size()+vol_targets.Size())
                   singnodes.Append(&singnode);
               }
           }
@@ -1548,8 +1796,8 @@ namespace ngsbem
       void LocalizeExpansion(bool allow_refine)
       {
         if (allow_refine)
-          if (mp.Order() > 20 && !childs[0])
-            CreateChilds();
+          if (mp.Order() > 30 && !childs[0])
+            CreateChilds(allow_refine);
 
         if (childs[0])
           {
@@ -1569,7 +1817,7 @@ namespace ngsbem
                   mp.TransformAdd (childs[nr]->mp, childs[nr]->center-center);
                 childs[nr]->LocalizeExpansion(allow_refine);
               });
-            mp = MultiPole<MPRegular,elem_type>(-1, mp.Kappa(), 1.);
+            mp = SphericalExpansion<Regular,elem_type,T_Kappa>(-1, mp.Kappa(), 1.);
             //mp.SH().Coefs()=0.0;
           }
       }
@@ -1585,11 +1833,16 @@ namespace ngsbem
         if (childs[childnum])
           sum = childs[childnum]->Evaluate(p);
         else
-          sum = mp.Eval(p-center);
+          {
+            // static Timer t("mptool regmp, evaluate reg"); RegionTimer r(t);          
+            sum = mp.Eval(p-center);
+          }
 
-        for (auto sn : singnodes)
-          sum += sn->EvaluateMP(p);
-
+        {
+          // static Timer t("mptool regmp, evaluate, singnode"); RegionTimer r(t);
+          for (auto sn : singnodes)
+            sum += sn->EvaluateMP(p);
+        }
         return sum;
       }
 
@@ -1608,13 +1861,21 @@ namespace ngsbem
         else
           sum = mp.EvalDirectionalDerivative(p-center, d);
 
-        static Timer t("mptool direct evaluate deriv"); RegionTimer r(t);
+        // static Timer t("mptool direct evaluate deriv"); RegionTimer r(t);
         for (auto sn : singnodes)
           sum += sn->EvaluateMPDeriv(p, d);
 
         return sum;
       }
 
+      void TraverseTree (const std::function<void(Node&)> & func)
+      {
+        func(*this);
+        for (auto & child : childs)
+          if (child)
+            child->TraverseTree(func);
+      }
+      
       double Norm() const
       {
         double norm = L2Norm(mp.SH().Coefs());
@@ -1632,17 +1893,23 @@ namespace ngsbem
             num += ch->NumCoefficients();
         return num;
       }
-      
+
+      int GetChildNum (Vec<3> x) const
+      {
+        int childnum  = 0;
+        if (x(0) > center(0)) childnum += 1;
+        if (x(1) > center(1)) childnum += 2;
+        if (x(2) > center(2)) childnum += 4;
+        return childnum;
+      }
+
       void AddTarget (Vec<3> x)
       {
         // if (childs[0])
         if (have_childs) // quick check without locking
           {
             // directly send to childs:
-            int childnum  = 0;
-            if (x(0) > center(0)) childnum += 1;
-            if (x(1) > center(1)) childnum += 2;
-            if (x(2) > center(2)) childnum += 4;
+            int childnum  = GetChildNum(x);
             childs[childnum] -> AddTarget( x );
             return;
           }
@@ -1652,32 +1919,74 @@ namespace ngsbem
         if (have_childs) // test again after locking
         {
           // directly send to childs:
-          int childnum  = 0;
-          if (x(0) > center(0)) childnum += 1;
-          if (x(1) > center(1)) childnum += 2;
-          if (x(2) > center(2)) childnum += 4;
+          int childnum  = GetChildNum(x);
           childs[childnum] -> AddTarget(x);
           return;
         }
-
 
         targets.Append( x );
 
         // if (r*mp.Kappa() < 1e-8) return;
         if (level > 20) return;        
-        if (targets.Size() < maxdirect && r*mp.Kappa() < 1)
+        if (targets.Size() < params.maxdirect && r*abs(mp.Kappa()) < 5)
           return;
 
         CreateChilds();
 
         for (auto t : targets)
           AddTarget (t);
+        for (auto [x,r] : vol_targets)
+          AddVolumeTarget (x,r);
+
         targets.SetSize0();
+        vol_targets.SetSize0();
       }
+
+
+      void AddVolumeTarget (Vec<3> x, double tr)
+      {
+        if (MaxNorm(x-center) > r+tr) return;
+
+        if (have_childs)
+          {
+            for (auto & child : childs)
+              child->AddVolumeTarget(x, tr);
+            return;
+          }
+
+        
+        lock_guard<mutex> guard(node_mutex);
+        
+        if (have_childs)
+          {
+            for (auto & child : childs)
+              child->AddVolumeTarget(x, tr);
+            return;
+          }
+
+        
+        vol_targets.Append (tuple(x,tr));
+
+        if (level > 20) return;
+        if (vol_targets.Size() < params.maxdirect && (r*abs(mp.Kappa()) < 5))
+          return;
+
+        CreateChilds();
+
+        for (auto t : targets)
+          AddTarget (t);
+        for (auto [x,r] : vol_targets)
+          AddVolumeTarget (x,r);
+
+        targets.SetSize0();
+        vol_targets.SetSize0();
+      }
+
+      
 
       void CalcTotalTargets()
       {
-        total_targets = targets.Size();
+        total_targets = targets.Size() + vol_targets.Size();
         for (auto & child : childs)
           if (child)
             {
@@ -1697,8 +2006,21 @@ namespace ngsbem
             }
 
         if (total_targets == 0)
-          mp = MultiPole<MPRegular,elem_type>(-1, mp.Kappa(),1.);
+          mp = SphericalExpansion<Regular,elem_type,T_Kappa>(-1, mp.Kappa(),1.);
       }
+
+      void AllocateMemory()
+      {
+        for (auto & child : childs)
+          if (child)
+            child->AllocateMemory();
+
+        if (total_targets > 0)
+          Allocate();
+        // mp = SphericalExpansion<Regular,elem_type>(MPOrder(r*mp.Kappa()), mp.Kappa(), r); // -1, mp.Kappa(),1.);
+      }
+
+
       
 
       void Print (ostream & ost, size_t childnr = -1) const
@@ -1715,16 +2037,19 @@ namespace ngsbem
       }
 
     };
-    
+
+    FMM_Parameters fmm_params;
     Node root;
-    shared_ptr<SingularMLMultiPole<elem_type>> singmp;
+    shared_ptr<SingularMLExpansion<elem_type,T_Kappa>> singmp;
     
   public:
-  RegularMLMultiPole (shared_ptr<SingularMLMultiPole<elem_type>> asingmp, Vec<3> center, double r)
-      : root(center, r, 0, asingmp->Kappa()), singmp(asingmp)
-    {
+  RegularMLExpansion (shared_ptr<SingularMLExpansion<elem_type,T_Kappa>> asingmp, Vec<3> center, double r,
+                      const FMM_Parameters & _params)
+  : fmm_params(_params), root(center, r, 0, asingmp->Kappa(), fmm_params), singmp(asingmp)
+  {
       if (!singmp->havemp) throw Exception("first call Calc for singular MP");
-
+      root.Allocate();
+      
       nodes_on_level = 0;
       nodes_on_level[0] = 1;
       {
@@ -1750,97 +2075,163 @@ namespace ngsbem
       }
     }
 
-    RegularMLMultiPole (Vec<3> center, double r, double kappa)
-      : root(center, r, 0, kappa)
-    {
-      nodes_on_level = 0;
-      nodes_on_level[0] = 1;
-    }
-    
+  RegularMLExpansion (Vec<3> center, double r, T_Kappa kappa, const FMM_Parameters & _params)
+  : fmm_params(_params), root(center, r, 0, kappa, fmm_params)
+  {
+    nodes_on_level = 0;
+    nodes_on_level[0] = 1;
+  }
+  
     void AddTarget (Vec<3> t)
     {
       root.AddTarget (t);
     }
 
-    void CalcMP(shared_ptr<SingularMLMultiPole<elem_type>> asingmp)
+    void AddVolumeTarget (Vec<3> t, double r)
+    {
+      root.AddVolumeTarget (t, r);
+    }
+
+    void CalcMP(shared_ptr<SingularMLExpansion<elem_type,T_Kappa>> asingmp, bool onlytargets = true)
     {
       static Timer t("mptool regular MLMP"); RegionTimer rg(t);
+      static Timer tremove("removeempty");
       static Timer trec("mptool regular MLMP - recording");
       static Timer tsort("mptool regular MLMP - sort");       
       
       singmp = asingmp;
 
+      
       root.CalcTotalTargets();
-      root.RemoveEmptyTrees();
+      // cout << "before remove empty trees:" << endl;
+      // PrintStatistics(cout);
 
+      /*
+      tremove.Start();
+      if (onlytargets)
+        root.RemoveEmptyTrees();
+      tremove.Stop();
+      */
       
-      // root.AddSingularNode(singmp->root, false, nullptr);
-      // /*
-      Array<RecordingRS> recording;
-      {
-        RegionTimer rrec(trec);
-        root.AddSingularNode(singmp->root, false, &recording);
-      }
-      
-      // cout << "recorded: " << recording.Size() << endl;
-      {
-      RegionTimer reg(tsort);
-      QuickSort (recording, [] (auto & a, auto & b)
-      {
-        if (a.len < (1-1e-8) * b.len) return true;
-        if (a.len > (1+1e-8) * b.len) return false;
-        return a.theta < b.theta;
-      });
-      }
-      
-      double current_len = -1e100;
-      double current_theta = -1e100;
-      Array<RecordingRS*> current_batch;
-      Array<Array<RecordingRS*>> batch_group;
-      Array<double> group_lengths;
-      Array<double> group_thetas;
-      for (auto & record : recording)
+      root.AllocateMemory();
+
+      // cout << "after allocating regular:" << endl;
+      // PrintStatistics(cout);
+
+      // cout << "starting S-R converion" << endl;
+      // PrintStatistics(cout);
+
+
+      if constexpr (false)
         {
-          bool len_changed = fabs(record.len - current_len) > 1e-8;
-          bool theta_changed = fabs(record.theta - current_theta) > 1e-8;
-          if ((len_changed || theta_changed) && current_batch.Size() > 0) {
+          root.AddSingularNode(singmp->root, !onlytargets, nullptr);
+        }
+      else
+        {  // use recording
+          Array<RecordingRS> recording;
+          {
+            RegionTimer rrec(trec);
+            root.AddSingularNode(singmp->root, !onlytargets, &recording);
+          }
+          
+          // cout << "recorded: " << recording.Size() << endl;
+          {
+            RegionTimer reg(tsort);
+            QuickSort (recording, [] (auto & a, auto & b)
+            {
+              if (a.len < (1-1e-8) * b.len) return true;
+              if (a.len > (1+1e-8) * b.len) return false;
+              return a.theta < b.theta;
+            });
+          }
+          
+          double current_len = -1e100;
+          double current_theta = -1e100;
+          Array<RecordingRS*> current_batch;
+          Array<Array<RecordingRS*>> batch_group;
+          Array<double> group_lengths;
+          Array<double> group_thetas;
+          for (auto & record : recording)
+            {
+              bool len_changed = fabs(record.len - current_len) > 1e-8;
+              bool theta_changed = fabs(record.theta - current_theta) > 1e-8;
+              if ((len_changed || theta_changed) && current_batch.Size() > 0) {
+                // ProcessBatch(current_batch, current_len, current_theta);
+                batch_group.Append(current_batch);
+                group_lengths.Append(current_len);
+                group_thetas.Append(current_theta);
+                current_batch.SetSize(0);
+              }
+              
+              current_len = record.len;
+              current_theta = record.theta;
+              current_batch.Append(&record);
+            }
+          if (current_batch.Size() > 0) {
             // ProcessBatch(current_batch, current_len, current_theta);
             batch_group.Append(current_batch);
             group_lengths.Append(current_len);
             group_thetas.Append(current_theta);
-            current_batch.SetSize(0);
-            }
-
-          current_len = record.len;
-          current_theta = record.theta;
-          current_batch.Append(&record);
+          }
+          
+          ParallelFor(batch_group.Size(), [&](int i) {
+            ProcessBatchRS(batch_group[i], group_lengths[i], group_thetas[i]);
+          }, TasksPerThread(4));
         }
-      if (current_batch.Size() > 0) {
-        // ProcessBatch(current_batch, current_len, current_theta);
-        batch_group.Append(current_batch);
-        group_lengths.Append(current_len);
-        group_thetas.Append(current_theta);
-      }
-
-      ParallelFor(batch_group.Size(), [&](int i) {
-          ProcessBatchRS(batch_group[i], group_lengths[i], group_thetas[i]);
-      }, TasksPerThread(4));
-      // */
-
+          
       
       /*
       int maxlevel = 0;
-      for (auto [i,num] : Enumerate(RegularMLMultiPole::nodes_on_level))
+      for (auto [i,num] : Enumerate(RegularMLExpansion::nodes_on_level))
         if (num > 0) maxlevel = i;
 
       for (int i = 0; i <= maxlevel; i++)
-        cout << "reg " << i << ": " << RegularMLMultiPole::nodes_on_level[i] << endl;
+        cout << "reg " << i << ": " << RegularMLExpansion::nodes_on_level[i] << endl;
       */
 
+      // cout << "starting R-R converion" << endl;
+      // PrintStatistics(cout);
+      
       static Timer tloc("mptool regular localize expansion"); RegionTimer rloc(tloc);
-      root.LocalizeExpansion(false);
+      root.LocalizeExpansion(!onlytargets);
+
+
+      // cout << "R-R conversion done" << endl;
+      // PrintStatistics(cout);      
     }
 
+    void PrintStatistics (ostream & ost)
+    {
+      int levels = 0;
+      int cnt = 0;
+      root.TraverseTree( [&](Node & node) {
+        levels = max(levels, node.level);
+        cnt++;
+      });
+      ost << "levels: " << levels << endl;
+      ost << "nodes: " << cnt << endl;
+
+      Array<int> num_on_level(levels+1);
+      Array<int> order_on_level(levels+1);
+      Array<size_t> coefs_on_level(levels+1);            
+      num_on_level = 0;
+      order_on_level = 0;
+      root.TraverseTree( [&](Node & node) {
+        num_on_level[node.level]++;
+        order_on_level[node.level] = max(order_on_level[node.level],node.mp.Order());
+        coefs_on_level[node.level] += node.mp.SH().Coefs().Size();
+      });
+
+      cout << "num on level" << endl;
+      for (int i = 0; i < num_on_level.Size(); i++)
+        cout << i << ": " << num_on_level[i] << ", order = " << order_on_level[i] << ", coefs " << coefs_on_level[i] << endl;
+
+      size_t totcoefs = 0;
+      for (auto n : coefs_on_level)
+        totcoefs += n;
+      cout << "total mem in coefs: " << sizeof(elem_type)*totcoefs / sqr(1024) << " MB" << endl;
+    }
+    
     void Print (ostream & ost) const
     {
       root.Print(ost);
@@ -1859,7 +2250,10 @@ namespace ngsbem
     elem_type Evaluate (Vec<3> p) const
     {
       // static Timer t("mptool Eval MLMP regular"); RegionTimer r(t);
-      if (L2Norm(p-root.center) > root.r) return elem_type{0.0};
+      // if (L2Norm(p-root.center) > root.r) return elem_type{0.0};
+      
+      if (MaxNorm(p-root.center) > root.r)
+        return singmp->Evaluate(p);
       return root.Evaluate(p);
     }
 
@@ -1872,11 +2266,11 @@ namespace ngsbem
   };
 
 
-  template <typename elem_type>
-  inline ostream & operator<< (ostream & ost, const RegularMLMultiPole<elem_type> & mlmp)
+  template <typename elem_type, typename T_Kappa=double>
+  inline ostream & operator<< (ostream & ost, const RegularMLExpansion<elem_type,T_Kappa> & mlmp)
   {
     mlmp.Print(ost);
-    // ost << "RegularMLMultiPole" << endl;
+    // ost << "RegularMLExpansion" << endl;
     return ost;
   }
 

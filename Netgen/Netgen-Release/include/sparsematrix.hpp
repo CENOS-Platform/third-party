@@ -258,7 +258,7 @@ namespace ngla
       throw Exception ("BaseSparseMatrix::CreateBlockJacobiPrecond");
     }
 
-    virtual shared_ptr<BaseSparseMatrix> CreateTranspose() const
+    virtual shared_ptr<BaseSparseMatrix> CreateTranspose(bool sorted = true) const
     {
       throw Exception ("BaseSparseMatrix::CreateTranspose");      
     }
@@ -428,8 +428,8 @@ namespace ngla
 
     }
 
-    SparseMatrixTM (int size, int width, const Table<int> & rowelements, 
-		    const Table<int> & colelements, bool symmetric)
+    SparseMatrixTM (int size, int width, FlatTable<int> rowelements, 
+		    FlatTable<int> colelements, bool symmetric)
       : BASE (size, width, rowelements, colelements, symmetric), 
 	data(nze), nul(TSCAL(0))
     { 
@@ -561,7 +561,7 @@ namespace ngla
     virtual tuple<int,int> EntrySizes() const override { return { ngbla::Height<TM>(), ngbla::Width<TM>() }; }
     
     shared_ptr<BaseSparseMatrix>
-      CreateTransposeTM (const function<shared_ptr<SparseMatrixTM<decltype(ngbla::Trans(TM()))>>(const Array<int>&, int)> & creator) const;
+      CreateTransposeTM (const function<shared_ptr<SparseMatrixTM<decltype(ngbla::Trans(TM()))>>(const Array<int>&, int)> & creator, bool sorted) const;
 
   public:
     using BaseMatrix::GetMemoryTracer;
@@ -594,8 +594,8 @@ namespace ngla
     SparseMatrix (const Array<int> & aelsperrow, int awidth)
       : SparseMatrixTM<TM> (aelsperrow, awidth) { ; }
 
-    SparseMatrix (int height, int width, const Table<int> & rowelements, 
-		  const Table<int> & colelements, bool symmetric)
+    SparseMatrix (int height, int width, FlatTable<int> rowelements, 
+		  FlatTable<int> colelements, bool symmetric)
       : SparseMatrixTM<TM> (height, width, rowelements, colelements, symmetric) { ; }
 
     SparseMatrix (const MatrixGraph & agraph);
@@ -619,7 +619,7 @@ namespace ngla
 
 
     BaseMatrix::OperatorInfo GetOperatorInfo () const override
-    { return { string("SparseMatrix")+typeid(TM).name(), this->Height(), this->Width() }; }
+    { return { string("SparseMatrix")+typeid(TM).name()+" (nze="+ToString(this->NZE())+")", this->Height(), this->Width() }; }
     
     virtual shared_ptr<BaseJacobiPrecond>
       CreateJacobiPrecond (shared_ptr<BitArray> inner) const override;
@@ -638,11 +638,11 @@ namespace ngla
     
     virtual shared_ptr<BaseSparseMatrix> Reorder (const Array<size_t> & reorder) const override;
     
-    virtual shared_ptr<BaseSparseMatrix> CreateTranspose() const override
+    virtual shared_ptr<BaseSparseMatrix> CreateTranspose(bool sorted) const override
     {
       return this->CreateTransposeTM
         ( [](const Array<int> & elsperrow, int width) -> shared_ptr<SparseMatrixTM<decltype(Trans(TM()))>>
-          { return make_shared<SparseMatrix<decltype(Trans(TM())), TV_COL, TV_ROW>> (elsperrow, width); } );
+          { return make_shared<SparseMatrix<decltype(Trans(TM())), TV_COL, TV_ROW>> (elsperrow, width); }, sorted );
     }
 
     virtual shared_ptr<BaseMatrix> DeleteZeroElements(double tol) const override;
@@ -669,6 +669,20 @@ namespace ngla
       for (size_t j = first; j < last; j++)
         vec[colpi[j]] += Trans(datap[j]) * el; 
     }
+
+    void AddRowTransToVectorAtomic (int row, TVY el, FlatVector<TVX> vec) const
+    {
+      size_t first = firsti[row];
+      size_t last = firsti[row+1];
+
+      const ColIdx * colpi = colnr.Addr(0);
+      const TM * datap = data.Addr(0);
+
+      for (size_t j = first; j < last; j++)
+        // vec[colpi[j]] += Trans(datap[j]) * el;
+        AtomicAdd (vec[colpi[j]], Trans(datap[j]) * el);
+    }
+
     
     ///
     void AddRowConjTransToVector (int row, TVY el, FlatVector<TVX> vec) const
@@ -727,7 +741,7 @@ namespace ngla
       : SparseMatrix<TM,TV,TV> (elsperrow, elsperrow.Size())
     { ; }
 
-    SparseMatrixSymmetric (int size, const Table<int> & rowelements)
+    SparseMatrixSymmetric (int size, FlatTable<int> rowelements)
       : SparseMatrix<TM,TV,TV> (size, size, rowelements, rowelements, true)
     { ; }
 
@@ -856,11 +870,16 @@ namespace ngla
   NGS_DLL_HEADER shared_ptr<SparseMatrixTM<double>>
   MatAdd (double sa, const SparseMatrixTM<double> & mata,
           double sb, const SparseMatrixTM<double> & matb);
+
+  NGS_DLL_HEADER shared_ptr<SparseMatrixTM<Complex>>
+  MatAdd (Complex sa, const SparseMatrixTM<Complex> & mata,
+          Complex sb, const SparseMatrixTM<Complex> & matb);
+
   
   NGS_DLL_HEADER shared_ptr<SparseMatrixTM<double>>
-  MatMult (const SparseMatrixTM<double> & mata, const SparseMatrixTM<double> & matb);
+  MatMult (const SparseMatrixTM<double> & mata, const SparseMatrixTM<double> & matb, bool sort_output = true);
   NGS_DLL_HEADER shared_ptr<SparseMatrixTM<Complex>>
-  MatMult (const SparseMatrixTM<Complex> & mata, const SparseMatrixTM<Complex> & matb);
+  MatMult (const SparseMatrixTM<Complex> & mata, const SparseMatrixTM<Complex> & matb, bool sort_output = true);
 
 #ifdef GOLD
 #include <sparsematrix_spec.hpp>
