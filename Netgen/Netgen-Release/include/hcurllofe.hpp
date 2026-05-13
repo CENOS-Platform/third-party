@@ -134,7 +134,7 @@ namespace ngfem
       Tx lami[4] = {(1-x)*(1-y),x*(1-y),x*y,(1-x)*y};  
       Tx sigma[4] = {(1-x)+(1-y),x+(1-y),x+y,(1-x)+y};  
       
-      const EDGE * edges = ElementTopology::GetEdges (ET_QUAD);
+      const EDGE * edges = ElementTopology::GetEdges (ET_QUAD).Data();
       for (int i = 0; i < 4; i++)
         {
           int es = edges[i][0], ee = edges[i][1];
@@ -244,7 +244,7 @@ namespace ngfem
       Tx x = ip.x, y = ip.y;
       Tx lami[3] = { x, y, 1-x-y };
       
-      const EDGE * edges = ElementTopology::GetEdges (ET_TRIG);
+      const EDGE * edges = ElementTopology::GetEdges (ET_TRIG).Data();
       for (int i = 0; i < 3; i++)
         shape[i] = uDv_minus_vDu (lami[edges[i][0]], lami[edges[i][1]]);
     }
@@ -262,7 +262,7 @@ namespace ngfem
       Tx x = ip.x, y = ip.y;
       Tx lami[3] = { x, y, 1-x-y };
       
-      const EDGE * edges = ElementTopology::GetEdges (ET_TRIG);
+      const EDGE * edges = ElementTopology::GetEdges (ET_TRIG).Data();
       for (int i = 0; i < 3; i++)
         {
           shape[i] = uDv_minus_vDu (lami[edges[i][0]], lami[edges[i][1]]);
@@ -283,7 +283,7 @@ namespace ngfem
       Tx x = ip.x, y = ip.y;
       Tx lami[3] = { x, y, 1-x-y };
       
-      const EDGE * edges = ElementTopology::GetEdges (ET_TRIG);
+      const EDGE * edges = ElementTopology::GetEdges (ET_TRIG).Data();
       for (int i = 0; i < 3; i++)
         {
           Tx lam1 = lami[edges[i][0]];
@@ -294,7 +294,7 @@ namespace ngfem
           shape[i+6] = Du (lam1*lam2*(lam1-lam2));
         }
 
-      const FACE * faces = ElementTopology::GetFaces (ET_TRIG); 
+      const FACE * faces = ElementTopology::GetFaces (ET_TRIG).Data(); 
       for (int k = 0; k < 3; k++)
         {
           int k1 = (k+1)%3, k2 = (k+2)%3;
@@ -417,7 +417,7 @@ namespace ngfem
       // Tx lami[4] = { x, y, z, 1-x-y-z };
       Tx lami[4] = { ip.x, ip.y, ip.z, 1-ip.x-ip.y-ip.z };      
 
-      const EDGE * edges = ElementTopology::GetEdges (ET_TET);
+      const EDGE * edges = ElementTopology::GetEdges (ET_TET).Data();
       for (int i = 0; i < 6; i++)
         shape[i] = uDv_minus_vDu (lami[edges[i][0]], lami[edges[i][1]]);
     }
@@ -436,7 +436,7 @@ namespace ngfem
       // Tx lami[4] = { x[0], x[1], x[2], 1-x[0]-x[1]-x[2] };      
       Tx lami[4] = { ip.x, ip.y, ip.z, 1-ip.x-ip.y-ip.z };
       
-      const EDGE * edges = ElementTopology::GetEdges (ET_TET);
+      const EDGE * edges = ElementTopology::GetEdges (ET_TET).Data();
       for (int i = 0; i < 6; i++)
         {
           shape[i] = uDv_minus_vDu (lami[edges[i][0]], lami[edges[i][1]]);
@@ -455,7 +455,7 @@ namespace ngfem
       // Tx lami[4] = { x[0], x[1], x[2], 1-x[0]-x[1]-x[2] };      
       Tx lami[4] = { ip.x, ip.y, ip.z, 1-ip.x-ip.y-ip.z };
       
-      const EDGE * edges = ElementTopology::GetEdges (ET_TET);
+      const EDGE * edges = ElementTopology::GetEdges (ET_TET).Data();
       for (int i = 0; i < 6; i++)
         {
           Tx lam1 = lami[edges[i][0]];
@@ -465,7 +465,7 @@ namespace ngfem
           shape[i+12] = Du (lam1*lam2*(lam1-lam2));
         }
 
-      const FACE * faces = ElementTopology::GetFaces (ET_TET); 
+      const FACE * faces = ElementTopology::GetFaces (ET_TET).Data(); 
       for (int i = 0; i < 4; i++)
         for (int k = 0; k < 3; k++)
           {
@@ -663,7 +663,7 @@ namespace ngfem
       Tx lami[6] = { x, y, 1-x-y, x, y, 1-x-y };
       Tx muz[6]  = { 1-z, 1-z, 1-z, z, z, z };
        
-      const EDGE * edges = ElementTopology::GetEdges (ET_PRISM);
+      const EDGE * edges = ElementTopology::GetEdges (ET_PRISM).Data();
   
       // horizontal edge shapes
       for (int i = 0; i < 6; i++)
@@ -800,12 +800,12 @@ static Matrix<> trans_trig;
     FE_Trig3Pot h1trig3;
     FE_TSegmL2<ZORDER> segm;
   public:
-    enum { NDOF = 12 * (ZORDER+1) + 10 * ZORDER };
-    enum { NEDGEDOF = 12 + 3 * (ZORDER-1) };
-    enum { NQUADFACEDOF = 3 * (5*ZORDER-3) };
-    enum { NTRIGFACEDOF = 6 };
-    enum { MAXORDER = (3 > ZORDER) ? 3 : ZORDER };
-    enum { NINNERDOF = 3 * (ZORDER-1) + ZORDER };
+    static constexpr int NDOF = 12 * (ZORDER+1) + 10 * ZORDER;
+    static constexpr int NEDGEDOF = 12 + 3 * (ZORDER-1);
+    static constexpr int NQUADFACEDOF = 3 * (5*ZORDER-3);
+    static constexpr int NTRIGFACEDOF = 6;
+    static constexpr int MAXORDER = (3 > ZORDER) ? 3 : ZORDER;
+    static constexpr int NINNERDOF = 3 * (ZORDER-1) + ZORDER;
 
     ///
     FE_TNedelecPrism3();
@@ -868,12 +868,12 @@ static Matrix<> trans_trig;
     //  enum { NDOF = 12 * (ZORDER+1) + 10 * ZORDER };
     //  enum { NEDGEDOF = 12 + 3 * (ZORDER-1) };
     // 12 z + 12 + 10 z - 12 - 3z + 3 = 19 z + 3
-    enum { NDOF = 19 * ZORDER + 3 };
-    enum { NQUADFACEDOF = 3 * (5*ZORDER-3) };
-    enum { NTRIGFACEDOF = 6 };
-    enum { MAXORDER = (3 > ZORDER) ? 3 : ZORDER };
+    static constexpr int NDOF = 19 * ZORDER + 3;
+    static constexpr int NQUADFACEDOF = 3 * (5*ZORDER-3);
+    static constexpr int NTRIGFACEDOF = 6;
+    static constexpr int MAXORDER = (3 > ZORDER) ? 3 : ZORDER;
     // enum { NINNERDOF = 3 * (ZORDER-1) + ZORDER };
-    enum { NINNERDOF = 3 * (ZORDER-1) + 1 };
+    static constexpr int NINNERDOF = 3 * (ZORDER-1) + 1;
 
     ///
     FE_TNedelecPrism3NoGrad();
@@ -973,8 +973,8 @@ static Matrix<> trans_trig;
   class FE_NedelecPyramid2 : public HCurlFiniteElement<3>
   {
   public:
-    enum { NDOF = 20 };
-    enum { NEDGEDOF = 8 };
+    static constexpr int NDOF = 20;
+    static constexpr int NEDGEDOF = 8;
 
   private:
     ///
@@ -1039,10 +1039,10 @@ static Matrix<> trans_trig;
   class FE_NedelecPyramid3 : public HCurlFiniteElement<3>
   {
   public:
-    enum { NDOF = 57 };
-    enum { NEDGEDOF = 16 };
-    enum { NFACEDOF = 24 };
-    enum { NINNERDOF = 9 };
+    static constexpr int NDOF = 57;
+    static constexpr int NEDGEDOF = 16;
+    static constexpr int NFACEDOF = 24;
+    static constexpr int NINNERDOF = 9;
   private:
     ///
     // static Array<IPData> ipdata;

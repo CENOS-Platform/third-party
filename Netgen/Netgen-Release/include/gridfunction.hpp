@@ -157,14 +157,14 @@ namespace ngcomp
     int GetMultiDim () const { return multidim; }
 
     /// increase multidim and copy vec to new component
-    void AddMultiDimComponent (BaseVector & vec);
+    void AddMultiDimComponent (BaseVector & vec, bool copy = true);
   
     int GetLevelUpdated() const { return level_updated; }
     ///
 
     // const FESpace & GetFESpace() const { return *fespace; }
     ///
-    shared_ptr<FESpace> GetFESpace() const { return fespace; }
+    const shared_ptr<FESpace> & GetFESpace() const { return fespace; }
     ///
     const shared_ptr<MeshAccess> & GetMeshAccess() const { return fespace->GetMeshAccess(); }
     ///

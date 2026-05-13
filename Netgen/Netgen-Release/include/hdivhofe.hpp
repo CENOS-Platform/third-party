@@ -13,6 +13,7 @@
 #include "recursive_pol_trig.hpp"
 #include "hdivfe_utils.hpp"
 
+
 namespace ngfem
 {
 
@@ -433,6 +434,7 @@ namespace ngfem
   HDIVHOFE_EXTERN template class HDivHighOrderFE<ET_TET>;
   HDIVHOFE_EXTERN template class HDivHighOrderFE<ET_PRISM>;
   HDIVHOFE_EXTERN template class HDivHighOrderFE<ET_HEX>;
+  HDIVHOFE_EXTERN template class HDivHighOrderFE<ET_PYRAMID>;
 
   HDIVHOFE_EXTERN template class T_HDivFiniteElement<HDivHighOrderFE_Shape<ET_TRIG>, ET_TRIG>;
   HDIVHOFE_EXTERN template class T_HDivFiniteElement<HDivHighOrderFE_Shape<ET_QUAD>, ET_QUAD>;

@@ -207,7 +207,7 @@ public:
 
   // void SetMesh (shared_ptr<Mesh> amesh);
   // shared_ptr<Mesh> GetMesh () { return shared_ptr<Mesh>(wp_mesh); }
-  shared_ptr<Mesh> GetMesh () const { return shared_ptr<Mesh>(global_mesh); }
+  shared_ptr<Mesh> GetMesh () const { return GetGlobalMesh(); }
 
   void BuildFieldLinesPlot ();
 
@@ -372,6 +372,10 @@ public:
       number_format = soldata[i]->number_format;
       unit = soldata[i]->unit;
   }
+
+  SolData* GetScalFunction() const { return scalfunction == -1 ? nullptr : soldata[scalfunction]; }
+  SolData* GetVecFunction() const { return vecfunction == -1 ? nullptr : soldata[vecfunction]; }
+  SolData* GetScalOrVecFunction() const { auto sol = GetScalFunction(); return sol ? sol : GetVecFunction(); }
 
 #ifdef PARALLELGL
   void Broadcast ();

@@ -82,6 +82,7 @@ public:
   bool HasEdges () const  { return buildedges; }
   bool HasFaces () const  { return buildfaces; }
   bool HasParentEdges () const { return build_parent_edges; }
+  bool HasParentFaces () const { return build_parent_faces; }
 
   void Update(NgTaskManager tm = &DummyTaskManager, NgTracer tracer = &DummyTracer);
   bool NeedsUpdate() const;
@@ -156,8 +157,10 @@ public:
   auto GetFaceVerticesPtr (int fnr) const { return &face2vert[fnr][0]; }
   DLL_HEADER void GetFaceEdges (int fnr, NgArray<int> & edges, bool withorientation = false) const;
 
-  ELEMENT_TYPE GetFaceType (int fnr) const
-  { return (!face2vert[fnr-1][3].IsValid()) ? TRIG : QUAD; }    
+  // ELEMENT_TYPE GetFaceType (int fnr) const
+  // { return (!face2vert[fnr-1][3].IsValid()) ? TRIG : QUAD; }    
+  ELEMENT_TYPE GetFaceType0 (SurfaceElementIndex fnr) const
+  { return (!face2vert[fnr][3].IsValid()) ? TRIG : QUAD; }    
 
   [[deprecated("use GetEdges (SurfaceElementIndex) -> FlatArray")]]  
   void GetSurfaceElementEdges (int elnr, NgArray<int> & edges) const;
@@ -390,7 +393,7 @@ inline short int MeshTopology :: GetNEdges (ELEMENT_TYPE et)
       // default:
       // cerr << "Ng_ME_GetNEdges, illegal element type " << et << endl;
     }
-  return -99;
+  return 0;
 }
 
 
@@ -431,7 +434,7 @@ inline short int MeshTopology :: GetNFaces (ELEMENT_TYPE et)
       return 6;
 
     default:
-      return -99;
+      return 0;
       // default:
       // cerr << "Ng_ME_GetNVertices, illegal element type " << et << endl;
     }

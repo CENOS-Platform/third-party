@@ -30,12 +30,13 @@ template <int D, typename FEL = HDivFiniteElement<D> >
 class DiffOpIdHDiv : public DiffOp<DiffOpIdHDiv<D, FEL> >
 {
 public:
-  enum { DIM = 1 };
-  enum { DIM_SPACE = D };
-  enum { DIM_ELEMENT = D };
-  enum { DIM_DMAT = D };
-  enum { DIFFORDER = 0 };
-
+  static constexpr int DIM = 1;
+  static constexpr int DIM_SPACE = D;
+  static constexpr int DIM_ELEMENT = D;
+  static constexpr int DIM_DMAT = D;
+  static constexpr int DIFFORDER = 0;
+  using FiniteElementType = FEL;
+  
   static const FEL & Cast (const FiniteElement & fel) 
   { return static_cast<const FEL&> (fel); }
 
@@ -169,11 +170,12 @@ template <int D, typename FEL = HDivFiniteElement<D-1> >
 class DiffOpIdHDivSurface : public DiffOp<DiffOpIdHDivSurface<D, FEL> >
 {
 public:
-  enum { DIM = 1 };
-  enum { DIM_SPACE = D };
-  enum { DIM_ELEMENT = D-1 };
-  enum { DIM_DMAT = D };
-  enum { DIFFORDER = 0 };
+  static constexpr int DIM = 1;
+  static constexpr int DIM_SPACE = D;
+  static constexpr int DIM_ELEMENT = D-1;
+  static constexpr int DIM_DMAT = D;
+  static constexpr int DIFFORDER = 0;
+  using FiniteElementType = FEL;
   
   static const FEL & Cast(const FiniteElement & fel)
   {
@@ -231,6 +233,22 @@ public:
   {
     Cast(fel).Evaluate (mir, x, y);
   }    
+
+  static void ApplySIMDIR (const FiniteElement & fel, const SIMD_BaseMappedIntegrationRule & mir,
+                           BareSliceVector<Complex> x, BareSliceMatrix<SIMD<Complex>> y)
+  {
+    // Vector<> xr(fel.GetNDof()), xi(fel.GetNDof());
+    Matrix<SIMD<double>> yre(D, mir.Size()), yim(D, mir.Size());
+
+    // xr = Real(x);
+    // xi = Imag(x);
+    Cast(fel).Evaluate (mir, Real(x), yre);
+    Cast(fel).Evaluate (mir, Imag(x), yim);
+
+    for (int j = 0; j < D; j++)
+      for (size_t i = 0; i < mir.Size(); i++)
+        y(j,i) = SIMD<Complex>(yre(j,i), yim(j,i));
+  }
   
   using DiffOp<DiffOpIdHDivSurface<D,FEL>>::AddTransSIMDIR;          
   static void AddTransSIMDIR (const FiniteElement & fel, const SIMD_BaseMappedIntegrationRule & mir,
@@ -256,12 +274,12 @@ template <int D, typename FEL = HDivFiniteElement<D> >
 class DiffOpDivHDiv : public DiffOp<DiffOpDivHDiv<D, FEL> >
 {
 public:
-  enum { DIM = 1 };
-  enum { DIM_SPACE = D };
-  enum { DIM_ELEMENT = D };
-  enum { DIM_DMAT = 1 };
-  enum { DIFFORDER = 1 };
-
+  static constexpr int DIM = 1;
+  static constexpr int DIM_SPACE = D;
+  static constexpr int DIM_ELEMENT = D;
+  static constexpr int DIM_DMAT = 1;
+  static constexpr int DIFFORDER = 1;
+  using FiniteElementType = FEL;
   static string Name() { return "div"; }
 
   static const FEL & Cast (const FiniteElement & fel) 
@@ -349,12 +367,13 @@ template <int D, typename FEL = HDivNormalFiniteElement<D-1> >
 class DiffOpIdHDivBoundary : public DiffOp<DiffOpIdHDivBoundary<D, FEL> >
 {
 public:
-  enum { DIM = 1 };
-  enum { DIM_SPACE = D };
-  enum { DIM_ELEMENT = D-1 };
-  enum { DIM_DMAT = 1 };
-  enum { DIFFORDER = 0 };
-
+  static constexpr int DIM = 1;
+  static constexpr int DIM_SPACE = D;
+  static constexpr int DIM_ELEMENT = D-1;
+  static constexpr int DIM_DMAT = 1;
+  static constexpr int DIFFORDER = 0;
+  using FiniteElementType = FEL;
+  
   template <typename AFEL, typename MIP, typename MAT>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
 			      MAT && mat, LocalHeap & lh)
@@ -387,12 +406,13 @@ template <int D, typename FEL = HDivNormalFiniteElement<D-1> >
 class DiffOpIdVecHDivBoundary : public DiffOp<DiffOpIdVecHDivBoundary<D,FEL> >
 {
 public:
-  enum { DIM = 1 };
-  enum { DIM_SPACE = D };
-  enum { DIM_ELEMENT = D-1 };
-  enum { DIM_DMAT = D };
-  enum { DIFFORDER = 0 };
-
+  static constexpr int DIM = 1;
+  static constexpr int DIM_SPACE = D;
+  static constexpr int DIM_ELEMENT = D-1;
+  static constexpr int DIM_DMAT = D;
+  static constexpr int DIFFORDER = 0;
+  using FiniteElementType = FEL;
+  
   static const FEL & Cast (const FiniteElement & fel) 
   { return static_cast<const FEL&> (fel); }
 
@@ -450,11 +470,12 @@ class DiffOpHDivDual : public DiffOp<DiffOpHDivDual<D> >
 {
 public:
   typedef DiffOp<DiffOpHDivDual<D>> BASE;
-  enum { DIM = 1 };
-  enum { DIM_SPACE = D };
-  enum { DIM_ELEMENT = D };
-  enum { DIM_DMAT = D };
-  enum { DIFFORDER = 0 };
+  static constexpr int DIM = 1;
+  static constexpr int DIM_SPACE = D;
+  static constexpr int DIM_ELEMENT = D;
+  static constexpr int DIM_DMAT = D;
+  static constexpr int DIFFORDER = 0;
+  using FiniteElementType = HDivFiniteElement<D>;
   
   static auto & Cast (const FiniteElement & fel) 
   { return static_cast<const HDivFiniteElement<D>&> (fel); }
@@ -503,11 +524,13 @@ template <int D>
 class DiffOpHDivDualSurface : public DiffOp<DiffOpHDivDualSurface<D> >
 {
 public:
-  enum { DIM = 1 };
-  enum { DIM_SPACE = D };
-  enum { DIM_ELEMENT = D-1 };
-  enum { DIM_DMAT = D };
-  enum { DIFFORDER = 0 };
+  static constexpr int DIM = 1;
+  static constexpr int DIM_SPACE = D;
+  static constexpr int DIM_ELEMENT = D-1;
+  static constexpr int DIM_DMAT = D;
+  static constexpr int DIFFORDER = 0;
+
+  using FiniteElementType = HDivFiniteElement<D-1>;
 
   typedef DiffOpHDivDualSurface<D> DIFFOP_TRACE;
 
@@ -636,11 +659,12 @@ public:
   class DiffOpGradientTraceHDiv : public DiffOp<DiffOpGradientTraceHDiv<D> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D-1 };
-    enum { DIM_DMAT = D*D };
-    enum { DIFFORDER = 1 };
+  static constexpr int DIM = 1;
+  static constexpr int DIM_SPACE = D;
+  static constexpr int DIM_ELEMENT = D-1;
+  static constexpr int DIM_DMAT = D*D;
+  static constexpr int DIFFORDER = 1;
+  using FiniteElementType = FEL;
     static Array<int> GetDimensions() { return Array<int> ( { D, D } ); };
     
     static constexpr double eps() { return 1e-4; }
@@ -875,6 +899,3 @@ HDIV_EQUATIONS_EXTERN template class DivSourceHDivIntegrator<3>;
 
 
 #endif
-
-
-

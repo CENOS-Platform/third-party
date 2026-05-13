@@ -175,9 +175,9 @@ namespace ngfem
     public VertexOrientedFE<ET>
   {
   protected:
-    enum { DIM = ET_trait<ET>::DIM };
-    enum { DIM_STRESS = (DIM*(DIM+1))/2 };
-    
+    static constexpr int DIM = ET_trait<ET>::DIM;
+    static constexpr int DIM_STRESS = (DIM*(DIM+1))/2;
+
     using VertexOrientedFE<ET>::vnums;
     using HDivDivFiniteElement<ET_trait<ET>::DIM>::ndof;
     using HDivDivFiniteElement<ET_trait<ET>::DIM>::order;
@@ -275,13 +275,13 @@ namespace ngfem
       Switch<4-DIM>
         (bmir.DimSpace()-DIM,[this, &bmir, shapes](auto CODIM)
          {
-           constexpr int DIMSPACE = DIM+CODIM.value;
+           static constexpr int DIMSPACE = DIM+CODIM.value;
            auto & mir = static_cast<const SIMD_MappedIntegrationRule<DIM,DIM+CODIM.value>&> (bmir);
 
            shapes.AddSize(ndof*sqr(DIMSPACE), mir.Size()) = 0.0;
            for (size_t i = 0; i < mir.Size(); i++)
              {
-               Cast() -> CalcDualShape2 (mir[i], SBLambda([shapes,i,DIMSPACE] (size_t j, auto val)
+               Cast() -> CalcDualShape2 (mir[i], SBLambda([shapes,i] (size_t j, auto val)
                                                           {
                                                             shapes.Rows(j*sqr(DIMSPACE), (j+1)*sqr(DIMSPACE)).Col(i).Range(0,sqr(DIMSPACE)) = val.AsVector();
                                                           }));
@@ -1205,27 +1205,27 @@ namespace ngfem
   
 
   
-
+  template <typename T>
   class T_SymRotRot_Dl2xDl1_v
   {
-    AutoDiff<2> l1,l2,v;
+    AutoDiff<2,T> l1,l2,v;
   public:
-    T_SymRotRot_Dl2xDl1_v  (AutoDiff<2> lam1, AutoDiff<2> lam2, AutoDiff<2> av) : l1(lam1), l2(lam2), v(av) { ; }
-    Vec<3> Shape() { return Vec<3> (v.Value()*(l1.DValue(1)*l2.DValue(1)),
-      v.Value()*(l1.DValue(0)*l2.DValue(0)),
-      -0.5*v.Value()*(l1.DValue(1)*l2.DValue(0) + l1.DValue(0)*l2.DValue(1))
-      ); }
-
-    Vec<2> DivShape()
+    T_SymRotRot_Dl2xDl1_v  (AutoDiff<2,T> lam1, AutoDiff<2,T> lam2, AutoDiff<2,T> av) : l1(lam1), l2(lam2), v(av) { ; }
+    Vec<3,T> Shape() { return Vec<3,T> (v.Value()*(l1.DValue(1)*l2.DValue(1)),
+                                        v.Value()*(l1.DValue(0)*l2.DValue(0)),
+                                        -0.5*v.Value()*(l1.DValue(1)*l2.DValue(0) + l1.DValue(0)*l2.DValue(1))
+                                        ); }
+    
+    Vec<2,T> DivShape()
     {
       // todo
       // double lam1 = l1.Value();
-      double lam1x = l1.DValue(0);
-      double lam1y = l1.DValue(1);
+      T lam1x = l1.DValue(0);
+      T lam1y = l1.DValue(1);
       // double lam2 = l2.Value();
-      double lam2x = l2.DValue(0);
-      double lam2y = l2.DValue(1);
-      return Vec<2> (
+      T lam2x = l2.DValue(0);
+      T  lam2y = l2.DValue(1);
+      return Vec<2,T> (
         v.DValue(0)*(lam1y*lam2y) - 0.5*v.DValue(1)*(lam1x*lam2y+lam1y*lam2x),
         -0.5*v.DValue(0)*(lam1x*lam2y+lam1y*lam2x) + v.DValue(1)*(lam1x*lam2x)
         ); 
@@ -1296,7 +1296,7 @@ namespace ngfem
       int maxorder_facet =
         max2(order_facet[0][0],max2(order_facet[1][0],order_facet[2][0]));
 
-      const EDGE * edges = ElementTopology::GetEdges(ET_TRIG);
+      const EDGE * edges = ElementTopology::GetEdges(ET_TRIG).Data();
 
       ArrayMem<Tx,20> ha(maxorder_facet+1);
       ArrayMem<Tx,20> u(order_inner[0]+2), v(order_inner[0]+2);
@@ -1433,8 +1433,8 @@ namespace ngfem
   public:
     using T_HDivDivFE<ET_QUAD> :: T_HDivDivFE;
 
-    enum {incsg = -1};
-    enum {incsugv = -1};
+  static constexpr int incsg = -1;
+  static constexpr int incsugv = -1;
 
     virtual void ComputeNDof()
     {
@@ -1472,7 +1472,7 @@ namespace ngfem
       
       int ii = 0;
 
-      const EDGE * edges = ElementTopology::GetEdges(ET_QUAD);
+      const EDGE * edges = ElementTopology::GetEdges(ET_QUAD).Data();
 
       ArrayMem<Tx,20> u(order+2), v(order+2);
       
@@ -1616,7 +1616,7 @@ namespace ngfem
       
       int ii = 0;
 
-      const EDGE * edges = ElementTopology::GetEdges(ET_QUAD);
+      const EDGE * edges = ElementTopology::GetEdges(ET_QUAD).Data();
 
       ArrayMem<Tx,20> u(order+2), v(order+2);
       
@@ -1988,14 +1988,14 @@ namespace ngfem
     // order k+1 for certain components, for inner and boundary shapes
     // analysis from TDNNS paper for case xx1=0, zz1=xx2=zz2=1 for inner and boundary shapes
     // however, works also when boundary order is not increased.. check
-    enum { incrorder_xx1 = 0};
-    enum { incrorder_zz1 = 1};
-    enum { incrorder_xx2 = 1};
-    enum { incrorder_zz2 = 1};
-    enum { incrorder_xx1_bd = 0};
-    enum { incrorder_zz1_bd = 0};
-    enum { incrorder_xx2_bd = 0};
-    enum { incrorder_zz2_bd = 0};
+  static constexpr int incrorder_xx1 = 0;
+  static constexpr int incrorder_zz1 = 1;
+  static constexpr int incrorder_xx2 = 1;
+  static constexpr int incrorder_zz2 = 1;
+  static constexpr int incrorder_xx1_bd = 0;
+  static constexpr int incrorder_zz1_bd = 0;
+  static constexpr int incrorder_xx2_bd = 0;
+  static constexpr int incrorder_zz2_bd = 0;
     using T_HDivDivFE<ET_PRISM> :: T_HDivDivFE;
 
     virtual void ComputeNDof()
@@ -2042,7 +2042,7 @@ namespace ngfem
       int maxorder_facet =
         max2(order_facet[0][0],max2(order_facet[1][0],order_facet[2][0]));
 
-      const FACE * faces = ElementTopology::GetFaces(ET_PRISM);
+      const FACE * faces = ElementTopology::GetFaces(ET_PRISM).Data();
 
       ArrayMem<AutoDiffDiff<2>,20> ha(maxorder_facet+2);
       ArrayMem<AutoDiffDiff<2>,20> u(order+2), v(order+3);
@@ -2213,7 +2213,7 @@ namespace ngfem
       // int maxorder_facet =
       // max2(order_facet[0][0],max2(order_facet[1][0],order_facet[2][0]));
 
-      const FACE * faces = ElementTopology::GetFaces(ET_PRISM);
+      const FACE * faces = ElementTopology::GetFaces(ET_PRISM).Data();
 
       ArrayMem<AutoDiff<3,T>,20> leg_u(order+2), leg_v(order+3);
       ArrayMem<AutoDiff<3,T>,20> leg_w(order+2);
@@ -2524,7 +2524,90 @@ namespace ngfem
     template <typename MIP, typename TFA>
     void CalcDualShape2 (const MIP & mip, TFA & shape) const
     {
-      throw Exception ("Hdivdivfe not implementend for element type");
+      auto & ip = mip.IP();
+      typedef typename std::remove_const<typename std::remove_reference<decltype(mip.IP()(0))>::type>::type T;
+      T x = ip(0), y = ip(1), z = ip(2);
+      T lam[4] = { x, y, z, 1 - x - y - z };
+      Vec<3, T> pnts[4] = { {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {0, 0, 0} };
+      int facetnr = ip.FacetNr();
+
+      int ii = 0;
+
+      if (ip.VB() == BND)
+        { // facet shapes
+          for (int i = 0; i < 4; i++)
+            {
+              int p = order_facet[i][0];
+
+              if (i == facetnr)
+                {
+                  IVec<4> fav = ET_trait<ET_TET>::GetFaceSort(i, vnums);
+                  Vec<3, T> adxi = pnts[fav[0]] - pnts[fav[2]];
+                  Vec<3, T> adeta = pnts[fav[1]] - pnts[fav[2]];
+                  T xi = lam[fav[0]];
+                  T eta = lam[fav[1]];
+
+                  Vec<3, T> nvref = Cross(adxi, adeta);
+                  auto nv = Trans(mip.GetJacobianInverse()) * nvref;
+                  auto nn = DyadProd(nv, nv);
+
+                  DubinerBasis::Eval(p, xi, eta, SBLambda([&](size_t nr, T val)
+                                                          {
+                                                            Mat<3, 3, T> mat = nn;
+                                                            mat *= mip.GetMeasure() * val;
+                                                            shape[nr+ii] = mat;
+                                                          }));
+                }
+              ii += (p + 1) * (p + 2) / 2;
+            }
+        }
+      else
+        {
+          for (int i = 0; i < 4; i++)
+            {
+              int p = order_facet[i][0];
+              ii += (p + 1) * (p + 2) / 2;
+            }
+        }
+
+      if (ip.VB() == VOL)
+        {
+          // Use basis from Astrid's PhD thesis'
+          Mat<3, 3, T> S_F1 = lam[0] * Mat<3, 3>({ {-2, 1, 0}, {1, 0, 0}, {0, 0, 0} });
+          Mat<3, 3, T> S_F2 = lam[1] * Mat<3, 3>({ {0, 1, -1}, {1, -2, 1}, {-1, 1, 0} });
+          Mat<3, 3, T> S_F3 = lam[2] * Mat<3, 3>({ {0, 0, 0}, {0, 0, -1}, {0, -1, 2} });
+          Mat<3, 3, T> S_F4 = lam[3] * Mat<3, 3>({ {0, 0, 1}, {0, 0, 0}, {1, 0, 0} });
+          Mat<3, 3, T> S_T1 = Mat<3, 3>({ {0, 0, -1}, {0, 0, 1}, {-1, 1, 0} });
+          Mat<3, 3, T> S_T2 = Mat<3, 3>({ {0, -1, 0}, {-1, 0, 1}, {0, 1, 0} });
+
+          auto p = order_inner[0];
+          auto mapped = [&](const Mat<3, 3, T> & S, T val)
+            {
+              Mat<3, 3, T> mat = mip.GetJacobian() * S * Trans(mip.GetJacobian());
+              mat *= mip.GetMeasure() * val;
+              return mat;
+            };
+
+          DubinerBasis3D::Eval(p, lam[0], lam[1], lam[2],
+                               SBLambda([&](size_t nr, T val)
+                                        {
+                                          shape[ii++] = mapped(S_T1, val);
+                                          shape[ii++] = mapped(S_T2, val);
+                                        }));
+
+          int p_facet_bubbles = p - 1 + (plus ? 1 : 0);
+          if (p_facet_bubbles >= 0)
+            {
+              DubinerBasis3D::Eval(p_facet_bubbles, lam[0], lam[1], lam[2],
+                                   SBLambda([&](size_t nr, T val)
+                                            {
+                                              shape[ii++] = mapped(S_F1, val);
+                                              shape[ii++] = mapped(S_F2, val);
+                                              shape[ii++] = mapped(S_F3, val);
+                                              shape[ii++] = mapped(S_F4, val);
+                                            }));
+            }
+        }
     }
 
   };
@@ -2578,7 +2661,7 @@ namespace ngfem
       // int maxorder_facet =
       //     max2(order_facet[0][0],max2(order_facet[1][0],order_facet[2][0]));
 
-      const FACE * faces = ElementTopology::GetFaces(ET_HEX);
+      const FACE * faces = ElementTopology::GetFaces(ET_HEX).Data();
 
       ArrayMem<AutoDiff<3,T>,20> leg_u(order+2), leg_v(order+3);
       ArrayMem<AutoDiff<3,T>,20> leg_w(order+2);
@@ -2702,8 +2785,8 @@ namespace ngfem
     public VertexOrientedFE<ET>
   {
   protected:
-    enum { DIM = ET_trait<ET>::DIM };
-    enum { DIM_STRESS = ((DIM+2)*(DIM+1))/2 };
+  static constexpr int DIM = ET_trait<ET>::DIM;
+  static constexpr int DIM_STRESS = ((DIM+2)*(DIM+1))/2;
     
     using VertexOrientedFE<ET>::vnums;
     using HDivDivSurfaceFiniteElement<ET_trait<ET>::DIM>::ndof;
