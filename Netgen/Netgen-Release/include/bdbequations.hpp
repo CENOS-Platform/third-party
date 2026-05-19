@@ -35,12 +35,13 @@ namespace ngfem
   class DiffOpGradient : public DiffOp<DiffOpGradient<D, FEL> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D };
-    enum { DIM_DMAT = D };
-    enum { DIFFORDER = 1 };
-
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = D;
+    static constexpr int DIM_ELEMENT = D;
+    static constexpr int DIM_DMAT = D;
+    static constexpr int DIFFORDER = 1;
+    using FiniteElementType = FEL;
+    
     typedef DiffOpGradientBoundary<D> DIFFOP_TRACE;
     
     static string Name() { return "grad"; }
@@ -205,12 +206,12 @@ namespace ngfem
   class DiffOpGradientBoundary : public DiffOp<DiffOpGradientBoundary<D, FEL> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D-1 };
-    enum { DIM_DMAT = D };
-    enum { DIFFORDER = 1 };
-
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = D;
+    static constexpr int DIM_ELEMENT = D-1;
+    static constexpr int DIM_DMAT = D;
+    static constexpr int DIFFORDER = 1;
+    using FiniteElementType = FEL;
     static string Name() { return "gradboundary"; }
     
     static const FEL & Cast (const FiniteElement & fel) 
@@ -228,6 +229,26 @@ namespace ngfem
       // mat = Trans (dshape * mip.GetJacobianInverse ());
       Cast(fel).CalcMappedDShape (mip, Trans(mat));
     }
+
+
+    static int DimRef() { return D-1; } 
+    
+    template <typename IP, typename MAT>
+    static void GenerateMatrixRef (const FiniteElement & fel, const IP & ip,
+                                   MAT && mat, LocalHeap & lh)
+    {
+      Cast(fel).CalcDShape (ip, Trans(mat));
+    }
+
+    template <typename MIP, typename MAT>
+    static void CalcTransformationMatrix (const MIP & mip,
+                                          MAT & mat, LocalHeap & lh)
+    {
+      mat = Trans(static_cast<const MappedIntegrationPoint<D-1,D>&>(mip).GetJacobianInverse());
+    }
+
+
+    
 
     static void GenerateMatrixSIMDIR (const FiniteElement & fel,
                                       const SIMD_BaseMappedIntegrationRule & mir,
@@ -263,11 +284,11 @@ namespace ngfem
   class DiffOpGradientBBoundary : public DiffOp<DiffOpGradientBBoundary<D, FEL> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D-2 };
-    enum { DIM_DMAT = D };
-    enum { DIFFORDER = 1 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = D;
+    static constexpr int DIM_ELEMENT = D-2;
+    static constexpr int DIM_DMAT = D;
+    static constexpr int DIFFORDER = 1;
 
     static string Name() { return "gradbboundary"; }
     static constexpr bool SUPPORT_PML = true;
@@ -299,12 +320,12 @@ namespace ngfem
     public DiffOp<DiffOpGradientRotSym<D> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D };
-    enum { DIM_DMAT = D };
-    enum { DIFFORDER = 1 };
-
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = D;
+    static constexpr int DIM_ELEMENT = D;
+    static constexpr int DIM_DMAT = D;
+    static constexpr int DIFFORDER = 1;
+    using FiniteElementType = BaseScalarFiniteElement;
     ///
     template <typename FEL, typename MIP, typename MAT>
     static void GenerateMatrix (const FEL & fel, const MIP & mip,
@@ -337,11 +358,13 @@ namespace ngfem
   class DiffOpId : public DiffOp<DiffOpId<D, FEL> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = D };
-    enum { DIM_ELEMENT = D };
-    enum { DIM_DMAT = 1 };
-    enum { DIFFORDER = 0 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = D;
+    static constexpr int DIM_ELEMENT = D;
+    static constexpr int DIM_DMAT = 1;
+    static constexpr int DIFFORDER = 0;
+
+    using FiniteElementType = FEL;
     static IVec<0> GetDimensions() { return IVec<0>(); };
     
     static bool SupportsVB (VorB checkvb) { return true; }
@@ -351,6 +374,9 @@ namespace ngfem
     
     static const FEL & Cast (const FiniteElement & fel) 
     { return static_cast<const FEL&> (fel); }
+
+    // static void CheckElement(const FiniteElement& fel)
+    // { [[maybe_unused]] auto& asfel = dynamic_cast<const FEL&>(fel); }
     
     template <typename MIP, typename MAT>
     static void GenerateMatrix (const FiniteElement & fel, const MIP & mip,
@@ -575,6 +601,7 @@ namespace ngfem
     enum { DIM_ELEMENT = D-1 };
     enum { DIM_DMAT = 1 };
     enum { DIFFORDER = 0 };
+    using FiniteElementType = FEL;
 
     static string Name() { return "IdBoundary"; }
     static constexpr bool SUPPORT_PML = true;
@@ -705,7 +732,8 @@ namespace ngfem
     enum { DIM_ELEMENT = D-1 };
     enum { DIM_DMAT = SYSDIM };
     enum { DIFFORDER = 0 };
-
+    using FiniteElementType = BaseScalarFiniteElement;
+    
     template <typename FEL, typename MIP, typename MAT>
     static void GenerateMatrix (const FEL & fel, const MIP & mip,
 				MAT & mat, LocalHeap & lh)
@@ -732,6 +760,7 @@ namespace ngfem
     enum { DIM_DMAT = D*D };
     enum { DIFFORDER = 2 };
 
+    using FiniteElementType = ScalarFiniteElement<D>;
     typedef DiffOpHesseBoundary<D> DIFFOP_TRACE;
 
     
@@ -764,7 +793,7 @@ namespace ngfem
     enum { DIM_ELEMENT = D-1 };
     enum { DIM_DMAT = D*D };
     enum { DIFFORDER = 2 };
-
+    using FiniteElementType = FEL;
     typedef void DIFFOP_TRACE;
 
     static string Name() { return "hesseboundary"; }
@@ -955,7 +984,7 @@ namespace ngfem
     enum { DIM_ELEMENT = 0 };
     enum { DIM_DMAT = 1 };
     enum { DIFFORDER = 2 };
-
+    using FiniteElementType = FEL;
     typedef void DIFFOP_TRACE;
 
     static string Name() { return "hesseboundary"; }    
@@ -1583,7 +1612,8 @@ namespace ngfem
     enum { DIM_ELEMENT = D-1 };
     enum { DIM_DMAT = 1 };
     enum { DIFFORDER = 0 };
-
+    using FiniteElementType = FEL;
+    
     template <typename MIP, typename MAT>
     static void GenerateMatrix (const FiniteElement & fel, const MIP & mip,
 				MAT && mat, LocalHeap & lh)
@@ -1902,7 +1932,8 @@ namespace ngfem
     enum { DIM_ELEMENT = DIM_SPC-VB };
     enum { DIM_DMAT = DIM_SPC };
     enum { DIFFORDER = 0 };
-
+    using FiniteElementType = VectorFiniteElement;
+    
     static string Name() { return "Id"; }
     static constexpr bool SUPPORT_PML = true;
     static bool SupportsVB (VorB checkvb) { return true; }
@@ -1971,9 +2002,31 @@ namespace ngfem
         }
     }
 
+    static void ApplySIMDIR (const FiniteElement & bfel, const SIMD_BaseMappedIntegrationRule & mir,
+                             BareSliceVector<Complex> x, BareSliceMatrix<SIMD<Complex>> y)
+    {
+      auto & fel = static_cast<const VectorFiniteElement&> (bfel);
+      for (int i = 0; i < DIM_SPC; i++)
+        {
+          auto & feli = static_cast<const BaseScalarFiniteElement&> (fel[i]);
+          feli.Evaluate (mir.IR(), x.Range(fel.GetRange(i)), y.Row(i));
+        }
+    }
+
     using DiffOp<DiffOpIdVectorH1<DIM_SPC, VB>>::AddTransSIMDIR;
     static void AddTransSIMDIR (const FiniteElement & bfel, const SIMD_BaseMappedIntegrationRule & mir,
                                 BareSliceMatrix<SIMD<double>> y, BareSliceVector<double> x)
+    {
+      auto & fel = static_cast<const VectorFiniteElement&> (bfel);
+      for (int i = 0; i < DIM_SPC; i++)
+        {
+          auto & feli = static_cast<const BaseScalarFiniteElement&> (fel[i]);
+          feli.AddTrans (mir.IR(), y.Row(i), x.Range(fel.GetRange(i)));
+        }
+    }
+
+    static void AddTransSIMDIR (const FiniteElement & bfel, const SIMD_BaseMappedIntegrationRule & mir,
+                                BareSliceMatrix<SIMD<Complex>> y, BareSliceVector<Complex> x)
     {
       auto & fel = static_cast<const VectorFiniteElement&> (bfel);
       for (int i = 0; i < DIM_SPC; i++)
@@ -2174,7 +2227,7 @@ namespace ngfem
     enum { DIM_ELEMENT = DIM_SPC };
     enum { DIM_DMAT = DIM_SPC*DIM_SPC };
     enum { DIFFORDER = 1 };
-
+    using FiniteElementType = VectorFiniteElement;
     typedef DiffOpGradBoundaryVectorH1<DIM_SPC> DIFFOP_TRACE;
 
     static string Name() { return "grad"; }
@@ -2297,12 +2350,12 @@ namespace ngfem
   class DiffOpGradBoundaryVectorH1 : public DiffOp<DiffOpGradBoundaryVectorH1<DIM_SPC> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = DIM_SPC };
-    enum { DIM_ELEMENT = DIM_SPC-1 };
-    enum { DIM_DMAT = DIM_SPC*DIM_SPC };
-    enum { DIFFORDER = 1 };
-
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = DIM_SPC;
+    static constexpr int DIM_ELEMENT = DIM_SPC-1;
+    static constexpr int DIM_DMAT = DIM_SPC*DIM_SPC;
+    static constexpr int DIFFORDER = 1;
+    using FiniteElementType = VectorFiniteElement;
     static IVec<2> GetDimensions() { return { DIM_SPC, DIM_SPC }; }
     static constexpr bool SUPPORT_PML = true;
     static string Name() { return "gradbnd"; }
@@ -2323,6 +2376,39 @@ namespace ngfem
       for (int i = 0; i < DIM_SPC; i++)
         mat.Rows(DIM_SPC*i, DIM_SPC*(i+1)).Cols(fel.GetRange(i)) = Trans(hmat);
     }
+
+    static int DimRef() { return DIM_SPC*DIM_ELEMENT; } 
+    
+    template <typename IP, typename MAT>
+    static void GenerateMatrixRef (const FiniteElement & bfel, const IP & ip,
+                                   MAT && mat, LocalHeap & lh)
+    {
+      HeapReset hr(lh);
+      auto & fel = static_cast<const VectorFiniteElement&> (bfel);
+      auto & feli = static_cast<const ScalarFiniteElement<DIM_ELEMENT>&> (fel[0]);
+      FlatMatrix<> hmat(feli.GetNDof(), DIM_ELEMENT, lh);
+      feli.CalcDShape(ip, hmat);
+      int ndof = feli.GetNDof();
+      mat.Rows(DIM_SPACE*DIM_ELEMENT).Cols(DIM_SPC*ndof) = 0.0;
+      for (int i = 0; i < DIM_SPACE; i++)
+        mat.Rows(i*DIM_ELEMENT, (i+1)*DIM_ELEMENT).Cols(i*ndof,(i+1)*ndof)
+          = Trans(hmat);
+    }
+
+    template <typename MIP, typename MAT>
+    static void CalcTransformationMatrix (const MIP & mip,
+                                          MAT & mat, LocalHeap & lh)
+    {
+      FlatMatrix<> hmat(DIM_SPC, DIM_ELEMENT, lh);      
+      hmat = Trans(static_cast<const MappedIntegrationPoint<DIM_ELEMENT,DIM_SPC>&>(mip).GetJacobianInverse());
+      mat.Rows(DIM_DMAT).Cols(DIM_ELEMENT*DIM_SPC) = 0.0;
+      for (int i = 0; i < DIM_SPACE; i++)
+        mat.Rows(i*DIM_SPC, (i+1)*DIM_SPC).Cols(i*DIM_ELEMENT, (i+1)*DIM_ELEMENT) = hmat;
+    }
+    
+
+
+
 
     
     static void GenerateMatrixSIMDIR (const FiniteElement & bfel,
@@ -2385,11 +2471,11 @@ namespace ngfem
   class DiffOpDivVectorH1 : public DiffOp<DiffOpDivVectorH1<DIM_SPC> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = DIM_SPC };
-    enum { DIM_ELEMENT = DIM_SPC };
-    enum { DIM_DMAT = 1 };
-    enum { DIFFORDER = 1 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = DIM_SPC;
+    static constexpr int DIM_ELEMENT = DIM_SPC;
+    static constexpr int DIM_DMAT = 1;
+    static constexpr int DIFFORDER = 1;
 
     typedef DiffOpDivBoundaryVectorH1<DIM_SPC> DIFFOP_TRACE;
     static constexpr bool SUPPORT_PML = true;
@@ -2469,11 +2555,11 @@ namespace ngfem
   class DiffOpDivBoundaryVectorH1 : public DiffOp<DiffOpDivBoundaryVectorH1<DIM_SPC> >
   {
   public:
-    enum { DIM = 1 };
-    enum { DIM_SPACE = DIM_SPC };
-    enum { DIM_ELEMENT = DIM_SPC-1 };
-    enum { DIM_DMAT = 1 };
-    enum { DIFFORDER = 1 };
+    static constexpr int DIM = 1;
+    static constexpr int DIM_SPACE = DIM_SPC;
+    static constexpr int DIM_ELEMENT = DIM_SPC-1;
+    static constexpr int DIM_DMAT = 1;
+    static constexpr int DIFFORDER = 1;
 
     static constexpr bool SUPPORT_PML = true;
     static string Name() { return "divbnd"; }
@@ -2730,9 +2816,11 @@ namespace ngfem
   extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradVectorH1<2> >;
   extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradVectorH1<3> >;
 
+  extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradientBoundary<1> >;
   extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradientBoundary<2> >;
   extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradientBoundary<3> >;
 
+  extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradBoundaryVectorH1<1> >;
   extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradBoundaryVectorH1<2> >;
   extern template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradBoundaryVectorH1<3> >;
 

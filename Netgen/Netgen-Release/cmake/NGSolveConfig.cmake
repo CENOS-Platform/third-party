@@ -1,4 +1,4 @@
-set(PACKAGE_VERSION "6.2.2505-99-g999ba15a0")
+set(PACKAGE_VERSION "6.2.2604-22-ga0856b7d8")
 find_package(Netgen CONFIG REQUIRED HINTS
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
@@ -14,7 +14,7 @@ get_filename_component(NGSOLVE_LIBRARY_DIR  "${NETGEN_LIBRARY_DIR}"  ABSOLUTE)
 get_filename_component(NGSOLVE_PYTHON_DIR   "${NETGEN_PYTHON_DIR}"   ABSOLUTE)
 get_filename_component(NGSOLVE_RESOURCE_DIR "${NETGEN_RESOURCE_DIR}" ABSOLUTE)
 
-set(NGSOLVE_CXX_COMPILER "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/bin/Hostx64/x64/cl.exe")
+set(NGSOLVE_CXX_COMPILER "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.41.34120/bin/Hostx64/x64/cl.exe")
 set(NGSOLVE_CMAKE_BUILD_TYPE "Release")
 
 set(NGSOLVE_CMAKE_THREAD_LIBS_INIT "")
@@ -76,18 +76,13 @@ if(NGSOLVE_USE_PYTHON)
     endif()
     add_library(${target} SHARED ${ARGN})
 
-    find_package(PythonInterp 3 REQUIRED)
-    find_package(PythonLibs 3 REQUIRED)
-    target_include_directories(${target} PRIVATE ${PYTHON_INCLUDE_DIR})
+    find_package(Python3 REQUIRED Development)
 
-    if(NETGEN_BUILD_FOR_CONDA AND NOT WIN32)
-        if(APPLE)
-            target_link_options(${target} PUBLIC -undefined dynamic_lookup)
-        endif(APPLE)
-    else(NETGEN_BUILD_FOR_CONDA AND NOT WIN32)
-        target_link_libraries(${target} PUBLIC ${PYTHON_LIBRARY})
-    endif(NETGEN_BUILD_FOR_CONDA AND NOT WIN32)
+    if(NETGEN_BUILD_FOR_CONDA AND APPLE)
+        target_link_options(${target} PUBLIC -undefined dynamic_lookup)
+    endif(NETGEN_BUILD_FOR_CONDA AND APPLE)
 
+    target_link_libraries(${target} PRIVATE Python3::Module)
     set_target_properties(${target} PROPERTIES PREFIX "" CXX_STANDARD 17)
     target_link_libraries(${target} PUBLIC ngsolve)
 

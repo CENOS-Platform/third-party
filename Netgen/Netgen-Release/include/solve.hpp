@@ -16,6 +16,9 @@
 #include <ngstd.hpp>
 #include <nginterface.h>
 
+// #include "../comp/fespace.hpp"
+// #include "../comp/preconditioner.hpp"
+// #include "../comp/gridfunction.hpp"
 #include <comp.hpp>
 #include <multigrid.hpp>
 

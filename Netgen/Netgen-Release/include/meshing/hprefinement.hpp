@@ -17,6 +17,8 @@
 namespace netgen
 {
 
+class Mesh;
+
 
 enum HPREF_ELEMENT_TYPE {
   HP_NONE=0,
@@ -189,6 +191,8 @@ enum HPREF_ELEMENT_TYPE {
   
   HP_TET_3F_0E_0V = 700,  // 3 singular faces, no additional points or edges  NEW   done 
 
+  HP_TET_ALFELD,
+  
   HP_PRISM = 1000,
   HP_PRISM_SINGEDGE,
   HP_PRISM_SINGEDGE_V12,
@@ -289,7 +293,7 @@ public:
   HPRefElement (); 
   HPRefElement(Element & el);
   HPRefElement(Element2d & el);
-  HPRefElement(Segment & el);	
+  HPRefElement(Segment & el, const Mesh & mesh);	
   HPRefElement(HPRefElement & el);
 
   void SetType( HPREF_ELEMENT_TYPE t);
@@ -328,7 +332,8 @@ public:
   PointIndex pnums[8];
   double param[8][3];
   int index;
-  int si;
+  // int si;
+  int edgenr;
   int levelx;
   int levely;
   int levelz;

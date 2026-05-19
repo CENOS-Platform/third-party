@@ -340,6 +340,7 @@ namespace ngcomp
     
     shared_ptr<FESpace> GetTrialSpace() const { return fespace; }
     shared_ptr<FESpace> GetTestSpace() const { return fespace2 ? fespace2 : fespace; }
+    shared_ptr<FESpace> GetSpace(TrialOrTest kind) const { return (kind==TRIAL) ? GetTrialSpace() : GetTestSpace(); }
     ///
     int GetNLevels() const { return mats.Size(); }
 
@@ -952,6 +953,9 @@ namespace ngcomp
     size_t GetDimX() const { return dimx; }
     size_t GetDimY() const { return dimy; }
     size_t GetNIP() const { return nip; }
+
+    FlatMatrix<double> GetPoints() const { return points; }
+    FlatMatrix<double> GetNormals() const { return normals; }
   };  
   
 

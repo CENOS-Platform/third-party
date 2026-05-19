@@ -194,6 +194,15 @@ namespace ngfem
       Exception::Throw ("shape derivative not implemented for DifferentialOperator", typeid(DOP).name());
     }
 
+    using FiniteElementType = FiniteElement; // comment out this line when implementation is complete
+    static void CheckElement(const FiniteElement& fel)
+    {
+      if constexpr (!std::is_same_v<FiniteElement, typename DOP::FiniteElementType>)
+        if (!dynamic_cast<const typename DOP::FiniteElementType*>(&fel))
+          throw Exception(string("expected ") + typeid(typename DOP::FiniteElementType).name() + " got " +
+                          typeid(fel).name());
+    };
+
   };
 
 
@@ -304,6 +313,11 @@ namespace ngfem
     NGS_DLL_HEADER shared_ptr<CoefficientFunction> DiffShape (shared_ptr<CoefficientFunction> proxy,
                                                shared_ptr<CoefficientFunction> dir,
                                                bool Eulerian) const override;
+
+    virtual void CheckElement (const FiniteElement& fel) const override
+    {
+      diffop->CheckElement(fel);
+    }
   };
 
 
@@ -399,6 +413,12 @@ namespace ngfem
     shared_ptr<CoefficientFunction> DiffShape (shared_ptr<CoefficientFunction> proxy,
                                                shared_ptr<CoefficientFunction> dir,
                                                bool Eulerian) const override;
+
+
+    virtual void CheckElement (const FiniteElement& fel) const override
+    {
+      diffop->CheckElement(fel);
+    }
   };
 
 
@@ -439,6 +459,9 @@ namespace ngfem
       else
         return nullptr;
     }
+
+    virtual void CheckElement (const FiniteElement& bfel) const override;
+
     
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
@@ -507,6 +530,7 @@ namespace ngfem
     shared_ptr<CoefficientFunction> DiffShape (shared_ptr<CoefficientFunction> proxy,
                                                shared_ptr<CoefficientFunction> dir,
                                                bool Eulerian) const override;
+
   };
 
 
@@ -534,6 +558,8 @@ namespace ngfem
       else
         return nullptr;
     }
+
+    virtual void CheckElement (const FiniteElement& bfel) const override;    
     
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
@@ -546,6 +572,13 @@ namespace ngfem
                 const SIMD_BaseMappedIntegrationRule & mir,
                 BareSliceMatrix<SIMD<double>> bmat) const override;
 
+    NGS_DLL_HEADER virtual void
+    Apply (const FiniteElement & fel,
+	   const BaseMappedIntegrationPoint & mip,
+	   BareSliceVector<double> x, 
+	   FlatVector<double> flux,
+	   LocalHeap & lh) const override;
+    
     NGS_DLL_HEADER virtual void
     Apply (const FiniteElement & bfel,
            const SIMD_BaseMappedIntegrationRule & bmir,
@@ -584,6 +617,8 @@ namespace ngfem
       else
         return nullptr;
     }
+
+    virtual void CheckElement (const FiniteElement& bfel) const override;    
     
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
@@ -643,6 +678,8 @@ namespace ngfem
       else
         return nullptr;
     }
+
+    virtual void CheckElement (const FiniteElement& bfel) const override;        
     
     NGS_DLL_HEADER virtual void
     CalcMatrix (const FiniteElement & fel,
@@ -742,6 +779,12 @@ namespace ngfem
               const SIMD_BaseMappedIntegrationRule & bmir,
               BareSliceMatrix<SIMD<double>> flux,
               BareSliceVector<double> x) const override;
+
+    virtual void CheckElement (const FiniteElement& bfel) const override
+    {
+      auto & fel = dynamic_cast<const SkewMatrixFiniteElement&> (bfel).ScalFE();    
+      diffop->CheckElement(fel);
+    }
   };
 
   
@@ -902,9 +945,14 @@ namespace ngfem
            BareSliceVector<double> x, 
            BareSliceMatrix<SIMD<double>> flux) const override
     {
+      // cout << "in Apply, typeid(bfel) = " << typeid(bfel).name() << endl;
       const CompoundFiniteElement & fel = static_cast<const CompoundFiniteElement&> (bfel);
+      // const CompoundFiniteElement & fel = dynamic_cast<const CompoundFiniteElement&> (bfel);
+      // cout << "cast worked" << endl;
       IntRange r = BlockDim() * fel.GetRange(comp);
       diffop->Apply (fel[comp], bmir, x.Range(r), flux);
+      // cout << "func complete" << endl;
+      
     }
 
     virtual void
@@ -1004,6 +1052,14 @@ namespace ngfem
     {
       return diffop->DiffShape(proxy,dir,Eulerian);
     }
+
+
+    virtual void CheckElement (const FiniteElement& bfel) const override
+    {
+      auto & fel = dynamic_cast<const CompoundFiniteElement&> (bfel);
+      diffop->CheckElement(fel[comp]);
+    }
+    
   };
 
 
@@ -1021,10 +1077,10 @@ namespace ngfem
   class T_DifferentialOperator : public DifferentialOperator
   {
   protected:
-    enum { DIM_SPACE   = DIFFOP::DIM_SPACE };
-    enum { DIM_ELEMENT = DIFFOP::DIM_ELEMENT };
-    enum { DIM_DMAT    = DIFFOP::DIM_DMAT };
-    enum { DIM         = DIFFOP::DIM };
+    static constexpr int DIM_SPACE   = DIFFOP::DIM_SPACE;
+    static constexpr int DIM_ELEMENT = DIFFOP::DIM_ELEMENT;
+    static constexpr int DIM_DMAT    = DIFFOP::DIM_DMAT;
+    static constexpr int DIM         = DIFFOP::DIM;
     
   public:
     T_DifferentialOperator()
@@ -1180,6 +1236,11 @@ namespace ngfem
                                                bool Eulerian) const override
     {
       return DIFFOP::DiffShape(proxy, dir, Eulerian);
+    }
+
+    virtual void CheckElement (const FiniteElement& fel) const override
+    {
+      DIFFOP::CheckElement(fel);
     }
     
   };
