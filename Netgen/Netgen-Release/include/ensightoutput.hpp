@@ -35,9 +35,9 @@ namespace ngcomp
     void writeCaseFile();
     void writeVariable(std::string, shared_ptr<GridFunction>, const Array<string>&);
 
-    void writeStringToFile(const char* cstring, FILE* file);
-    void writeIntToFile(const int i, FILE* file);
-    void writeFloatToFile(const float i, FILE* file);
+    void EnsightOutput::writeStringToFile(const char* cstring, FILE* file);
+    void EnsightOutput::writeIntToFile(const int i, FILE* file);
+    void EnsightOutput::writeFloatToFile(const float i, FILE* file);
 
   };
 
