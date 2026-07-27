@@ -25,6 +25,8 @@ namespace ngcomp
     weak_ptr<BilinearForm> bf;
     bool is_registered = false;
   protected:
+    // std::optional<Region> additional_dirichlet_constraints;
+    Array<DirichletBoundary> additional_dirichlet_boundaries;
     bool test;
     bool timing;
     bool print;
@@ -46,7 +48,12 @@ namespace ngcomp
 		    const string aname = "precond");
     ///
     virtual ~Preconditioner ();
-  
+
+    static DocInfo GetDocu ();    
+    ///
+    virtual shared_ptr<Preconditioner> Create (shared_ptr<BilinearForm> bfa, const Flags & cflags) const;
+    virtual bool IsCreator() const;
+    
     ///
     virtual bool LaterUpdate (void) { return laterupdate; }
     ///
@@ -71,7 +78,12 @@ namespace ngcomp
     }
     
     virtual bool IsComplex() const override { return GetMatrix().IsComplex(); }
-        
+
+    // virtual void SetAdditionalDirichletConstraints (Region areg) { additional_dirichlet_constraints = areg; }
+    // freedofs from FESpace, filtered with additional constraints. Always new BitArray
+    virtual shared_ptr<BitArray> GetFreeDofs (bool external = false) const;
+    
+    
     ///
     virtual void Mult (const BaseVector & x, BaseVector & y) const override
     {
@@ -103,6 +115,11 @@ namespace ngcomp
 				   ElementId ei, 
 				   LocalHeap & lh) { ; }
 
+    virtual void AddElementMatrix (FlatArray<int> dnums,
+				   FlatMatrix<float> elmat,
+				   ElementId ei, 
+				   LocalHeap & lh) { ; }
+    
     virtual void AddElementMatrix (FlatArray<int> dnums,
 				   FlatMatrix<Complex> elmat,
 				   ElementId ei, 
@@ -149,6 +166,11 @@ namespace ngcomp
     using NGS_Object::GetMemoryTracer;
   };
 
+  inline ostream & operator<< (ostream & ost, const Preconditioner & obj)
+  {
+    obj.PrintReport (ost);
+    return ost;
+  }
 
 
   ///
@@ -184,7 +206,7 @@ namespace ngcomp
     ///
 
     static DocInfo GetDocu ();
-    
+    virtual shared_ptr<Preconditioner> Create (shared_ptr<BilinearForm> bfa, const Flags & cflags) const override;  
     ///
     virtual bool IsComplex() const override { return jacobi->IsComplex(); }
     
@@ -193,6 +215,7 @@ namespace ngcomp
 
     virtual void Update () override
     {
+      if (!bfa) return;
       if (GetTimeStamp() < bfa->GetTimeStamp())
         FinalizeLevel (&bfa->GetMatrix());
       if (test) Test();
@@ -227,13 +250,72 @@ namespace ngcomp
   };
 
 
+  class NGS_DLL_HEADER DirectPreconditioner : public Preconditioner
+  {
+    shared_ptr<BilinearForm> bfa;
+    shared_ptr<BaseMatrix> inverse;
+    string inversetype;
+
+  public:
+    DirectPreconditioner (shared_ptr<BilinearForm> abfa, const Flags & aflags,
+			  const string aname = "directprecond")
+      : Preconditioner(abfa,aflags,aname), bfa(abfa)
+    {
+      // bfa -> SetPreconditioner (this);
+      inversetype = flags.GetStringFlag("inverse", default_inversetype);
+    }
+
+    ///
+    virtual ~DirectPreconditioner()
+    {
+      ; //delete inverse;
+    }
+
+    static DocInfo GetDocu ();    
+    virtual shared_ptr<Preconditioner> Create (shared_ptr<BilinearForm> bfa, const Flags & cflags) const override;  
+    
+    virtual void FinalizeLevel (const BaseMatrix * mat) override
+    {
+      Update();
+    }
+    
+    ///
+    virtual void Update () override;
+
+    virtual void CleanUpLevel () override
+    {
+      // delete inverse;
+      inverse = nullptr;
+    }
+
+    virtual const BaseMatrix & GetMatrix() const override
+    {
+      if (!inverse)
+        ThrowPreconditionerNotReady();        
+      return *inverse;
+    }
+
+    virtual const BaseMatrix & GetAMatrix() const override
+    {
+      return bfa->GetMatrix(); 
+    }
+
+    virtual const char * ClassName() const override
+    {
+      return "Direct Preconditioner"; 
+    }
+  };
+
+
+  ////////////////////////
 
   class NGS_DLL_HEADER BASE_BDDCPreconditioner : public Preconditioner
   {
   public:
     BASE_BDDCPreconditioner (shared_ptr<BilinearForm> abfa, const Flags & aflags,
                              const string aname = "bddcprecond");
-    static DocInfo GetDocu ();    
+    static DocInfo GetDocu ();
+    virtual shared_ptr<Preconditioner> Create (shared_ptr<BilinearForm> bfa, const Flags & cflags) const override;
   };
 
   
@@ -432,13 +514,20 @@ namespace ngcomp
 		      const string aname = "mgprecond");
     ///
     virtual ~MGPreconditioner() { ; }
+    
+    static DocInfo GetDocu ();
 
+    
     void FreeSmootherMem(void);
 
     virtual void FinalizeLevel (const BaseMatrix * mat) override
     {
       Update();
     }
+
+    virtual shared_ptr<Preconditioner> Create (shared_ptr<BilinearForm> bfa, const Flags & cflags) const override;  
+    
+    // void SetAdditionalDirichletConstraints (Region areg) override;
 
     ///
     virtual void Update () override;

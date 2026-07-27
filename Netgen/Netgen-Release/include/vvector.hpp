@@ -20,6 +20,7 @@ namespace ngla
     TSCAL * pdata;
     int es;    // entry size in in term of TSCALs
     bool ownmem;
+    shared_ptr<BaseVector> parent; // if sub-vector, keep this vector alive
     
   public:
     S_BaseVectorPtr (size_t as, int aes, void * adata) throw()
@@ -28,7 +29,7 @@ namespace ngla
       es = aes;
       pdata = static_cast<TSCAL*> (adata);
       ownmem = false;
-      this->entrysize = es * sizeof(TSCAL) / sizeof(double);
+      this->entrysize = es * sizeof(TSCAL) / sizeof(typename scal_traits<TSCAL>::TSCAL_REAL);
     }
 
     S_BaseVectorPtr (size_t as, int aes)
@@ -38,7 +39,8 @@ namespace ngla
       pdata = new TSCAL[as*aes];
       ownmem = true;
       GetMemoryTracer().Alloc(sizeof(TSCAL) * as * aes);
-      this->entrysize = es * sizeof(TSCAL) / sizeof(double);
+      // this->entrysize = es * sizeof(TSCAL) / sizeof(double);
+      this->entrysize = es * sizeof(TSCAL) / sizeof(typename scal_traits<TSCAL>::TSCAL_REAL);
     }
 
     void SetSize (size_t as)
@@ -52,6 +54,11 @@ namespace ngla
       pdata = new TSCAL[as*es];
       ownmem = true;
       GetMemoryTracer().Alloc(sizeof(TSCAL) * as * es);
+    }
+
+    void SetParent (shared_ptr<BaseVector> aparent)
+    {
+      parent = aparent;
     }
 
     void AssignMemory (size_t as, void * adata)

@@ -123,7 +123,7 @@ set_target_properties(ngcomp PROPERTIES
 add_library(ngsolve SHARED IMPORTED)
 
 set_target_properties(ngsolve PROPERTIES
-  INTERFACE_LINK_LIBRARIES "netgen_lib;netgen_core_lib;ngsolve;ngcomp;ngfem;ngsbem;ngbla;ngla;ngstd"
+  INTERFACE_LINK_LIBRARIES "netgen_lib;netgen_core_lib;ngcomp;ngfem;ngsbem;ngbla;ngla;ngstd"
 )
 
 # Load information for each installed configuration.

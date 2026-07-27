@@ -179,9 +179,10 @@ namespace ngcomp
     const Flags& GetFlags() const { return flags; }
     Flags& GetFlags() { return flags; }
 
+    [[deprecated("Use fespace.Interpolate instead!")]]
     virtual void Interpolate (const CoefficientFunction & cf,
                               const Region * reg, int mdcomp, LocalHeap & lh);
-
+    
     ///
     virtual void PrintReport (ostream & ost) const override;
     ///
@@ -256,6 +257,37 @@ namespace ngcomp
 				   FlatVector<double> elvec) 
     { vec[comp] -> SetIndirect (dnums, elvec); }
 
+
+
+    ///
+    virtual void GetElementVector (FlatArray<int> dnums,
+				   FlatVector<float> elvec) const
+    { vec[0] -> GetIndirect (dnums, elvec); }
+      
+    ///
+    virtual void SetElementVector (FlatArray<int> dnums,
+				   FlatVector<float> elvec) 
+    { vec[0] -> SetIndirect (dnums, elvec); }
+
+
+    ///
+    virtual void GetElementVector (int comp,
+				   FlatArray<int> dnums,
+				   FlatVector<float> elvec) const 
+    { vec[comp] -> GetIndirect (dnums, elvec); }
+
+
+    ///
+    virtual void SetElementVector (int comp,
+				   FlatArray<int> dnums,
+				   FlatVector<float> elvec) 
+    { vec[comp] -> SetIndirect (dnums, elvec); }
+
+
+
+
+
+    
     ///
     virtual void GetElementVector (FlatArray<int> dnums,
 				   FlatVector<Complex> elvec) const

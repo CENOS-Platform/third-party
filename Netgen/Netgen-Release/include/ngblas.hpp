@@ -33,7 +33,7 @@ namespace ngbla
   
   
   template <typename T1, typename T2, typename T1S, typename T2S>
-  void CopyVector (LinearVector<T1,T1S> src, LinearVector<T2,T2S> dest) NETGEN_NOEXCEPT
+  NETGEN_INLINE void CopyVector (LinearVector<T1,T1S> src, LinearVector<T2,T2S> dest) NETGEN_NOEXCEPT
   {
     auto cs = CombinedSize(src.Size(), dest.Size());
     for (size_t i : Range(cs))
@@ -41,16 +41,18 @@ namespace ngbla
   }
 
   template <typename T1, typename T2>
-  void CopyVector (BareSliceVector<T1> src, BareSliceVector<T2> dest, size_t size) NETGEN_NOEXCEPT
+  NETGEN_INLINE void CopyVector (BareSliceVector<T1> src, BareSliceVector<T2> dest, size_t size) NETGEN_NOEXCEPT
   {
     for (size_t i : Range(size))
       dest[i] = src[i];
   }
 
+#ifndef __CUDA_ARCH__
   extern NGS_DLL_HEADER void CopyVector (BareVector<double> src, FlatVector<double> dest) NETGEN_NOEXCEPT;
   extern NGS_DLL_HEADER void CopyVector (BareSliceVector<double> src, BareSliceVector<double> dest, size_t size) NETGEN_NOEXCEPT;
   extern NGS_DLL_HEADER void CopyVector (BareVector<Complex> src, FlatVector<Complex> dest) NETGEN_NOEXCEPT;
   extern NGS_DLL_HEADER void CopyVector (BareSliceVector<Complex> src, BareSliceVector<Complex> dest, size_t size) NETGEN_NOEXCEPT;
+#endif
 
 
   template <typename T0, typename T1, typename T2>
@@ -275,7 +277,8 @@ namespace ngbla
   
   extern NGS_DLL_HEADER void MinusMultABt (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c);  
   extern NGS_DLL_HEADER void SubABt (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c);
-
+  inline void SubABt (SliceMatrix<float> a, SliceMatrix<float> b, BareSliceMatrix<float> c) { c -= a*b; }
+  
   extern NGS_DLL_HEADER void AddABt (SliceMatrix<SIMD<double>> a, SliceMatrix<SIMD<double>> b, BareSliceMatrix<double> c);  
   extern NGS_DLL_HEADER void SubABt (SliceMatrix<SIMD<double>> a, SliceMatrix<SIMD<double>> b, BareSliceMatrix<double> c);
 
@@ -823,7 +826,7 @@ namespace ngbla
     typedef VectorView<T,Args...> TVec;
     typedef VectorView<TB, BArgs...> TVecB;
   public:
-    static inline auto & Assign (MatExpr<TVec> & self, const Expr<TVecB> & v)
+    static NETGEN_INLINE auto & Assign (MatExpr<TVec> & self, const Expr<TVecB> & v)
     {
       auto cs = CombinedSize (self.Spec().Size(), v.Spec().Size());
 

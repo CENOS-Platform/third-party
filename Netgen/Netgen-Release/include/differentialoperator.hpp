@@ -160,6 +160,13 @@ namespace ngfem
     NGS_DLL_HEADER virtual void
     Apply (const FiniteElement & fel,
 	   const BaseMappedIntegrationPoint & mip,
+	   BareSliceVector<float> x, 
+	   FlatVector<float> flux,
+	   LocalHeap & lh) const;
+
+    NGS_DLL_HEADER virtual void
+    Apply (const FiniteElement & fel,
+	   const BaseMappedIntegrationPoint & mip,
 	   BareSliceVector<Complex> x, 
 	   FlatVector<Complex> flux,
 	   LocalHeap & lh) const;
@@ -259,6 +266,9 @@ namespace ngfem
     CalcTransformationMatrix (const BaseMappedIntegrationPoint & mip,
                               SliceMatrix<double> trans,
                               LocalHeap & lh) const;
+
+    NGS_DLL_HEADER
+    virtual string GenerateTransformationCode (string invar, string outvar, bool trans) const;
     
     NGS_DLL_HEADER virtual shared_ptr<CoefficientFunction> DiffShape (shared_ptr<CoefficientFunction> proxy,
                                                        shared_ptr<CoefficientFunction> dir,

@@ -190,6 +190,7 @@ ANY                  1 1 1 1 | 15
     /// if non-zero, pointer to low order space
     shared_ptr<FESpace> low_order_space; 
     shared_ptr<BaseMatrix> low_order_embedding;
+    shared_ptr<BaseMatrix> low_order_restriction; // used for low-order matrix for AssembleLinearization
       
     /// if directsolverclustered[i] is true, then the unknowns of domain i are clustered
     Array<bool> directsolverclustered;
@@ -446,7 +447,9 @@ ANY                  1 1 1 1 | 15
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const = 0;
     
     virtual void GetDofNrs (NodeId ni, Array<DofId> & dnums) const;
-    BitArray GetDofs (const Region & reg) const;
+    BitArray GetDofs (const Region & reg, const DifferentialOperator * diffop = nullptr) const;
+    virtual IntRange GetRange (const DifferentialOperator & diffop) const;
+    
     Table<int> CreateDofTable (VorB vorb) const;
     virtual void SelectDofs (const string & name, BitArray & dofs) const;
                   
@@ -550,6 +553,7 @@ ANY                  1 1 1 1 | 15
     const FESpace & LowOrderFESpace () const { return *low_order_space; }
     shared_ptr<FESpace> LowOrderFESpacePtr () const { return low_order_space; }
     shared_ptr<BaseMatrix> LowOrderEmbedding () const { return low_order_embedding; }
+    shared_ptr<BaseMatrix> LowOrderRestriction () const { return low_order_restriction; }    
     
     /// non Dirichlet dofs
     virtual shared_ptr<BitArray> GetFreeDofs (bool external = false) const;
@@ -606,6 +610,12 @@ ANY                  1 1 1 1 | 15
         VTransformMR (ei, mat, type);
     }
     void TransformMat (ElementId ei, 
+                       SliceMatrix<float> mat, TRANSFORM_TYPE type) const
+    {
+      if (needs_transform_vec)      
+        throw Exception("TransformMat fp32 not supported");
+    }
+    void TransformMat (ElementId ei, 
 		       SliceMatrix<Complex> mat, TRANSFORM_TYPE type) const
     {
       if (needs_transform_vec)      
@@ -616,6 +626,12 @@ ANY                  1 1 1 1 | 15
     {
       if (needs_transform_vec)
         VTransformVR (ei, vec, type);
+    }
+    void TransformVec (ElementId ei, 
+		       SliceVector<float> vec, TRANSFORM_TYPE type) const
+    {
+      if (needs_transform_vec)
+        throw Exception("TransformVec fp32 not supported");
     }
     void TransformVec (ElementId ei, 
 		       SliceVector<Complex> vec, TRANSFORM_TYPE type) const
@@ -679,7 +695,11 @@ ANY                  1 1 1 1 | 15
     auto GetTrialFunction() const { return GetProxyFunction(false); }
     auto GetTestFunction() const { return GetProxyFunction(true); }
     
-
+    
+    virtual void Interpolate (const CoefficientFunction & cf, BaseVector & vec,
+                              const Region * reg, LocalHeap & lh);
+    
+    
     virtual shared_ptr<BaseMatrix> GetMassOperator (shared_ptr<CoefficientFunction> rho,
                                                     shared_ptr<Region> defon,
                                                     LocalHeap & lh) const;
@@ -837,6 +857,12 @@ ANY                  1 1 1 1 | 15
     {
       return integrator[vb];
     }
+
+    virtual void TraverseTree (const function<void(const FESpace&)> & func) const 
+    {
+      func(*this);
+    }
+    
   };
 
 
@@ -1079,6 +1105,17 @@ ANY                  1 1 1 1 | 15
                       spaces[spacenr]->GetParallelDofs());
     }
 
+    IntRange GetRange (const DifferentialOperator & diffop) const override
+    {
+      if (auto cdop = dynamic_cast<const CompoundDifferentialOperator*>(&diffop))
+        {
+          auto subrange = (*this)[cdop->Component()]->GetRange(*cdop->BaseDiffOp());
+          return subrange+cummulative_nd[cdop->Component()];
+        }
+      else
+        return FESpace::GetRange(diffop);
+    }
+
     shared_ptr<BaseMatrix> EmbeddingOperator (int spacenr) const;
     shared_ptr<BaseMatrix> RestrictionOperator (int spacenr) const;
     
@@ -1127,6 +1164,14 @@ ANY                  1 1 1 1 | 15
 
     void SetDoSubspaceUpdate(bool _do_subspace_update)
     { do_subspace_update = _do_subspace_update; }
+
+    void TraverseTree (const function<void(const FESpace&)> & func) const override
+    {
+      for (auto space : spaces)
+        space->TraverseTree(func);
+      func(*this);
+    }
+    
   };
 
 

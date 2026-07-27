@@ -54,7 +54,15 @@ namespace ngla
 
 
 
-
+  class NGS_DLL_HEADER BaseSparseCholesky : public SparseFactorization
+  {
+  public:
+    using SparseFactorization::SparseFactorization;
+    static shared_ptr<BaseSparseCholesky> Create (shared_ptr<BaseSparseMatrix> a,
+                                                  shared_ptr<BitArray> freedofs = nullptr,
+                                                  shared_ptr<const Array<int>> cluster = nullptr,
+                                                  bool allow_refactor = 0);
+  };
 
 
 
@@ -70,7 +78,7 @@ namespace ngla
   template<class TM>
 	   // class TV_ROW = typename mat_traits<TM>::TV_ROW, 
 	   // class TV_COL = typename mat_traits<TM>::TV_COL>
-  class NGS_DLL_HEADER SparseCholeskyTM : public SparseFactorization
+  class NGS_DLL_HEADER SparseCholeskyTM : public BaseSparseCholesky 
   {
   protected:
     // height of the matrix
@@ -187,7 +195,7 @@ namespace ngla
       FactorNew (*castmatrix);
     }
     ///
-    void FactorNew (const SparseMatrix<TM> & a);
+    void FactorNew (const SparseMatrixTM<TM> & a);
 
     /**
        A = L+D+L^T
@@ -280,7 +288,7 @@ namespace ngla
     typedef TV_COL TV;
     typedef TV_ROW TVX;
     typedef typename mat_traits<TV_ROW>::TSCAL TSCAL_VEC;
-
+    typedef typename scal_traits<TSCAL_VEC>::TSCAL64 TSCAL64;
     
     SparseCholesky (shared_ptr<const SparseMatrixTM<TM>> a,
 		    shared_ptr<BitArray> ainner = nullptr,
@@ -294,8 +302,8 @@ namespace ngla
     
     void Mult (const BaseVector & x, BaseVector & y) const override;
 
-    void MultAdd (TSCAL_VEC s, const BaseVector & x, BaseVector & y) const override;
-    void MultTransAdd (TSCAL_VEC s, const BaseVector & x, BaseVector & y) const override
+    void MultAdd (TSCAL64 s, const BaseVector & x, BaseVector & y) const override;
+    void MultTransAdd (TSCAL64 s, const BaseVector & x, BaseVector & y) const override
     {
       MultAdd (s, x, y);
     }

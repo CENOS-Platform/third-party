@@ -47,6 +47,16 @@ plotrates : bool = False
   matplotlib plot of errors (residuals)
 """
 
+
+class LinearSolverCreator:
+    def __init__(self, cls, **kwargs):
+        self.cls = cls
+        self.kwargs = kwargs
+    def __call__(self, mat,pre):
+        return self.cls(mat,pre,**self.kwargs)
+
+
+
 class LinearSolver(BaseMatrix):
     """Base class for linear solvers.
 """ + linear_solver_param_doc
@@ -147,7 +157,8 @@ class LinearSolver(BaseMatrix):
         if is_converged and self.printrates == "\r":
             print("{}{} {}converged in {} iterations to residual {}".format(_clear_line_command, self.name, "NOT " if residual >= self._final_residual else "", self.iterations, residual))
 
-        if self.plotrates:
+        # if self.plotrates:
+        if False:
             if self.iterations==1:
                 import matplotlib.pyplot as plt
                 from IPython.display import display, clear_output
@@ -174,9 +185,45 @@ class LinearSolver(BaseMatrix):
             self.clear_output(wait=True)
             self.display(self.fig)
             
+        if self.plotrates:
+            if self.iterations == 1:
+                import matplotlib.pyplot as plt
+                from IPython.display import display, clear_output
+                fig, ax = plt.subplots()
+                self.plt = plt
+                self.ax = ax
+                self.fig = fig
+                self.line, = ax.semilogy([], [], label='error')
+                self.ax.set_xlabel('iteration')
+                self.ax.set_ylabel('error')
+                self.ax.set_title('CG Solver Convergence')
+                self.ax.legend()
+                self.its = []
+                self.ress = []
+                self.clear_output = clear_output
+                self.display = display
+                plt.ioff()
+                self.plt.show()
+                
+            self.its.append(self.iterations)
+            self.ress.append(residual)
+            self.line.set_data(self.its, self.ress)
+            self.ax.relim()
+            self.ax.autoscale_view()
+            self.plt.draw()
+            self.clear_output(wait=True)
+            self.display(self.fig)
+
             
         return is_converged
 
+    
+    @classmethod
+    def Creator(cls, **kwargs):
+        return LinearSolverCreator(cls, **kwargs)
+
+    
+    
 class CGSolver(LinearSolver):
     """Preconditioned conjugate gradient method
 
@@ -542,7 +589,7 @@ class TFQMRSolver(LinearSolver):
         d[:] = 0
         
         if Norm(rhs)==0:
-            sol.data = 0
+            sol[:] = 0
             return
 
         x.data = sol

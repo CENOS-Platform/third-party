@@ -7,10 +7,14 @@ from ngsolve import (
     Region,
     BND,
     Preconditioner,
+    TaskManager
 )
+
+
 from .nonlinearsolvers import NewtonSolver
 from .krylovspace import GMResSolver, LinearSolver
 
+from .lazy_solve import VariationalEquationSolver
 
 class Dirichlet:
     def __init__(self, cf, region):
@@ -163,6 +167,8 @@ def _create_lin_appl(self, gfu: GridFunction) -> LinearApplication:
 BilinearForm.__mul__ = _create_lin_appl
 
 
+
+
 @functools.wraps(Application.Solve)
 def Solve(eq: Equation, *args, **kwargs):
-    eq.Solve(*args, **kwargs)
+    return eq.Solve(*args, **kwargs)

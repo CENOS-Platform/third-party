@@ -311,43 +311,49 @@ namespace ngsbem
   template <typename T, typename T_Kappa>
   void SphericalHankel1 (int n, T_Kappa rho, double scale, T && values)
   {
-    // Complex imag(0,1);
-    /*
-    if (n >= 0)
-      values(0) = exp(imag*rho) / (imag*rho);
-    if (n >= 1)
-      values(1) = -imag*values(0)*(1.0-1.0/(imag*rho));
-    
-    for (int i = 2; i <= n; i++)
-      values(i) = (2*i-1)/rho * values(i-1) - values(i-2);
-    */
-    
     if (abs(rho) < 1e-100)
-      {
-        values = Complex(0);
-        return;
-      }
-    Vector<T_Kappa> j(n+1), y(n+1), jp(n+1), yp(n+1);
-    
-    // the bessel-evaluation with scale
-    besseljs3d (n, rho, 1/scale,  j, jp);
+    {
+      values = Complex(0);
+      return;
+    }
 
-    // Bessel y directly with the recurrence formula for (y, yp):
-    T_Kappa x = rho;
-    T_Kappa xinv = T_Kappa{1}/x;
-    y(0) = -xinv * cos(x);
-    yp(0) = j(0)-xinv*y(0);
+    Complex imag(0,1);
+    Complex irho = imag * Complex(rho);
+    values(0) = exp(irho) / irho;
+    if (n >= 1)
+      values(1) = scale * values(0) * (1.0/rho-imag);
 
-    T_Kappa sl = 0;
-    for (int l = 1; l <= n; l++)
-      {
-        y(l) = scale * (sl*y(l-1) - yp(l-1));
-        sl += xinv;
-        yp(l) = scale * y(l-1) - (sl+xinv)*y(l);
-      }
-    
-    for (int i = 0; i <= n; i++)
-      values(i) = Complex (j(i)) + Complex(y(i)) * Complex(0,1);
+    double scale2 = scale*scale;
+    T_Kappa zinv = scale/rho;
+    for (int i = 1; i < n; i++)
+      values(i+1) = double(2*i+1)*zinv*values(i) - scale2*values(i-1);
+
+    // if (abs(rho) < 1e-100)
+    //   {
+    //     values = Complex(0);
+    //     return;
+    //   }
+    // Vector<T_Kappa> j(n+1), y(n+1), jp(n+1), yp(n+1);
+
+    // // the bessel-evaluation with scale
+    // besseljs3d (n, rho, 1/scale,  j, jp);
+
+    // // Bessel y directly with the recurrence formula for (y, yp):
+    // T_Kappa x = rho;
+    // T_Kappa xinv = T_Kappa{1}/x;
+    // y(0) = -xinv * cos(x);
+    // yp(0) = j(0)-xinv*y(0);
+
+    // T_Kappa sl = 0;
+    // for (int l = 1; l <= n; l++)
+    //   {
+    //     y(l) = scale * (sl*y(l-1) - yp(l-1));
+    //     sl += xinv;
+    //     yp(l) = scale * y(l-1) - (sl+xinv)*y(l);
+    //   }
+
+    // for (int i = 0; i <= n; i++)
+    //   values(i) = Complex (j(i)) + Complex(y(i)) * Complex(0,1);
   }
 
 
@@ -633,9 +639,12 @@ namespace ngsbem
         ProcessVectorizedBatchSS<192, vec_length>(batch, len, theta);
       }
       else {
-        // Split large batches
-        ProcessBatchSS(batch.Range(0, 192 / vec_length), len, theta);
-        ProcessBatchSS(batch.Range(192 / vec_length, batch_size), len, theta);
+        size_t chunksize = 192/vec_length;
+        size_t num = (batch.Size()+chunksize-1) / chunksize;
+        ParallelFor (num, [&](int i)
+        {
+          ProcessBatchSS(batch.Range(i*chunksize, min((i+1)*chunksize, batch.Size())), len, theta);
+        }, num);
       }
     }
 
@@ -909,6 +918,19 @@ namespace ngsbem
       }
 
 
+      static SIMD<Complex,FMM_SW> PhaseFactor(T_Kappa kappa, SIMD<double,FMM_SW> rho)
+      {
+        auto [si,co] = sincos(Real(kappa)*rho);
+        if constexpr (std::is_same_v<T_Kappa,double>)
+          return SIMD<Complex,FMM_SW>(co,si);
+        else
+          {
+            auto decay = exp(-Imag(kappa)*rho);
+            return SIMD<Complex,FMM_SW>(co*decay,si*decay);
+          }
+      }
+
+
       
       
       entry_type Evaluate(Vec<3> p) const
@@ -953,17 +975,16 @@ namespace ngsbem
                   vsum += kernel * c;
                 }
             else
-              for (auto [x,c] : simd_charges)
-                {
-                  auto rho = L2Norm(p-x);
-                  auto kappa = mp.Kappa();
-                  auto phase = Real(kappa) * rho;
-                  auto decay = exp(-Imag(kappa)*rho);
-                  auto [si,co] = sincos(phase);
-                  auto kernel = (1/(4*M_PI))*SIMD<Complex,FMM_SW>(co*decay,si*decay) / rho;
-                  kernel = If(rho > 0.0, kernel, SIMD<Complex,FMM_SW>(0.0));
-                  vsum += kernel * c;
-                }
+              {
+                auto kappa = mp.Kappa();
+                for (auto [x,c] : simd_charges)
+                  {
+                    auto rho = L2Norm(p-x);
+                    auto invrho = If(rho > 0.0, 1.0/rho, SIMD<double,FMM_SW>(0.0));
+                    auto phase_factor = PhaseFactor(kappa, rho);
+                    vsum += (1/(4*M_PI))*invrho*phase_factor * c;
+                  }
+              }
             
             sum += HSum(vsum);
           }
@@ -986,20 +1007,32 @@ namespace ngsbem
             // static Timer t("mptool singmp, evaluate, simd dipoles"); RegionTimer r(t);
             
             simd_entry_type vsum{0.0};
-            for (auto [x,d,c] : simd_dipoles)
-              {
-                auto rho = L2Norm(p-x);
-                auto drhodp = (1.0/rho) * (p-x);
-                auto kappa = mp.Kappa();
-                auto phase = Real(kappa) * rho;
-                auto decay = exp(-Imag(kappa)*rho);
-                auto [si,co] = sincos(phase);
-                auto dGdrho = (1/(4*M_PI))*SIMD<Complex,FMM_SW>(co*decay,si*decay) * 
-                  (-1.0/(rho*rho) + mp.Kappa() * SIMD<Complex,FMM_SW>(0, 1)/rho);
-                auto kernel = dGdrho * InnerProduct(drhodp, d);
-                kernel = If(rho > 0.0, kernel, SIMD<Complex,FMM_SW>(0.0));
-                vsum += kernel * c;
-              }
+            auto kappa = mp.Kappa();
+            if (abs(kappa) < 1e-12)
+              for (auto [x,d,c] : simd_dipoles)
+                {
+                  auto rho = L2Norm(p-x);
+                  auto drhodp = (1.0/rho) * (p-x);
+                  auto phase = Real(kappa) * rho;
+                  auto decay = exp(-Imag(kappa)*rho);
+                  auto [si,co] = sincos(phase);
+                  auto dGdrho = (1/(4*M_PI))*SIMD<Complex,FMM_SW>(co*decay,si*decay) *
+                    (-1.0/(rho*rho) + kappa * SIMD<Complex,FMM_SW>(0, 1)/rho);
+                  auto kernel = dGdrho * InnerProduct(drhodp, d);
+                  kernel = If(rho > 0.0, kernel, SIMD<Complex,FMM_SW>(0.0));
+                  vsum += kernel * c;
+                }
+            else
+              for (auto [x,d,c] : simd_dipoles)
+                {
+                  auto delta = p-x;
+                  auto rho = L2Norm(delta);
+                  auto invrho = If(rho > 0.0, 1.0/rho, SIMD<double,FMM_SW>(0.0));
+                  auto phase_factor = PhaseFactor(kappa, rho);
+                  auto dGdrho = (1/(4*M_PI))*phase_factor *
+                    (-invrho*invrho + kappa * SIMD<Complex,FMM_SW>(0, 1)*invrho);
+                  vsum += dGdrho * invrho * InnerProduct(delta, d) * c;
+                }
             sum += HSum(vsum);
           }
         else
@@ -1022,24 +1055,42 @@ namespace ngsbem
           // t.AddFlops (simd_chargedipoles.Size()*FMM_SW);
           
           simd_entry_type vsum{0.0};
-          for (auto [x,c,d,c2] : simd_chargedipoles)
-            {
-              auto rho = L2Norm(p-x);
-              auto rhokappa = rho*mp.Kappa();
-              auto invrho = If(rho>0.0, 1.0/rho, SIMD<double,FMM_SW>(0.0));
-              auto kappa = mp.Kappa();
-              auto phase = Real(kappa) * rho;
-              auto decay = exp(-Imag(kappa)*rho);
-              auto [si,co] = sincos(phase);
-              auto kernelc = (1/(4*M_PI))*invrho*SIMD<Complex,FMM_SW>(co*decay,si*decay);
+          auto kappa = mp.Kappa();
+          if (abs(kappa) < 1e-12)
+            for (auto [x,c,d,c2] : simd_chargedipoles)
+              {
+                auto rho = L2Norm(p-x);
+                auto rhokappa = rho*kappa;
+                auto invrho = If(rho>0.0, 1.0/rho, SIMD<double,FMM_SW>(0.0));
+                auto phase = Real(kappa) * rho;
+                auto decay = exp(-Imag(kappa)*rho);
+                auto [si,co] = sincos(phase);
+                auto kernelc = (1/(4*M_PI))*invrho*SIMD<Complex,FMM_SW>(co*decay,si*decay);
 
-              vsum += kernelc * c;   
-              auto kernel = 
-                invrho*invrho * InnerProduct(p-x, d) * 
-                kernelc * (SIMD<Complex,FMM_SW>(-1.0,0) + rhokappa * SIMD<Complex,FMM_SW>(0, 1));
-              
-              vsum += kernel * c2;
-            }
+                vsum += kernelc * c;
+                auto kernel =
+                  invrho*invrho * InnerProduct(p-x, d) *
+                  kernelc * (SIMD<Complex,FMM_SW>(-1.0,0) + rhokappa * SIMD<Complex,FMM_SW>(0, 1));
+
+                vsum += kernel * c2;
+              }
+          else
+            for (auto [x,c,d,c2] : simd_chargedipoles)
+              {
+                auto delta = p-x;
+                auto rho = L2Norm(delta);
+                auto rhokappa = rho*kappa;
+                auto invrho = If(rho>0.0, 1.0/rho, SIMD<double,FMM_SW>(0.0));
+                auto phase_factor = PhaseFactor(kappa, rho);
+                auto kernelc = (1/(4*M_PI))*invrho*phase_factor;
+
+                vsum += kernelc * c;
+                auto kernel =
+                  invrho*invrho * InnerProduct(delta, d) *
+                  kernelc * (SIMD<Complex,FMM_SW>(-1.0,0) + rhokappa * SIMD<Complex,FMM_SW>(0, 1));
+
+                vsum += kernel * c2;
+              }
           sum += HSum(vsum);
         }
       else
@@ -1111,13 +1162,44 @@ namespace ngsbem
         if (chargedipoles.Size())
             throw Exception("EvaluateDeriv not implemented for dipoles in SingularMLExpansion");
 
-        for (auto [x,c] : charges)
-          if (double rho = L2Norm(p-x); rho > 0)
+        if (abs(mp.Kappa()) < 1e-12)
           {
-            Vec<3> drhodp = 1.0/rho * (p-x);
-            Complex dGdrho = (1/(4*M_PI))*exp(mp.Kappa()*Complex(0,rho)) *
-                (mp.Kappa()*Complex(0,1)/rho - 1.0/sqr(rho));
-            sum += dGdrho * InnerProduct(drhodp, d) * c;
+            for (auto [x,c] : charges)
+              if (double rho = L2Norm(p-x); rho > 0)
+                {
+                  Vec<3> drhodp = 1.0/rho * (p-x);
+                  Complex dGdrho = (1/(4*M_PI))*exp(mp.Kappa()*Complex(0,rho)) *
+                    (mp.Kappa()*Complex(0,1)/rho - 1.0/sqr(rho));
+                  sum += dGdrho * InnerProduct(drhodp, d) * c;
+                }
+          }
+        else if (simd_charges.Size())
+          {
+            simd_entry_type vsum{0.0};
+            auto kappa = mp.Kappa();
+            for (auto [x,c] : simd_charges)
+              {
+                auto delta = p-x;
+                auto rho = L2Norm(delta);
+                auto invrho = If(rho > 0.0, 1.0/rho, SIMD<double,FMM_SW>(0.0));
+                auto phase_factor = PhaseFactor(kappa, rho);
+                auto radial = (1/(4*M_PI))*phase_factor *
+                  (kappa*SIMD<Complex,FMM_SW>(0,1)*invrho*invrho
+                   + SIMD<Complex,FMM_SW>(-invrho*invrho*invrho, 0.0));
+                vsum += radial * InnerProduct(delta, d) * c;
+              }
+            sum += HSum(vsum);
+          }
+        else
+          {
+            for (auto [x,c] : charges)
+              if (double rho = L2Norm(p-x); rho > 0)
+                {
+                  Vec<3> drhodp = 1.0/rho * (p-x);
+                  Complex dGdrho = (1/(4*M_PI))*exp(mp.Kappa()*Complex(0,rho)) *
+                    (mp.Kappa()*Complex(0,1)/rho - 1.0/sqr(rho));
+                  sum += dGdrho * InnerProduct(drhodp, d) * c;
+                }
           }
         return sum;
       }
@@ -1604,6 +1686,23 @@ namespace ngsbem
       }
     };
 
+    struct RecordingRR
+    {
+      const SphericalExpansion<Regular,elem_type,T_Kappa> * mp_source;
+      SphericalExpansion<Regular,elem_type,T_Kappa> * mp_target;
+      Vec<3> dist;
+      double len, theta, phi;
+    public:
+      RecordingRR() = default;
+      RecordingRR (const SphericalExpansion<Regular,elem_type,T_Kappa> * amp_source,
+                   SphericalExpansion<Regular,elem_type,T_Kappa> * amp_target,
+                   Vec<3> adist)
+        : mp_source(amp_source), mp_target(amp_target), dist(adist)
+      {
+        std::tie(len, theta, phi) = SphericalCoordinates(dist);
+      }
+    };
+
     static void ProcessBatchRS(FlatArray<RecordingRS*> batch, double len, double theta) {
       // static Timer t("ProcessBatchRS"); RegionTimer reg(t, batch.Size());
       constexpr int vec_length = VecLength<elem_type>;
@@ -1718,6 +1817,85 @@ namespace ngsbem
       }
       // tfrombatch.Stop();
 
+    }
+
+    static void ProcessBatchRR(FlatArray<RecordingRR*> batch, double len, double theta) {
+      constexpr int vec_length = VecLength<elem_type>;
+      int batch_size = batch.Size();
+      int N = batch_size * vec_length;
+
+      if (N <= 1 || batch_size <= 1) {
+        for (auto* rec : batch)
+          rec->mp_source->TransformAdd(*rec->mp_target, rec->dist);
+      }
+      else if (N <= 3) {
+        ProcessVectorizedBatchRR<3, vec_length>(batch, len, theta);
+      }
+      else if (N <= 4) {
+        ProcessVectorizedBatchRR<4, vec_length>(batch, len, theta);
+      }
+      else if (N <= 6) {
+        ProcessVectorizedBatchRR<6, vec_length>(batch, len, theta);
+      }
+      else if (N <= 12) {
+        ProcessVectorizedBatchRR<12, vec_length>(batch, len, theta);
+      }
+      else if (N <= 24) {
+        ProcessVectorizedBatchRR<24, vec_length>(batch, len, theta);
+      }
+      else if (N <= 48) {
+        ProcessVectorizedBatchRR<48, vec_length>(batch, len, theta);
+      }
+      else if (N <= 96) {
+        ProcessVectorizedBatchRR<96, vec_length>(batch, len, theta);
+      }
+      else if (N <= 192) {
+        ProcessVectorizedBatchRR<192, vec_length>(batch, len, theta);
+      }
+      else {
+        size_t chunksize = 192/vec_length;
+        size_t num = (batch.Size()+chunksize-1) / chunksize;
+        ParallelFor (num, [&](int i)
+        {
+          ProcessBatchRR(batch.Range(i*chunksize, min((i+1)*chunksize, batch.Size())), len, theta);
+        }, num);
+      }
+    }
+
+    template<int N, int vec_length>
+    static void ProcessVectorizedBatchRR(FlatArray<RecordingRR*> batch, double len, double theta) {
+      SphericalExpansion<Regular, Vec<N,Complex>, T_Kappa> vec_source(batch[0]->mp_source->Order(), batch[0]->mp_source->Kappa(), batch[0]->mp_source->RTyp());
+      SphericalExpansion<Regular, elem_type, T_Kappa> tmp_target{*batch[0]->mp_target};
+      SphericalExpansion<Regular, Vec<N,Complex>, T_Kappa> vec_target(batch[0]->mp_target->Order(), batch[0]->mp_target->Kappa(), batch[0]->mp_target->RTyp());
+
+      for (int i = 0; i < batch.Size(); i++)
+      {
+        auto source_i = VecVector2Matrix (batch[i]->mp_source->SH().Coefs());
+        auto source_mati = VecVector2Matrix (vec_source.SH().Coefs()).Cols(i*vec_length, (i+1)*vec_length);
+        batch[i]->mp_source->SH().RotateZ(batch[i]->phi,
+            [source_i, source_mati] (size_t ii, Complex factor)
+            {
+                source_mati.Row(ii) = factor * source_i.Row(ii);
+            });
+      }
+
+      vec_source.SH().RotateY(theta);
+      vec_source.ShiftZ(-len, vec_target);
+      vec_target.SH().RotateY(-theta);
+
+      for (int i = 0; i < batch.Size(); i++) {
+        auto source_mati = VecVector2Matrix (vec_target.SH().Coefs()).Cols(i*vec_length, (i+1)*vec_length);
+        auto targeti = VecVector2Matrix(batch[i]->mp_target->SH().Coefs());
+
+        tmp_target.SH().RotateZ(-batch[i]->phi,
+                                [source_mati, targeti] (size_t ii, Complex factor)
+                                          {
+                                            auto target_row = targeti.Row(ii);
+                                            auto source_row = source_mati.Row(ii);
+                                            for (size_t j = 0; j < target_row.Size(); j++)
+                                              target_row(j) += factor * source_row(j);
+                                          });
+      }
     }
 
     
@@ -1851,33 +2029,42 @@ namespace ngsbem
           }
       }
 
-      void LocalizeExpansion(bool allow_refine)
+      bool RecordLocalizeLevel(int target_level, bool allow_refine,
+                               Array<RecordingRR> & recording,
+                               Array<Node*> & nodes_to_clear)
       {
-        if (allow_refine)
-          if (mp.Order() > 30 && !childs[0])
-            CreateChilds(allow_refine);
-
-        if (childs[0])
+        if (level != target_level)
           {
-            if (total_targets < 1000)
-              {
-                for (int nr = 0; nr < 8; nr++)
-                  {
-                    if (L2Norm(mp.SH().Coefs()) > 0)
-                      mp.TransformAdd (childs[nr]->mp, childs[nr]->center-center);
-                    childs[nr]->LocalizeExpansion(allow_refine);
-                  }
-              }
-            else
-              ParallelFor(8, [&] (int nr)
-              {
-                if (L2Norm(mp.SH().Coefs()) > 0)
-                  mp.TransformAdd (childs[nr]->mp, childs[nr]->center-center);
-                childs[nr]->LocalizeExpansion(allow_refine);
-              });
-            mp = SphericalExpansion<Regular,elem_type,T_Kappa>(-1, mp.Kappa(), 1.);
-            //mp.SH().Coefs()=0.0;
+            bool found = false;
+            if (childs[0])
+              for (auto & child : childs)
+                found |= child->RecordLocalizeLevel(target_level, allow_refine,
+                                                    recording, nodes_to_clear);
+            return found;
           }
+
+        if (allow_refine && mp.Order() > 30 && !childs[0])
+          CreateChilds(allow_refine);
+
+        if (!childs[0])
+          return true;
+
+        bool nonzero = false;
+        if (mp.Order() >= 0)
+          nonzero = L2Norm(mp.SH().Coefs()) > 0;
+
+        if (nonzero)
+          for (int nr = 0; nr < 8; nr++)
+            if (childs[nr]->mp.Order() >= 0)
+              recording += RecordingRR(&mp, &childs[nr]->mp, childs[nr]->center-center);
+
+        nodes_to_clear.Append(this);
+        return true;
+      }
+
+      void ClearLocalExpansion()
+      {
+        mp = SphericalExpansion<Regular,elem_type,T_Kappa>(-1, mp.Kappa(), 1.);
       }
       
       elem_type Evaluate (Vec<3> p) const
@@ -2096,6 +2283,62 @@ namespace ngsbem
 
     };
 
+    void ProcessLocalizeRecording(Array<RecordingRR> & recording)
+    {
+      if (recording.Size() == 0)
+        return;
+
+      QuickSort(recording, [] (auto & a, auto & b)
+      {
+        return a.theta < b.theta;
+      });
+
+      double len = recording[0].len;
+      double current_theta = -1e100;
+      Array<RecordingRR*> current_batch;
+      Array<Array<RecordingRR*>> batch_group;
+      Array<double> group_thetas;
+      for (auto & record : recording)
+        {
+          bool theta_changed = fabs(record.theta - current_theta) > 1e-8;
+          if (theta_changed && current_batch.Size() > 0) {
+            batch_group.Append(current_batch);
+            group_thetas.Append(current_theta);
+            current_batch.SetSize(0);
+          }
+
+          current_theta = record.theta;
+          current_batch.Append(&record);
+        }
+
+      if (current_batch.Size() > 0) {
+        batch_group.Append(current_batch);
+        group_thetas.Append(current_theta);
+      }
+
+      ParallelFor(batch_group.Size(), [&](int i) {
+        ProcessBatchRR(batch_group[i], len, group_thetas[i]);
+      }, TasksPerThread(4));
+    }
+
+    void LocalizeExpansionBatched(bool allow_refine)
+    {
+      for (int target_level = 0; ; target_level++)
+        {
+          Array<RecordingRR> recording;
+          Array<Node*> nodes_to_clear;
+          bool level_exists = root.RecordLocalizeLevel(target_level, allow_refine,
+                                                       recording, nodes_to_clear);
+          if (!level_exists)
+            break;
+
+          ProcessLocalizeRecording(recording);
+
+          for (auto node : nodes_to_clear)
+            node->ClearLocalExpansion();
+        }
+    }
+
     FMM_Parameters fmm_params;
     Node root;
     shared_ptr<SingularMLExpansion<elem_type,T_Kappa>> singmp;
@@ -2128,7 +2371,7 @@ namespace ngsbem
       
       {
         static Timer t("mptool expand regular MLMP"); RegionTimer rg(t);                  
-        root.LocalizeExpansion(true);
+        LocalizeExpansionBatched(true);
         // cout << "norm after local expansion: " << root.Norm() << endl;        
       }
     }
@@ -2251,7 +2494,7 @@ namespace ngsbem
       // PrintStatistics(cout);
       
       static Timer tloc("mptool regular localize expansion"); RegionTimer rloc(tloc);
-      root.LocalizeExpansion(!onlytargets);
+      LocalizeExpansionBatched(!onlytargets);
 
 
       // cout << "R-R conversion done" << endl;

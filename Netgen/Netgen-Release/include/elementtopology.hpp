@@ -113,6 +113,26 @@ namespace ngfem
     return ost;
   }
 
+  class RegionDescriptor
+  {
+  public:
+    VorB vb;
+    string name;
+    RegionDescriptor operator~ () const { return { vb, "^(?!^" + name + "$).*$" }; }
+    RegionDescriptor operator+ (const RegionDescriptor & rd2) const {
+      if (vb != rd2.vb) throw Exception("Try to combine two region descriptors of differnet dimensions");
+      return { vb, "(?:"+name+")|(?:"+rd2.name+")" };
+    }    
+  };
+
+  inline ostream & operator<< (ostream & ost, const RegionDescriptor& rd)
+  {
+    ost << rd.vb << "(" << rd.name << ")";
+    return ost;
+  }
+
+  
+
   class ElementId
   {
     typedef size_t int_type;
@@ -155,6 +175,17 @@ namespace ngfem
     size_t Nr() const { return nr; } 
   };
 
+
+  class RegionId
+  {
+    VorB vb;
+    int nr;
+  public:
+    RegionId (VorB avb, int anr) : vb(avb), nr(anr) { }
+    VorB VB() const { return vb; }
+    int Nr() const { return nr; }
+  };
+  
   
   /// Topology and coordinate information of master element:
   class NGS_DLL_HEADER ElementTopology
