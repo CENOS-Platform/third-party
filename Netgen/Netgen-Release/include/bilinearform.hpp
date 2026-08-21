@@ -29,9 +29,11 @@ namespace ngcomp
     bool atomic = true;           // use atomic for adding output vector
     bool only_loadstore = false;  // for timing elvec load stores
     bool only_loadstoreB = false; // for timing elvec load stores and mult with B and Bt
-    int BS_els = 4;         
-    int BS_ipts = 4;        
+    int BS_els = 4;
+    int BS_ipts = 4;
     bool timers = false;
+    bool nonlinear = false;       // evaluate the form pointwise
+    bool fp32 = false;            // single precision
 
     // additional options for GPU kernels:
     optional<string> write_GPU_kernel;   // if set, dump the generated GPU kernel to this file
@@ -40,10 +42,12 @@ namespace ngcomp
     MatFreeOptions(bool afused, bool agencode, bool aatomic,
                    bool aonly_loadstore, bool aonly_loadstoreB,
                    int aBS_els, int aBS_ipts, bool atimers,
+                   bool anonlinear, bool afp32,
                    optional<string> awrite_GPU_kernel)
       : fused(afused), generate_code(agencode), atomic(aatomic),
         only_loadstore(aonly_loadstore), only_loadstoreB(aonly_loadstoreB),
         BS_els(aBS_els), BS_ipts(aBS_ipts), timers(atimers),
+        nonlinear(anonlinear), fp32(afp32),
         write_GPU_kernel(std::move(awrite_GPU_kernel)) { }
   };
 
@@ -52,7 +56,9 @@ namespace ngcomp
         << "gencode = " << opts.generate_code << endl
         << "atomic  = " << opts.atomic << endl
         << "onlye_ls = " << opts.only_loadstore << endl
-        << "onlye_lsB = " << opts.only_loadstoreB << endl;
+        << "onlye_lsB = " << opts.only_loadstoreB << endl
+        << "nonlinear = " << opts.nonlinear << endl
+        << "fp32 = " << opts.fp32 << endl;
     return ost;
   }
     
@@ -1041,6 +1047,10 @@ namespace ngcomp
   {
   public:
     size_t height, width;
+    shared_ptr<CoefficientFunction> cf;   // the form
+    const Array<ProxyFunction*>& trial_proxies;
+    const Array<ProxyFunction*>& test_proxies;
+
     Array<size_t> elnums;
     Table<DofId> dofx;
     Table<DofId> dofy;
@@ -1052,9 +1062,10 @@ namespace ngcomp
     Tensor<4> Jacobi; // element, dimr, dims, nip
     MatFreeOptions opts;
     Array<IntRange> ranges_x, ranges_xref, ranges_y, ranges_yref;
-    
+    Array<Code> physics;    // code for d_form / d_test
     static constexpr int SW = 4*SIMD<double>::Size();    
     shared_ptr<SharedLibrary> library;
+
     
     typedef void (*lib_function)(double s, FlatVector<> fx, FlatVector<> fy,
                                  FlatTable<int>, FlatTable<int>, FlatTensor<4> Jacobi,
@@ -1063,7 +1074,10 @@ namespace ngcomp
     lib_function compiled_function = nullptr;
     
     // element geometry stored as VectorH1 ? 
-    MatrixFreeBTDTB (size_t h, size_t w,
+    MatrixFreeBTDTB (shared_ptr<CoefficientFunction> aform,
+                     const Array<ProxyFunction*>& atrial_proxies,
+                     const Array<ProxyFunction*>& atest_proxies,
+                     size_t h, size_t w,
                      Array<size_t> _elnums,
                      Table<DofId> _dofx, Table<DofId> _dofy,
                      Tensor<3> _Bx,  // locdofs, dim, nip
@@ -1079,6 +1093,8 @@ namespace ngcomp
     AutoVector CreateColVector() const override;
     AutoVector CreateRowVector() const override;
 
+    int VHeight() const override { return height; }
+    int VWidth() const override { return width; }
     
     virtual void MultAdd (double s, const BaseVector & x, BaseVector & y) const override;
   };

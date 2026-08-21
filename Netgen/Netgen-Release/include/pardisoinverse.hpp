@@ -117,7 +117,12 @@ namespace ngla
     bool compressed;
     Array<int> compress;
     size_t memory_allocated_in_pardiso_lib = 0;
-  
+
+    void GetPardisoMatrix (const SparseMatrixTM<TM> & a);
+    void CallFactorization (integer phase);
+    void ReleaseFactorization (integer size, FlatArray<integer> arowstart,
+                               FlatArray<integer> aindices);
+
   public:
     typedef typename mat_traits<TM>::TSCAL TSCAL;
 
@@ -133,13 +138,16 @@ namespace ngla
 
     virtual ~PardisoInverseTM ();
     ///
-    int VHeight() const { return height/entrysize; }
+    int VHeight() const override { return height/entrysize; }
     ///
-    int VWidth() const { return height/entrysize; }
-    ///
-    virtual ostream & Print (ostream & ost) const;
+    int VWidth() const override { return height/entrysize; }
 
-    virtual Array<MemoryUsage> GetMemoryUsage () const
+    bool SupportsUpdate() const override { return true; }
+    void Update() override;
+    ///
+    virtual ostream & Print (ostream & ost) const override;
+
+    virtual Array<MemoryUsage> GetMemoryUsage () const override
     {
       return { MemoryUsage ("Pardiso", nze*sizeof(TM), 1) };
     }

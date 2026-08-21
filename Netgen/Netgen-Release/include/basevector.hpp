@@ -299,12 +299,14 @@ namespace ngla
     virtual void GetIndirect (FlatArray<int> ind, FlatVector<double> v) const = 0;
     virtual void GetIndirect (FlatArray<int> ind, FlatVector<float> v) const = 0;    
     virtual void GetIndirect (FlatArray<int> ind, FlatVector<Complex> v) const = 0;
-    void SetIndirect (FlatArray<int> ind, FlatVector<double> v);
-    void SetIndirect (FlatArray<int> ind, FlatVector<float> v);    
-    void SetIndirect (FlatArray<int> ind, FlatVector<Complex> v);
-    void AddIndirect (FlatArray<int> ind, FlatVector<double> v, bool use_atomic = false);
-    void AddIndirect (FlatArray<int> ind, FlatVector<float> v, bool use_atomic = false);    
-    void AddIndirect (FlatArray<int> ind, FlatVector<Complex> v, bool use_atomic = false);
+    
+    virtual void SetIndirect (FlatArray<int> ind, FlatVector<double> v) = 0;
+    virtual void SetIndirect (FlatArray<int> ind, FlatVector<float> v) = 0;    
+    virtual void SetIndirect (FlatArray<int> ind, FlatVector<Complex> v) = 0;
+    
+    virtual void AddIndirect (FlatArray<int> ind, FlatVector<double> v, bool use_atomic = false) = 0;
+    virtual void AddIndirect (FlatArray<int> ind, FlatVector<float> v, bool use_atomic = false) = 0;    
+    virtual void AddIndirect (FlatArray<int> ind, FlatVector<Complex> v, bool use_atomic = false) = 0;
 
     virtual shared_ptr<BaseVector> GetLocalVector () const 
     { return const_cast<BaseVector*>(this)->shared_from_this(); }
@@ -684,19 +686,32 @@ namespace ngla
 
     virtual FlatVector<SCAL> FVScal () const 
     {
-      return FlatVector<SCAL> (size * entrysize * sizeof(double)/sizeof(SCAL), 
+      return FlatVector<SCAL> (size * entrysize * sizeof(typename scal_traits<SCAL>::TSCAL_REAL)/sizeof(SCAL), 
                                (SCAL*)Memory());
     }
 
     virtual Scalar GetScalarType() const override { return Scalar(SCAL(0)); }
-    
-    virtual void GetIndirect (FlatArray<int> ind, 
-                              FlatVector<double> v) const override;
-    virtual void GetIndirect (FlatArray<int> ind, 
-                              FlatVector<float> v) const override;
-    virtual void GetIndirect (FlatArray<int> ind, 
-                              FlatVector<Complex> v) const override;
 
+    template <typename T>
+      inline void T_GetIndirect (FlatArray<int> ind, FlatVector<T> v) const;
+    
+    virtual void GetIndirect (FlatArray<int> ind, FlatVector<double> v) const override;
+    virtual void GetIndirect (FlatArray<int> ind, FlatVector<float> v) const override;
+    virtual void GetIndirect (FlatArray<int> ind, FlatVector<Complex> v) const override;
+
+    template <typename T>
+      inline void T_SetIndirect (FlatArray<int> ind, FlatVector<T> v);
+    
+    void SetIndirect (FlatArray<int> ind, FlatVector<double> v) override;
+    void SetIndirect (FlatArray<int> ind, FlatVector<float> v) override;
+    void SetIndirect (FlatArray<int> ind, FlatVector<Complex> v) override;
+
+    template <typename T>
+      inline void T_AddIndirect (FlatArray<int> ind, FlatVector<T> v, bool use_atomic);
+
+    void AddIndirect (FlatArray<int> ind, FlatVector<double> v, bool use_atomic = false) override;
+    void AddIndirect (FlatArray<int> ind, FlatVector<float> v, bool use_atomic = false) override;
+    void AddIndirect (FlatArray<int> ind, FlatVector<Complex> v, bool use_atomic = false) override;
   };
 
 
@@ -736,6 +751,25 @@ namespace ngla
     void GetIndirect (FlatArray<int> ind, FlatVector<float> v) const override;    
     void GetIndirect (FlatArray<int> ind, FlatVector<Complex> v) const override;
 
+    template <typename T>
+    void T_SetIndirect (FlatArray<int> ind, FlatVector<T> v) {
+      throw Exception("BlockVector SetIndirect not available");
+    }
+    
+    void SetIndirect (FlatArray<int> ind, FlatVector<double> v) override { T_SetIndirect (ind, v); }
+    void SetIndirect (FlatArray<int> ind, FlatVector<float> v) override { T_SetIndirect (ind, v); }
+    void SetIndirect (FlatArray<int> ind, FlatVector<Complex> v) override { T_SetIndirect (ind, v); }    
+
+
+    template <typename T>
+    void T_AddIndirect (FlatArray<int> ind, FlatVector<T> v, bool use_atomic) {
+      throw Exception("BlockVector AddIndirect not available");
+    }
+
+    void AddIndirect (FlatArray<int> ind, FlatVector<double> v, bool use_atomic = false) override { T_AddIndirect (ind, v, use_atomic); }
+    void AddIndirect (FlatArray<int> ind, FlatVector<float> v, bool use_atomic = false) override { T_AddIndirect (ind, v, use_atomic); }
+    void AddIndirect (FlatArray<int> ind, FlatVector<Complex> v, bool use_atomic = false) override { T_AddIndirect (ind, v, use_atomic); }    
+    
     bool IsComplex() const override;
 
     AutoVector CreateVector () const override;
