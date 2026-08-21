@@ -71,6 +71,10 @@ namespace ngfem
     virtual void CalcMappedShape (const SIMD_BaseMappedIntegrationRule & mir, 
 				  BareSliceMatrix<SIMD<double>> shapes) const override;
 
+    using HCurlFiniteElement<ET_trait<ET>::DIM>::Evaluate;
+    virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & mir, BareSliceVector<> coefs,
+                           BareSliceMatrix<SIMD<double>> values) const override;
+
     virtual void CalcDualShape (const SIMD_BaseMappedIntegrationRule & bmir, BareSliceMatrix<SIMD<double>> shape) const override;
     virtual void CalcDualShape (const BaseMappedIntegrationPoint & bmip, BareSliceMatrix<> shape) const override;
     
@@ -101,7 +105,7 @@ namespace ngfem
       this->CalcMappedShape (mir, shapes);
       this->CalcDualShape (mir, dualshapes);
       for (size_t j : Range(mir))
-        dualshapes.Col(j) *= mir[j].IP().Weight();
+        dualshapes.Col(j) *= mir[j].GetWeight();
 
       for (int j = 0; j < GetNDof(); j++)
         {
@@ -208,7 +212,7 @@ namespace ngfem
           CalcMappedShape (mir, shapes);
           CalcDualShape (mir, dualshapes);
           for (size_t j : Range(mir))
-            dualshapes.Col(j) *= mir[j].IP().Weight();
+            dualshapes.Col(j) *= mir[j].GetWeight();
 
           for (int j = first_facet_dof[locfnr]; j < first_facet_dof[locfnr+1]; j++)
             {
