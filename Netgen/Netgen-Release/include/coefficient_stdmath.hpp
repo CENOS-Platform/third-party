@@ -13,12 +13,14 @@ namespace ngfem
   
   struct GenericSin {
     template <typename T> T operator() (T x) const { return sin(x); }
+    template <typename T> T Diff (T x) const { return cos(x); }    
     static string Name() { return "sin"; }
     void DoArchive(Archive& ar) {}
   };
 
   struct GenericCos {
     template <typename T> T operator() (T x) const { return cos(x); }
+    template <typename T> T Diff (T x) const { return -sin(x); }    
     static string Name() { return "cos"; }
     void DoArchive(Archive& ar) {}
   };
@@ -52,13 +54,33 @@ namespace ngfem
 
   struct GenericSinh {
     template <typename T> T operator() (T x) const { return sinh(x); }
+    template <typename T> T Diff (T x) const { return cosh(x); }            
     static string Name() { return "sinh"; }
     void DoArchive(Archive& ar) {}
   };
   
   struct GenericCosh {
     template <typename T> T operator() (T x) const { return cosh(x); }
+    template <typename T> T Diff (T x) const { return sinh(x); }        
     static string Name() { return "cosh"; }
+    void DoArchive(Archive& ar) {}
+  };
+
+  struct GenericASinh {
+    template <typename T> T operator() (T x) const { return asinh(x); }
+    template <typename T> T Diff (T x) const { return 1.0 / sqrt(1.+x*x); }
+    template <typename T>
+    AutoDiffDiff<1,T> operator() (AutoDiffDiff<1,T> x) const { throw Exception("no asinh for ADD"); }    
+    static string Name() { return "asinh"; }
+    void DoArchive(Archive& ar) {}
+  };
+  
+  struct GenericACosh {
+    template <typename T> T operator() (T x) const { return acosh(x); }
+    template <typename T> T Diff (T x) const { return 1.0 / sqrt(1.-x*x); }
+    template <typename T>    
+    AutoDiffDiff<1,T> operator() (AutoDiffDiff<1,T> x) const { throw Exception("no acosh for ADD"); }        
+    static string Name() { return "acosh"; }
     void DoArchive(Archive& ar) {}
   };
 
@@ -66,6 +88,7 @@ namespace ngfem
 
   struct GenericExp {
     template <typename T> T operator() (T x) const { return exp(x); }
+    template <typename T> T Diff (T x) const { return exp(x); }
     static string Name() { return "exp"; }
     void DoArchive(Archive& ar) {}
   };
@@ -73,6 +96,9 @@ namespace ngfem
   struct GenericLog {
     template <typename T> T operator() (T x) const { return log(x); }
     static string Name() { return "log"; }
+    auto Diff (shared_ptr<CoefficientFunction> x) const {
+      return OneVectorCF(x->Dimensions()) / x;
+    }    
     void DoArchive(Archive& ar) {}
   };
 
@@ -94,6 +120,7 @@ struct GenericFloor {
   SIMD<Complex> operator() (SIMD<Complex> x) const { throw ExceptionNOSIMD("no floor for simd"); }  
   // AutoDiff<1> operator() (AutoDiff<1> x) const { throw Exception("no floor for AD"); }
   AutoDiffDiff<1> operator() (AutoDiffDiff<1> x) const { throw Exception("no floor for ADD"); }
+  template <typename T> T Diff (T x) const { throw Exception("Generic Floor not differentiable"); }  
   static string Name() { return "floor"; }
   void DoArchive(Archive& ar) {}
 };
@@ -104,6 +131,7 @@ struct GenericCeil {
   SIMD<Complex> operator() (SIMD<Complex> x) const { throw ExceptionNOSIMD("no ceil for simd"); }  
   // AutoDiff<1> operator() (AutoDiff<1> x) const { throw Exception("no ceil for AD"); }
   AutoDiffDiff<1> operator() (AutoDiffDiff<1> x) const { throw Exception("no ceil for ADD"); }
+  template <typename T> T Diff (T x) const { throw Exception("Generic Ceil not differentiable"); }    
   static string Name() { return "ceil"; }
   void DoArchive(Archive& ar) {}
 };
@@ -111,46 +139,52 @@ struct GenericCeil {
 
   
   using std::sqrt;
-  shared_ptr<CoefficientFunction> sqrt(shared_ptr<CoefficientFunction> x);  
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> sqrt(shared_ptr<CoefficientFunction> x);
 
   using std::sin;
-  shared_ptr<CoefficientFunction> sin(shared_ptr<CoefficientFunction> x);
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> sin(shared_ptr<CoefficientFunction> x);
 
   using std::cos;
-  shared_ptr<CoefficientFunction> cos(shared_ptr<CoefficientFunction> x);
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> cos(shared_ptr<CoefficientFunction> x);
   
   using std::tan;
-  shared_ptr<CoefficientFunction> tan(shared_ptr<CoefficientFunction> x);  
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> tan(shared_ptr<CoefficientFunction> x);
 
   using std::asin;  
-  shared_ptr<CoefficientFunction> asin(shared_ptr<CoefficientFunction> x);
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> asin(shared_ptr<CoefficientFunction> x);
 
   using std::acos;  
-  shared_ptr<CoefficientFunction> acos(shared_ptr<CoefficientFunction> x);
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> acos(shared_ptr<CoefficientFunction> x);
   
   using std::atan;
-  shared_ptr<CoefficientFunction> atan(shared_ptr<CoefficientFunction> x);  
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> atan(shared_ptr<CoefficientFunction> x);
 
   using std::sinh;    
-  shared_ptr<CoefficientFunction> sinh(shared_ptr<CoefficientFunction> x);
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> sinh(shared_ptr<CoefficientFunction> x);
   
   using std::cosh;
-  shared_ptr<CoefficientFunction> cosh(shared_ptr<CoefficientFunction> x);  
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> cosh(shared_ptr<CoefficientFunction> x);
+
+  using std::asinh;    
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> asinh(shared_ptr<CoefficientFunction> x);
+  
+  using std::acosh;
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> acosh(shared_ptr<CoefficientFunction> x);
 
   using std::exp;
-  shared_ptr<CoefficientFunction> exp(shared_ptr<CoefficientFunction> x);
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> exp(shared_ptr<CoefficientFunction> x);
   
   using std::log;
-  shared_ptr<CoefficientFunction> log(shared_ptr<CoefficientFunction> x);  
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> log(shared_ptr<CoefficientFunction> x);
 
   using std::erf;
-  shared_ptr<CoefficientFunction> erf(shared_ptr<CoefficientFunction> x);  
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> erf(shared_ptr<CoefficientFunction> x);
 
   using std::floor;
-  shared_ptr<CoefficientFunction> floor(shared_ptr<CoefficientFunction> x);
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> floor(shared_ptr<CoefficientFunction> x);
 
   using std::ceil;        
-  shared_ptr<CoefficientFunction> ceil(shared_ptr<CoefficientFunction> x);  
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction> ceil(shared_ptr<CoefficientFunction> x);
 }
 
 

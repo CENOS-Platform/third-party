@@ -1,4 +1,4 @@
-// Copyright (C) 2007-2021  CEA/DEN, EDF R&D, OPEN CASCADE
+// Copyright (C) 2007-2025  CEA, EDF, OPEN CASCADE
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -29,6 +29,11 @@
 
 #include <TopoDS_Shape.hxx>
 #include <Standard_Integer.hxx>
+
+#include <Basics_OCCTVersion.hxx>
+
+#if OCC_VERSION_LARGE < 0x07080000
+
 #include <TColStd_MapIntegerHasher.hxx>
 
 #define _NCollection_MapHasher
@@ -39,6 +44,13 @@ typedef NCollection_IndexedDataMap<Standard_Integer, TopoDS_Shape, TColStd_MapIn
 
 #undef _NCollection_MapHasher
 
+#else
+
+#include <NCollection_IndexedDataMap.hxx>
+
+typedef NCollection_IndexedDataMap<Standard_Integer, TopoDS_Shape> GEOMAlgo_IndexedDataMapOfIntegerShape;
+
+#endif // OCC_VERSION_LARGE < 0x07080000
 
 
 #endif

@@ -52,6 +52,7 @@ endif()
 add_library(TKG2d SHARED IMPORTED)
 
 set_target_properties(TKG2d PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKernel;TKMath"
 )
 
@@ -59,6 +60,7 @@ set_target_properties(TKG2d PROPERTIES
 add_library(TKG3d SHARED IMPORTED)
 
 set_target_properties(TKG3d PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKMath;TKernel;TKG2d"
 )
 
@@ -66,6 +68,7 @@ set_target_properties(TKG3d PROPERTIES
 add_library(TKGeomBase SHARED IMPORTED)
 
 set_target_properties(TKGeomBase PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKernel;TKMath;TKG2d;TKG3d"
 )
 
@@ -73,6 +76,7 @@ set_target_properties(TKGeomBase PROPERTIES
 add_library(TKBRep SHARED IMPORTED)
 
 set_target_properties(TKBRep PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKMath;TKernel;TKG2d;TKG3d;TKGeomBase"
 )
 

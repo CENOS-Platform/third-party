@@ -53,7 +53,7 @@ namespace ngcore
     
   public:
     ///
-    constexpr NETGEN_INLINE IVec () = default;
+    constexpr IVec () = default;
     constexpr NETGEN_INLINE IVec (const IVec & i1) : i(i1.i) { }
 
     constexpr NETGEN_INLINE IVec (T ai1) : i(ai1) { }
@@ -169,7 +169,7 @@ namespace ngcore
     template <size_t J>
     constexpr T get() const { return i[J]; }
     
-    operator FlatArray<T> () { return FlatArray<T> (N, &i[0]); } 
+    operator FlatArray<T> () { return FlatArray<T> (N, i.Ptr()); }
 
     NETGEN_INLINE IVec<N,T> & operator= (T value)
     {

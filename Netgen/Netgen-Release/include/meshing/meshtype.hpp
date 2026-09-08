@@ -108,21 +108,18 @@ namespace netgen
   class EdgePointGeomInfo
   {
   public:
-    int edgenr;
-    int body;    // for ACIS
-    double dist; // for 2d meshing
-    double u, v; // for OCC Meshing
+    PointGeomInfo gi;
+    double dist; // parameter along edge curve
 
   public:
     EdgePointGeomInfo ()
-      : edgenr(-1), body(0), dist(0.0), u(0.0), v(0.0) { ; }
-
+      : dist(0.0) { gi.trignum = -1; gi.u = 0.0; gi.v = 0.0; }
+    EdgePointGeomInfo (const EdgePointGeomInfo&) = default;
     EdgePointGeomInfo & operator= (const EdgePointGeomInfo & gi2) = default;
   };
-
   inline ostream & operator<< (ostream & ost, const EdgePointGeomInfo & gi)
   {
-    ost << "epgi: edgnr=" << gi.edgenr << ", dist=" << gi.dist;
+    ost << "epgi: dist=" << gi.dist;
     return ost;
   }
 
@@ -595,10 +592,7 @@ namespace netgen
 
 
 
-
-  // typedef NgArray<MeshPoint, PointIndex::BASE, PointIndex> T_POINTS;
   typedef Array<MeshPoint, PointIndex> T_POINTS;
-
 
 
   /**
@@ -632,7 +626,7 @@ namespace netgen
     unsigned int orderx:6;
     unsigned int ordery:6;
 
-    /// a linked list for all segments in the same face
+    /// a linked list for all elements in the same face
     SurfaceElementIndex next;
     ///
     int hp_elnr;
@@ -903,7 +897,7 @@ namespace netgen
     int HasFace(const Element2d& el) const;
   };
 
-  ostream & operator<<(ostream  & s, const Element2d & el);
+  DLL_HEADER ostream & operator<<(ostream  & s, const Element2d & el);
 
 
 
@@ -1270,88 +1264,90 @@ namespace netgen
 
   /**
      Edge segment.
+
+     How indices are used up to 2026-03-29
+
+     edgenr:
+     OCC: the geometry edge, 1-based
+     Spline2D:  edge-nr, 1-based
+     CSG:  edge counter 
+     
+     si:
+     CSG: one surface of the edge
+     Spline2d: bc-number
+     OCC: edgenr, 1-based
+     
+     cd2i:
+     ????
+     
+     epgeominfo:
+     OCC: geometry  edgenr, 0-based
+     Spline2D: edgenr, 1-based
+     
+
+     NGSoleve Interface:
+     GetIndex
+     mesh.dim == 3 ->  edgenr
+     mesh.dim == 2 ->  si
+
+     
+     Python interface:
+     edgenr -> segmnr
+     index -> si
+     
+     Python ctor:
+     index -> si, segmnr
+     edgenr -> epgeominfo DECREMENT 1
+
+
+
+     NEW from 2026-03-29
+     GetEdgeNr()  -> the geometry edge
+     GetIndex()  -> the index for boundary conditions
   */
+  
   class Segment
   {
+  PointIndex pnums[3];
+  EdgePointGeomInfo epgeominfo[2]; // combines PointGeomInfo + dist
+  int hp_elnr;
+  /// 1-based edge descriptor index into mesh.edgedecoding (0 = invalid)
+  int index = 0;
+
   public:
     ///
     DLL_HEADER Segment();
     Segment (const Segment& other) = default;
-
-    // friend ostream & operator<<(ostream  & s, const Segment & seg);
-
-    PointIndex pnums[3];  // p1, p2, pmid
-
-    int edgenr;
-    ///
-    double singedge_left;
-    double singedge_right;
-
-    /// 0.. not first segment of segs, 1..first of class, 2..first of class, inverse
-    unsigned int seginfo:2;
-
-    /// surface decoding index
-    int si;
-    /// co dim 2 decoding index
-    int cd2i;
-    /// domain number inner side
-    int domin;
-    /// domain number outer side
-    int domout;  
-    /// top-level object number of surface
-    int tlosurf;
-    ///
-    PointGeomInfo geominfo[2];
-
-    /// surfaces describing edge
-    int surfnr1, surfnr2;
-    ///
-    EdgePointGeomInfo epgeominfo[2];
-    ///
-    // int pmid; // for second order
-    ///
-    int meshdocval;
-
-    bool is_curved;
-    int hp_elnr;
-    /*
-      PointIndex operator[] (int i) const
-      { return (i == 0) ? p1 : p2; }
-
-      PointIndex & operator[] (int i) 
-      { return (i == 0) ? p1 : p2; }
-    */
-
     Segment& operator=(const Segment & other) = default;
 
-  
-
-    int GetNP() const
-    {
-      return pnums[2].IsValid() ? 3 : 2;
-    }
-
-    auto PNums() const { return FlatArray<const PointIndex> (GetNP(), &pnums[0]); }
-    auto PNums() { return FlatArray<PointIndex> (GetNP(), &pnums[0]); }
-    
-    
-    ELEMENT_TYPE GetType() const
-    {
-      return pnums[2].IsValid() ? SEGMENT3 : SEGMENT;
-    }
-  
     PointIndex & operator[] (int i) { return pnums[i]; }
     const PointIndex & operator[] (int i) const { return pnums[i]; }
 
+    int GetNP() const { return pnums[2].IsValid() ? 3 : 2; }
+    auto PNums() const { return FlatArray<const PointIndex> (GetNP(), &pnums[0]); }
+    auto PNums() { return FlatArray<PointIndex> (GetNP(), &pnums[0]); }
+    auto Vertices() const { return FlatArray<const PointIndex> (2, &pnums[0]); }
+    ELEMENT_TYPE GetType() const { return pnums[2].IsValid() ? SEGMENT3 : SEGMENT; }
 
-    bool IsCurved () const { return is_curved; }
-    void SetCurved (bool acurved) { is_curved = acurved; }
-    
+    PointGeomInfo & GeomInfo (int i) { return epgeominfo[i].gi; }
+    const PointGeomInfo & GeomInfo (int i) const { return epgeominfo[i].gi; }
+
+    EdgePointGeomInfo & EPGeomInfo (int i) { return epgeominfo[i]; }
+    const EdgePointGeomInfo & EPGeomInfo (int i) const { return epgeominfo[i]; }
+
+    int GetHpElnr () const { return hp_elnr; }
+    void SetHpElnr (int nr) { hp_elnr = nr; }
+
+    int GetIndex() const { return index; }
+    void SetIndex (int i) { index = i; }
+
     void DoArchive (Archive & ar);
 #ifdef PARALLEL
     static NG_MPI_Datatype MyGetMPIType();
 #endif
-    
+
+    static size_t OffsetPnums() { return offsetof(Segment, pnums); }
+    static size_t OffsetIndex() { return offsetof(Segment, index); }
   };
 
   ostream & operator<<(ostream  & s, const Segment & seg);
@@ -1411,11 +1407,8 @@ namespace netgen
   public:
     DLL_HEADER FaceDescriptor();
     DLL_HEADER FaceDescriptor(int surfnri, int domini, int domouti, int tlosurfi);
-    DLL_HEADER FaceDescriptor(const Segment & seg);
     DLL_HEADER FaceDescriptor(const FaceDescriptor& other);
     DLL_HEADER ~FaceDescriptor()  { ; }
-
-    DLL_HEADER int SegmentFits (const Segment & seg);
 
     int SurfNr () const { return surfnr; }
     int DomainIn () const { return domin; }
@@ -1459,20 +1452,72 @@ namespace netgen
  
   class EdgeDescriptor
   {
-    int tlosurf;
-    int surfnr[2];
+    int edgenr = -1;
+    int surfnr[2] = {-1, -1};
+    string name = "default";
+    double singedge_left = 0;
+    double singedge_right = 0;
+
+    // legacy, kept for CSG compatibility
+    int tlosurf = -1;
+    int domin = -1, domout = -1;
+
+    /// transient index: face descriptor index (1-based) in 3D, not serialized - recomputed by RebuildFDIndices()
+    int index_ = -1;
+
   public:
-    EdgeDescriptor ()
-      : tlosurf(-1)
-    { surfnr[0] = surfnr[1] = -1; }
+    EdgeDescriptor () = default;
+    EdgeDescriptor (int edgenri, int surfnr1 = -1, int surfnr2 = -1,
+                    int domini = -1, int domouti = -1, int tlosurfi = -1)
+      : edgenr(edgenri), surfnr{surfnr1, surfnr2}, tlosurf(tlosurfi), domin(domini), domout(domouti)
+    { ; }
+
+    int EdgeNr () const { return edgenr; }
+    void SetEdgeNr (int nr) { edgenr = nr; }
 
     int SurfNr (int i) const { return surfnr[i]; }
     void SetSurfNr (int i, int nr) { surfnr[i] = nr; }
 
-    int TLOSurface() const { return tlosurf; }
-    void SetTLOSurface (int nr) { tlosurf = nr; }
-  };
+    const string & GetName () const { return name; }
+    void SetName (const string & aname) { name = aname; }
 
+    double SingEdgeLeft () const { return singedge_left; }
+    void SetSingEdgeLeft (double s) { singedge_left = s; }
+
+    double SingEdgeRight () const { return singedge_right; }
+    void SetSingEdgeRight (double s) { singedge_right = s; }
+
+    // legacy CSG support
+    int TLOSurface () const { return tlosurf; }
+    void SetTLOSurface (int nr) { tlosurf = nr; }
+
+    int DomainIn () const { return domin; }
+    void SetDomainIn (int nr) { domin = nr; }
+
+    int DomainOut () const { return domout; }
+    void SetDomainOut (int nr) { domout = nr; }
+
+    /// face descriptor index (1-based), -1 if not yet set. Transient, recomputed by RebuildFDIndices().
+    int GetIndex () const { return index_; }
+    void SetIndex (int i) { index_ = i; }
+
+    // deprecated aliases
+    [[deprecated("use GetIndex()")]] int FDIndex () const { return index_; }
+    [[deprecated("use SetIndex()")]] void SetFDIndex (int i) { index_ = i; }
+
+    void DoArchive (Archive & ar)
+    {
+      ar & edgenr & surfnr[0] & surfnr[1] & name
+        & singedge_left & singedge_right & tlosurf
+        & domin & domout;
+    }
+
+    friend inline ostream & operator<< (ostream & ost, const EdgeDescriptor & ed)
+    {
+      ost << "EdgeDescriptor(edgenr=" << ed.edgenr << ", surfnr=(" << ed.surfnr[0] << "," << ed.surfnr[1] << "), domin=" << ed.domin << ", domout=" << ed.domout << ", name=" << ed.name << ")";
+      return ost;
+    }
+  };
 
   struct BoundaryLayerParameters
   {
@@ -1635,7 +1680,7 @@ namespace netgen
       Point<3> pnt;
       double h;
       int layer = 1;
-      MeshSizePoint (Point<3> _pnt, double _h) : pnt(_pnt), h(_h) { ; }
+      MeshSizePoint (Point<3> pnt_, double h_, int layer_ = 1) : pnt(pnt_), h(h_), layer(layer_) { ; }
       MeshSizePoint () = default;
       MeshSizePoint (const MeshSizePoint &) = default;
       MeshSizePoint (MeshSizePoint &&) = default;
@@ -1769,7 +1814,7 @@ namespace netgen
   class Identifications
   {
   public:
-    enum ID_TYPE : unsigned char { UNDEFINED = 1, PERIODIC = 2, CLOSESURFACES = 3, CLOSEEDGES = 4};
+    enum ID_TYPE : unsigned char { UNDEFINED = 1, PERIODIC = 2, CLOSESURFACES = 3, CLOSEEDGES = 4, OFFSET_POINT = 5};
   
 
   private:
@@ -1799,6 +1844,9 @@ namespace netgen
     DLL_HEADER ~Identifications ();
 
     DLL_HEADER void Delete ();
+
+    // Removes identifications if one point is an INNERPOINT
+    DLL_HEADER void DeleteInnerPointIdentifications ();
 
     /*
       Identify points pi1 and pi2, due to

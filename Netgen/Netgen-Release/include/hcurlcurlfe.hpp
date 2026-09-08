@@ -88,6 +88,9 @@ namespace ngfem
                                    BareSliceVector<> coefs) const = 0;
 
     
+    virtual void CalcMappedShape (const SIMD<BaseMappedIntegrationPoint> & bmip, 
+                                         BareSliceMatrix<SIMD<double>> shapes) const = 0;
+
     virtual void CalcMappedShape (const SIMD_BaseMappedIntegrationRule & bmir, 
                                          BareSliceMatrix<SIMD<double>> shapes) const = 0;
     
@@ -619,11 +622,11 @@ namespace ngfem
   {
   protected:
     static constexpr int DIM = ET_trait<ET>::DIM;
-    enum { DIM_STRESS = (DIM*(DIM+1))/2 };
-    // enum { DIM_DMAT = 7*DIM-12 };
-    // enum { DIM_DDMAT = 8*DIM-15 };
-    enum { DIM_DMAT = (5*DIM*DIM-11*DIM+6)/2 };
-    enum { DIM_DDMAT = (7*DIM*DIM-19*DIM+12)/2 };
+  static constexpr int DIM_STRESS = (DIM*(DIM+1))/2;
+  // static constexpr int DIM_DMAT = 7*DIM-12;
+  // static constexpr int DIM_DDMAT = 8*DIM-15;
+  static constexpr int DIM_DMAT = (5*DIM*DIM-11*DIM+6)/2;
+  static constexpr int DIM_DDMAT = (7*DIM*DIM-19*DIM+12)/2;
     
     using VertexOrientedFE<ET>::vnums;
     using HCurlCurlFiniteElement<ET_trait<ET>::DIM>::ndof;
@@ -668,7 +671,7 @@ namespace ngfem
            constexpr auto DIMSPACE = DIM+CODIM.value;
            auto & mip = static_cast<const MappedIntegrationPoint<DIM, DIM+CODIM.value>&> (bmip);
            
-           Cast() -> T_CalcShape (GetTIP(mip),SBLambda([shapes,DIMSPACE](int nr,auto val)
+           Cast() -> T_CalcShape (GetTIP(mip),SBLambda([shapes,DIMSPACE=DIMSPACE](int nr,auto val)
                                                    {
                                                      shapes.Row(nr).Range(DIMSPACE*DIMSPACE) = val.Value().AsVector();
                                                    }));
@@ -866,7 +869,7 @@ namespace ngfem
            shapes.AddSize(ndof*sqr(DIMSPACE), mir.Size()) = 0.0;
            for (size_t i = 0; i < mir.Size(); i++)
              {
-               Cast() -> CalcDualShape2 (mir[i], SBLambda([shapes,i,DIMSPACE] (size_t j, auto val)
+               Cast() -> CalcDualShape2 (mir[i], SBLambda([shapes,i,DIMSPACE=DIMSPACE] (size_t j, auto val)
                                                           {
                                                             shapes.Rows(j*sqr(DIMSPACE), (j+1)*sqr(DIMSPACE)).Col(i).Range(0,sqr(DIMSPACE)) = val.AsVector();
                                                           }));
@@ -931,6 +934,23 @@ namespace ngfem
       else
         throw Exception("HCurlCurl::CalcMappedCurlShape implemented only for TRIG and TET");
     }
+
+
+    virtual void CalcMappedShape (const SIMD<BaseMappedIntegrationPoint> & bmip, 
+                                         BareSliceMatrix<SIMD<double>> shape) const override
+    {
+      Switch<4-DIM>
+        (bmip.DimSpace()-DIM,[this, &bmip, shape](auto CODIM)
+         {
+           constexpr auto DIMSPACE = DIM+CODIM.value;
+           auto & mip = static_cast<const SIMD<MappedIntegrationPoint<DIM,DIM+CODIM.value>>&> (bmip);
+            this->Cast() -> T_CalcShape (GetTIP(mip),
+                                          SBLambda ([shape,DIMSPACE=DIMSPACE] (size_t j, auto val) 
+                                                    {
+                                                      shape.Rows(j*sqr(DIMSPACE), (j+1)*sqr(DIMSPACE)).Col(0).Range(0,sqr(DIMSPACE)) = val.Value().AsVector();
+                                                    }));
+         });
+    }
       
     virtual void CalcMappedShape (const SIMD_BaseMappedIntegrationRule & bmir, 
                                          BareSliceMatrix<SIMD<double>> shapes) const override
@@ -943,7 +963,7 @@ namespace ngfem
            for (size_t i = 0; i < mir.Size(); i++)
              {
                this->Cast() -> T_CalcShape (GetTIP(mir[i]),
-                                             SBLambda ([i,shapes,DIMSPACE] (size_t j, auto val) 
+                                            SBLambda ([i,shapes,DIMSPACE=DIMSPACE] (size_t j, auto val) 
                                                        {
                                                          shapes.Rows(j*sqr(DIMSPACE), (j+1)*sqr(DIMSPACE)).Col(i).Range(0,sqr(DIMSPACE)) = val.Value().AsVector();
                                                        }));
@@ -1503,14 +1523,14 @@ namespace ngfem
   template <> class HCurlCurlFE<ET_PRISM> : public T_HCurlCurlFE<ET_PRISM> 
   {
   public:
-    enum { incrorder_xx1 = 0};
-    enum { incrorder_zz1 = 0};
-    enum { incrorder_xx2 = 0};
-    enum { incrorder_zz2 = 0};
-    enum { incrorder_xx1_bd = 0};
-    enum { incrorder_zz1_bd = 0};
-    enum { incrorder_xx2_bd = 0};
-    enum { incrorder_zz2_bd = 0};
+  static constexpr int incrorder_xx1 = 0;
+  static constexpr int incrorder_zz1 = 0;
+  static constexpr int incrorder_xx2 = 0;
+  static constexpr int incrorder_zz2 = 0;
+  static constexpr int incrorder_xx1_bd = 0;
+  static constexpr int incrorder_zz1_bd = 0;
+  static constexpr int incrorder_xx2_bd = 0;
+  static constexpr int incrorder_zz2_bd = 0;
     using T_HCurlCurlFE<ET_PRISM> :: T_HCurlCurlFE;
 
     virtual void ComputeNDof()
@@ -1553,7 +1573,7 @@ namespace ngfem
       int ii = 0;
       
 
-      const FACE * faces = ElementTopology::GetFaces(ET_PRISM);
+      const FACE * faces = ElementTopology::GetFaces(ET_PRISM).Data();
 
       ArrayMem<Tx,20> leg_u(order+2), leg_v(order+3);
       ArrayMem<Tx,20> leg_w(order+2);
@@ -1986,7 +2006,7 @@ namespace ngfem
                    (1-x)+(1-y)+z,x+(1-y)+z,x+y+z,(1-x)+y+z};
       int ii = 0;
       
-      const FACE * faces = ElementTopology::GetFaces(ET_HEX);
+      const FACE * faces = ElementTopology::GetFaces(ET_HEX).Data();
 
       ArrayMem<Tx,20> leg_u(order+2), leg_v(order+2), leg_w(order+2);
       

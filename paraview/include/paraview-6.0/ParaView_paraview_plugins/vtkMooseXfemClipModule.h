@@ -1,0 +1,47 @@
+
+#ifndef VTKMOOSEXFEMCLIP_EXPORT_H
+#define VTKMOOSEXFEMCLIP_EXPORT_H
+
+#ifdef VTKMOOSEXFEMCLIP_STATIC_DEFINE
+#  define VTKMOOSEXFEMCLIP_EXPORT
+#  define VTKMOOSEXFEMCLIP_NO_EXPORT
+#else
+#  ifndef VTKMOOSEXFEMCLIP_EXPORT
+#    ifdef vtkMooseXfemClip_EXPORTS
+        /* We are building this library */
+#      define VTKMOOSEXFEMCLIP_EXPORT __declspec(dllexport)
+#    else
+        /* We are using this library */
+#      define VTKMOOSEXFEMCLIP_EXPORT __declspec(dllimport)
+#    endif
+#  endif
+
+#  ifndef VTKMOOSEXFEMCLIP_NO_EXPORT
+#    define VTKMOOSEXFEMCLIP_NO_EXPORT 
+#  endif
+#endif
+
+#ifndef VTKMOOSEXFEMCLIP_DEPRECATED
+#  define VTKMOOSEXFEMCLIP_DEPRECATED __declspec(deprecated)
+#endif
+
+#ifndef VTKMOOSEXFEMCLIP_DEPRECATED_EXPORT
+#  define VTKMOOSEXFEMCLIP_DEPRECATED_EXPORT VTKMOOSEXFEMCLIP_EXPORT VTKMOOSEXFEMCLIP_DEPRECATED
+#endif
+
+#ifndef VTKMOOSEXFEMCLIP_DEPRECATED_NO_EXPORT
+#  define VTKMOOSEXFEMCLIP_DEPRECATED_NO_EXPORT VTKMOOSEXFEMCLIP_NO_EXPORT VTKMOOSEXFEMCLIP_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef VTKMOOSEXFEMCLIP_NO_DEPRECATED
+#    define VTKMOOSEXFEMCLIP_NO_DEPRECATED
+#  endif
+#endif
+
+/* VTK-HeaderTest-Exclude: vtkMooseXfemClipModule.h */
+
+/* Include ABI Namespace */
+#include "vtkABINamespace.h"
+
+#endif /* VTKMOOSEXFEMCLIP_EXPORT_H */

@@ -63,16 +63,13 @@ namespace ngcore
 
   inline TTimePoint GetTimeCounter() noexcept
   {
-#if defined(__APPLE__) && defined(NETGEN_ARCH_ARM64)
-    return mach_absolute_time();
-#elif defined(NETGEN_ARCH_AMD64)
+#if defined(NETGEN_ARCH_AMD64)
     return __rdtsc();
-#elif defined(NETGEN_ARCH_ARM64) && defined(__GNUC__)
-    // __GNUC__ is also defined by CLANG. Use inline asm to read Generic Timer
+#elif defined(NETGEN_ARCH_ARM64)
     unsigned long long tics;
     __asm __volatile("mrs %0, CNTVCT_EL0" : "=&r" (tics));
     return tics;
-#elif defined(__EMSCRIPTEN__)
+#elif defined(__EMSCRIPTEN__) || (defined(_MSC_VER) && defined(_M_ARM64))
     return std::chrono::high_resolution_clock::now().time_since_epoch().count();
 #else
 #warning "Unsupported CPU architecture"
@@ -221,15 +218,37 @@ namespace ngcore
     return reinterpret_cast<std::atomic<T>&> (d);
   }
 
+  
   NETGEN_INLINE double AtomicAdd( double & sum, double val )
   {
-      std::atomic<double> & asum = AsAtomic(sum);
-      double current = asum.load();
-      while (!asum.compare_exchange_weak(current, current + val))
-          ;
-      return current;
+#if defined(__cpp_lib_atomic_ref)
+    std::atomic_ref<double> asum(sum);
+    return asum.fetch_add(val); // Returns the old value of 'sum'
+#else
+    std::atomic<double> & asum = AsAtomic(sum);
+    double current = asum.load();
+    while (!asum.compare_exchange_weak(current, current + val))
+      ;
+    return current;
+#endif
   }
-
+  
+  NETGEN_INLINE float AtomicAdd( float & sum, float val )
+  {
+#if defined(__cpp_lib_atomic_ref)
+    std::atomic_ref<float> asum(sum);
+    return asum.fetch_add(val); // Returns the old value of 'sum'
+#else
+    std::atomic<float> & asum = AsAtomic(sum);
+    float current = asum.load();
+    while (!asum.compare_exchange_weak(current, current + val))
+      ;
+    return current;
+#endif
+  }
+  
+  
+  
   template<typename T>
   NETGEN_INLINE T AtomicMin( T & minval, T val )
   {

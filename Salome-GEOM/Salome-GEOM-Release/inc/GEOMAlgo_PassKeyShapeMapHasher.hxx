@@ -1,4 +1,4 @@
-// Copyright (C) 2007-2021  CEA/DEN, EDF R&D, OPEN CASCADE
+// Copyright (C) 2007-2025  CEA, EDF, OPEN CASCADE
 //
 // Copyright (C) 2003-2007  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,
 // CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
@@ -34,6 +34,8 @@
 #include <Standard_Boolean.hxx>
 #include <GEOMAlgo_PassKeyShape.hxx>
 
+#include <Basics_OCCTVersion.hxx>
+
 //=======================================================================
 //class    : GEOMAlgo_PassKeyShapeMapHasher
 //purpose  :
@@ -41,6 +43,7 @@
 class GEOMAlgo_PassKeyShapeMapHasher
 {
  public:
+#if OCC_VERSION_LARGE < 0x07080000
   Standard_EXPORT
     static  Standard_Integer HashCode(const GEOMAlgo_PassKeyShape& aPKey,
                                       const Standard_Integer Upper) ;
@@ -48,5 +51,13 @@ class GEOMAlgo_PassKeyShapeMapHasher
   Standard_EXPORT
     static  Standard_Boolean IsEqual(const GEOMAlgo_PassKeyShape& aPKey1,
                                      const GEOMAlgo_PassKeyShape& aPKey2) ;
+#else
+  Standard_EXPORT
+  size_t operator()(const GEOMAlgo_PassKeyShape& aPKey) const;
+
+  Standard_EXPORT
+  bool operator()(const GEOMAlgo_PassKeyShape& aPKey1,
+                  const GEOMAlgo_PassKeyShape& aPKey2) const;
+#endif // OCC_VERSION_LARGE < 0x07080000
 };
 #endif

@@ -1,0 +1,47 @@
+
+#ifndef VTKDATAMINEREADERS_EXPORT_H
+#define VTKDATAMINEREADERS_EXPORT_H
+
+#ifdef VTKDATAMINEREADERS_STATIC_DEFINE
+#  define VTKDATAMINEREADERS_EXPORT
+#  define VTKDATAMINEREADERS_NO_EXPORT
+#else
+#  ifndef VTKDATAMINEREADERS_EXPORT
+#    ifdef DatamineReaders_EXPORTS
+        /* We are building this library */
+#      define VTKDATAMINEREADERS_EXPORT __declspec(dllexport)
+#    else
+        /* We are using this library */
+#      define VTKDATAMINEREADERS_EXPORT __declspec(dllimport)
+#    endif
+#  endif
+
+#  ifndef VTKDATAMINEREADERS_NO_EXPORT
+#    define VTKDATAMINEREADERS_NO_EXPORT 
+#  endif
+#endif
+
+#ifndef VTKDATAMINEREADERS_DEPRECATED
+#  define VTKDATAMINEREADERS_DEPRECATED __declspec(deprecated)
+#endif
+
+#ifndef VTKDATAMINEREADERS_DEPRECATED_EXPORT
+#  define VTKDATAMINEREADERS_DEPRECATED_EXPORT VTKDATAMINEREADERS_EXPORT VTKDATAMINEREADERS_DEPRECATED
+#endif
+
+#ifndef VTKDATAMINEREADERS_DEPRECATED_NO_EXPORT
+#  define VTKDATAMINEREADERS_DEPRECATED_NO_EXPORT VTKDATAMINEREADERS_NO_EXPORT VTKDATAMINEREADERS_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef VTKDATAMINEREADERS_NO_DEPRECATED
+#    define VTKDATAMINEREADERS_NO_DEPRECATED
+#  endif
+#endif
+
+/* VTK-HeaderTest-Exclude: vtkDatamineReadersModule.h */
+
+/* Include ABI Namespace */
+#include "vtkABINamespace.h"
+
+#endif /* VTKDATAMINEREADERS_EXPORT_H */

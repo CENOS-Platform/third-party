@@ -1507,8 +1507,23 @@ namespace ngfem
   class NormalizedLegendreFunctions : public RecursivePolynomialNonStatic<NormalizedLegendreFunctions>
   {
     int  m;
+    static Matrix<double,ColMajor> matA, matB;
   public:
     NormalizedLegendreFunctions (size_t _m) : m(_m) { }
+    
+
+    static void Calc(int mmax)
+    {
+      if (matA.Height() >= mmax+1) return;
+      matA.SetSize(mmax+1, mmax+1);
+      matB.SetSize(mmax+1, mmax+1);
+      for (int m = 0; m <= mmax; m++)
+        for (int n = m+2; n <= mmax; n++)
+          {
+            matA(n,m) = (2*n-1) / sqrt((n-m+0.0)*(n+m));
+            matB(n,m) = sqrt((n+m-1.0)*(n-m-1.0)) / sqrt((n-m+0.0)*(n+m));
+          }
+    }
     
     template <typename T, typename S>
     NormalizedLegendreFunctions (size_t mmax, size_t nmax, T x, S && values)
@@ -1524,23 +1539,60 @@ namespace ngfem
       auto y = Trans(values);
       
       y = 0.0;
-      double u = -sqrt((1-x)*(1+x));
+      T u = -sqrt((1-x)*(1+x));
       y(0,0)=1;
-      
-      for (double m = 0; m <= mmax; m++)
+
+      if (mmax+1 > matA.Height() || nmax > matA.Width())
         {
-          if (m > 0)
-            y(m,m)=y(m-1,m-1)*u*sqrt((2*m-1.0)/(2*m));
-          if (m < nmax)
-            y(m+1,m)=x*y(m,m)*sqrt(2*m+1.0);
-          for (int n = m+2; n <= nmax; n++)
-            y(n,m)=((2*n-1)*x*y(n-1,m) - 
-                    sqrt((n+m-1.0)*(n-m-1.0))*y(n-2,m))
-              /sqrt((n-m+0.0)*(n+m));
+          for (int m = 0; m <= mmax; m++)
+            {
+              if (m > 0)
+                y(m,m)=y(m-1,m-1)*u*sqrt((2*m-1.0)/(2*m));
+              if (m < nmax)
+                y(m+1,m)=x*y(m,m)*sqrt(2*m+1.0);
+              for (int n = m+2; n <= nmax; n++)
+                y(n,m)=((2*n-1)*x*y(n-1,m) - 
+                        sqrt((n+m-1.0)*(n-m-1.0))*y(n-2,m))
+                  /sqrt((n-m+0.0)*(n+m));
+            }
         }
+      else
+        {
+          for (int m = 0; m <= mmax; m++)
+            {
+              if (m > 0)
+                y(m,m)=y(m-1,m-1)*u*sqrt((2*m-1.0)/(2*m));
+              if (m < nmax)
+                {
+                  T valold = y(m,m);
+                  
+                  T val = x*valold*sqrt(2*m+1.0);
+                  y(m+1,m)=val;
+                  
+                  auto coefsA = matA.Col(m);
+                  auto coefsB = matB.Col(m);
+                  
+                  for (int n = m+2; n <= nmax; n++)
+                    {
+                      T valnew = coefsA(n) * x * val - coefsB(n) * valold;
+                      y(n,m) = valnew;
+                      valold = val;
+                      val = valnew;
+                    }
+                }
+              /*
+              for (int n = m+2; n <= nmax; n++)
+                y(n,m) = matA(n,m) * x * y(n-1,m) - matB(n,m) * y(n-2,m);
+              */
+            }
+        }
+      
       for (int n = 0; n <= nmax; n++)
+        y.Row(n).Range(0,n+1) *= sqrt(2*n+1.0);
+        /*
         for (int m = 0; m <= n; m++)
           y(n,m)=y(n,m)*sqrt(2*n+1.0);
+        */
     }
     
     template <class S>
@@ -1671,7 +1723,7 @@ namespace ngfem
     static int maxnp;
     */
     static constexpr size_t maxnp = 128;
-    static constexpr size_t maxalpha = 128;
+    static constexpr size_t maxalpha = 2*128;
     static Vec<4> coefs[maxnp*maxalpha];
     size_t n2;
     Vec<4> * coefsal;
@@ -1866,6 +1918,17 @@ class IntegratedJacobiPolynomialAlpha : public RecursivePolynomialNonStatic<Inte
     static double CalcC (int n, double al, double be)
     { return - 2*(n-1)*(n+al-2)*(2*n+al) / ( (2*n+2) * (n+al) * (2*n+al-2) ); }
 
+    static auto CalcABC (int n, double al, double be) 
+    {
+      double dn = n;
+      double inum = 1.0 / ( (2*dn+2) * (dn+al) * (2*dn+al-2) );
+      return tuple {
+        (2.0*n+al-1)*(2*n+al-2)*(2*n+al) *inum,
+        (2.0*n+al-1)*al * (al-2) * inum,
+        - 2*(n-1)*(n+al-2)*(2*n+al) * inum
+      };
+    }
+    
     INLINE double D (int i) const { return 1; }
   };
 

@@ -1,0 +1,47 @@
+
+#ifndef STEREOCURSORVIEWS_EXPORT_H
+#define STEREOCURSORVIEWS_EXPORT_H
+
+#ifdef STEREOCURSORVIEWS_STATIC_DEFINE
+#  define STEREOCURSORVIEWS_EXPORT
+#  define STEREOCURSORVIEWS_NO_EXPORT
+#else
+#  ifndef STEREOCURSORVIEWS_EXPORT
+#    ifdef StereoCursorViews_EXPORTS
+        /* We are building this library */
+#      define STEREOCURSORVIEWS_EXPORT __declspec(dllexport)
+#    else
+        /* We are using this library */
+#      define STEREOCURSORVIEWS_EXPORT __declspec(dllimport)
+#    endif
+#  endif
+
+#  ifndef STEREOCURSORVIEWS_NO_EXPORT
+#    define STEREOCURSORVIEWS_NO_EXPORT 
+#  endif
+#endif
+
+#ifndef STEREOCURSORVIEWS_DEPRECATED
+#  define STEREOCURSORVIEWS_DEPRECATED __declspec(deprecated)
+#endif
+
+#ifndef STEREOCURSORVIEWS_DEPRECATED_EXPORT
+#  define STEREOCURSORVIEWS_DEPRECATED_EXPORT STEREOCURSORVIEWS_EXPORT STEREOCURSORVIEWS_DEPRECATED
+#endif
+
+#ifndef STEREOCURSORVIEWS_DEPRECATED_NO_EXPORT
+#  define STEREOCURSORVIEWS_DEPRECATED_NO_EXPORT STEREOCURSORVIEWS_NO_EXPORT STEREOCURSORVIEWS_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef STEREOCURSORVIEWS_NO_DEPRECATED
+#    define STEREOCURSORVIEWS_NO_DEPRECATED
+#  endif
+#endif
+
+/* VTK-HeaderTest-Exclude: StereoCursorViewsModule.h */
+
+/* Include ABI Namespace */
+#include "vtkABINamespace.h"
+
+#endif /* STEREOCURSORVIEWS_EXPORT_H */

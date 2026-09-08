@@ -52,6 +52,8 @@ namespace ngcomp
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const override;
     virtual void GetDofNrs (NodeId ni, Array<DofId> & dnums) const override;
 
+    void SelectDofs(const string & name, BitArray & dofs) const override;
+
     virtual SymbolTable<shared_ptr<DifferentialOperator>> GetAdditionalEvaluators () const override
     { return space->GetAdditionalEvaluators (); }
 
@@ -81,6 +83,10 @@ namespace ngcomp
 
     auto & GetVertexMap() const { return vertex_map; }
     auto & GetDofMap() const { return dofmap; }    
+    FlatArray<VorB> GetDualShapeNodes (VorB vb) const override
+    {
+      return space->GetDualShapeNodes(vb);
+    }
   protected:
     // overload in quasiperiodic space
     virtual void DofMapped(size_t from, size_t to, size_t idnr) { ; }

@@ -52,6 +52,7 @@ endif()
 add_library(TKService SHARED IMPORTED)
 
 set_target_properties(TKService PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKernel;TKMath;user32.lib;advapi32.lib;advapi32.lib;user32.lib;windowscodecs;winmm.lib"
 )
 
@@ -59,13 +60,15 @@ set_target_properties(TKService PROPERTIES
 add_library(TKV3d SHARED IMPORTED)
 
 set_target_properties(TKV3d PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKService;TKShHealing;TKTopAlgo;TKG2d;TKG3d;TKGeomBase;TKMesh;TKGeomAlgo;TKHLR;user32.lib;gdi32.lib;opengl32.lib"
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
+  INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKService;TKShHealing;TKTopAlgo;TKG2d;TKG3d;TKGeomBase;TKMesh;TKGeomAlgo;TKHLR;user32.lib;gdi32.lib"
 )
 
 # Create imported target TKMeshVS
 add_library(TKMeshVS SHARED IMPORTED)
 
 set_target_properties(TKMeshVS PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKV3d;TKMath;TKService;TKernel;TKG3d;TKG2d"
 )
 
@@ -73,6 +76,7 @@ set_target_properties(TKMeshVS PROPERTIES
 add_library(TKIVtk SHARED IMPORTED)
 
 set_target_properties(TKIVtk PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKernel;TKBRep;TKG2d;TKG3d;TKGeomAlgo;TKGeomBase;TKMath;TKMesh;TKService;TKTopAlgo;TKV3d;VTK::CommonCore;VTK::RenderingCore;VTK::RenderingFreeType;VTK::FiltersGeneral;VTK::InteractionStyle;VTK::RenderingOpenGL2;VTK::RenderingGL2PSOpenGL2"
 )
 

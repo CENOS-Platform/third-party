@@ -110,6 +110,27 @@ namespace ngfem
   class HCurlHighOrderFE_Shape :  public HCurlHighOrderFE<ET>
   {
     using ET_trait<ET>::DIM;    
+    using ET_trait<ET>::N_VERTEX;
+    using ET_trait<ET>::N_EDGE;
+    using ET_trait<ET>::N_FACE;
+    using ET_trait<ET>::N_CELL;
+    using ET_trait<ET>::FaceType;
+    using Base = HCurlHighOrderFE<ET>;
+    using Base::type1;
+    using Base::order;
+    using Base::order_edge;
+    using Base::order_face;
+    using Base::order_cell;
+    using Base::vnums;
+    using Base::GetEdgeSort;
+    using Base::GetFaceSort;
+    using Base::usegrad_cell;
+    using Base::usegrad_edge;
+    using Base::usegrad_face;
+    using typename Base::EdgeOrthoPol;
+    using typename Base::QuadOrthoPol;
+    using typename Base::TrigOrthoPolGrad;
+    using typename Base::T_ORTHOPOL;
   public:
     template<typename Tx, typename TFA>  
     void T_CalcShape (TIP<DIM,Tx> ip, TFA & shape) const;
@@ -600,7 +621,7 @@ namespace ngfem
       }
 
 
-    const FACE * faces = ElementTopology::GetFaces (ET_PRISM); 
+    const FACE * faces = ElementTopology::GetFaces (ET_PRISM).Data(); 
 
     // trig face shapes
     for (int i = 0; i < 2; i++)
@@ -864,7 +885,7 @@ namespace ngfem
       }
     
     //Faces 
-    const FACE * faces = ElementTopology::GetFaces (ET_HEX);
+    const FACE * faces = ElementTopology::GetFaces (ET_HEX).Data();
     for (int i = 0; i<6; i++)
       {
 	IVec<2> p = order_face[i];
@@ -1242,7 +1263,7 @@ namespace ngfem
 	  }
       }
 
-    const FACE * faces = ElementTopology::GetFaces (ET_PYRAMID); 
+    const FACE * faces = ElementTopology::GetFaces (ET_PYRAMID).Data(); 
 
     // trig face dofs
     for (int i = 0; i < 4; i++)
@@ -1807,7 +1828,7 @@ namespace ngfem
          shapes.AddSize(ndof*DIMSPACE, mir.Size()) = 0.0;
          for (size_t i = 0; i < mir.Size(); i++)
            static_cast<const HCurlHighOrderFE_Shape<ET>*> (this)
-             -> CalcDualShape2 (mir[i], SBLambda([shapes,i,DIMSPACE] (size_t j, auto val)
+             -> CalcDualShape2 (mir[i], SBLambda([shapes,i,DIMSPACE=DIMSPACE] (size_t j, auto val)
                                                  {
                                                    for (size_t k = 0; k < DIMSPACE; k++)
                                                      shapes(j*DIMSPACE+k, i) = val(k);

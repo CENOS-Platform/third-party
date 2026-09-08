@@ -25,6 +25,8 @@ namespace ngcomp
     weak_ptr<BilinearForm> bf;
     bool is_registered = false;
   protected:
+    // std::optional<Region> additional_dirichlet_constraints;
+    Array<DirichletBoundary> additional_dirichlet_boundaries;
     bool test;
     bool timing;
     bool print;
@@ -46,7 +48,12 @@ namespace ngcomp
 		    const string aname = "precond");
     ///
     virtual ~Preconditioner ();
-  
+
+    static DocInfo GetDocu ();    
+    ///
+    virtual shared_ptr<Preconditioner> Create (shared_ptr<BilinearForm> bfa, const Flags & cflags) const;
+    virtual bool IsCreator() const;
+    
     ///
     virtual bool LaterUpdate (void) { return laterupdate; }
     ///
@@ -71,7 +78,12 @@ namespace ngcomp
     }
     
     virtual bool IsComplex() const override { return GetMatrix().IsComplex(); }
-        
+
+    // virtual void SetAdditionalDirichletConstraints (Region areg) { additional_dirichlet_constraints = areg; }
+    // freedofs from FESpace, filtered with additional constraints. Always new BitArray
+    virtual shared_ptr<BitArray> GetFreeDofs (bool external = false) const;
+    
+    
     ///
     virtual void Mult (const BaseVector & x, BaseVector & y) const override
     {
@@ -99,12 +111,17 @@ namespace ngcomp
     virtual void InitLevel (shared_ptr<BitArray> freedofs = NULL) { ; }
     virtual void FinalizeLevel (const ngla::BaseMatrix * mat = NULL) { ; }
     virtual void AddElementMatrix (FlatArray<int> dnums,
-				   const FlatMatrix<double> & elmat,
+				   FlatMatrix<double> elmat,
 				   ElementId ei, 
 				   LocalHeap & lh) { ; }
 
     virtual void AddElementMatrix (FlatArray<int> dnums,
-				   const FlatMatrix<Complex> & elmat,
+				   FlatMatrix<float> elmat,
+				   ElementId ei, 
+				   LocalHeap & lh) { ; }
+    
+    virtual void AddElementMatrix (FlatArray<int> dnums,
+				   FlatMatrix<Complex> elmat,
 				   ElementId ei, 
 				   LocalHeap & lh) { ; }
 
@@ -149,6 +166,11 @@ namespace ngcomp
     using NGS_Object::GetMemoryTracer;
   };
 
+  inline ostream & operator<< (ostream & ost, const Preconditioner & obj)
+  {
+    obj.PrintReport (ost);
+    return ost;
+  }
 
 
   ///
@@ -184,15 +206,16 @@ namespace ngcomp
     ///
 
     static DocInfo GetDocu ();
+    virtual shared_ptr<Preconditioner> Create (shared_ptr<BilinearForm> bfa, const Flags & cflags) const override;  
+    ///
+    virtual bool IsComplex() const override { return jacobi->IsComplex(); }
     
     ///
-    virtual bool IsComplex() const { return jacobi->IsComplex(); }
-    
-    ///
-    virtual void FinalizeLevel (const BaseMatrix * mat);
+    virtual void FinalizeLevel (const BaseMatrix * mat) override;
 
-    virtual void Update ()
+    virtual void Update () override
     {
+      if (!bfa) return;
       if (GetTimeStamp() < bfa->GetTimeStamp())
         FinalizeLevel (&bfa->GetMatrix());
       if (test) Test();
@@ -201,14 +224,14 @@ namespace ngcomp
 
 
     ///
-    virtual const BaseMatrix & GetMatrix() const
+    virtual const BaseMatrix & GetMatrix() const override
     {
       if (!jacobi)
         ThrowPreconditionerNotReady();
       return *jacobi;
     }
     
-    virtual shared_ptr<BaseMatrix> GetMatrixPtr()
+    virtual shared_ptr<BaseMatrix> GetMatrixPtr() override
     {
       if (!jacobi)
         ThrowPreconditionerNotReady();
@@ -216,24 +239,83 @@ namespace ngcomp
     }
 
     ///
-    virtual const BaseMatrix & GetAMatrix() const
+    virtual const BaseMatrix & GetAMatrix() const override
     {
       return bfa->GetMatrix(); 
     }
     ///
-    virtual const char * ClassName() const
+    virtual const char * ClassName() const override
     { return "Local Preconditioner"; }
     void LocPrecTest () const;
   };
 
 
+  class NGS_DLL_HEADER DirectPreconditioner : public Preconditioner
+  {
+    shared_ptr<BilinearForm> bfa;
+    shared_ptr<BaseMatrix> inverse;
+    string inversetype;
+
+  public:
+    DirectPreconditioner (shared_ptr<BilinearForm> abfa, const Flags & aflags,
+			  const string aname = "directprecond")
+      : Preconditioner(abfa,aflags,aname), bfa(abfa)
+    {
+      // bfa -> SetPreconditioner (this);
+      inversetype = flags.GetStringFlag("inverse", default_inversetype);
+    }
+
+    ///
+    virtual ~DirectPreconditioner()
+    {
+      ; //delete inverse;
+    }
+
+    static DocInfo GetDocu ();    
+    virtual shared_ptr<Preconditioner> Create (shared_ptr<BilinearForm> bfa, const Flags & cflags) const override;  
+    
+    virtual void FinalizeLevel (const BaseMatrix * mat) override
+    {
+      Update();
+    }
+    
+    ///
+    virtual void Update () override;
+
+    virtual void CleanUpLevel () override
+    {
+      // delete inverse;
+      inverse = nullptr;
+    }
+
+    virtual const BaseMatrix & GetMatrix() const override
+    {
+      if (!inverse)
+        ThrowPreconditionerNotReady();        
+      return *inverse;
+    }
+
+    virtual const BaseMatrix & GetAMatrix() const override
+    {
+      return bfa->GetMatrix(); 
+    }
+
+    virtual const char * ClassName() const override
+    {
+      return "Direct Preconditioner"; 
+    }
+  };
+
+
+  ////////////////////////
 
   class NGS_DLL_HEADER BASE_BDDCPreconditioner : public Preconditioner
   {
   public:
     BASE_BDDCPreconditioner (shared_ptr<BilinearForm> abfa, const Flags & aflags,
                              const string aname = "bddcprecond");
-    static DocInfo GetDocu ();    
+    static DocInfo GetDocu ();
+    virtual shared_ptr<Preconditioner> Create (shared_ptr<BilinearForm> bfa, const Flags & cflags) const override;
   };
 
   
@@ -258,29 +340,29 @@ namespace ngcomp
       ; // delete pre;
     }
     
-    virtual void InitLevel (shared_ptr<BitArray> _freedofs);
+    virtual void InitLevel (shared_ptr<BitArray> _freedofs) override;
 
-    virtual void FinalizeLevel (const BaseMatrix *);
+    virtual void FinalizeLevel (const BaseMatrix *) override;
     virtual void AddElementMatrix (FlatArray<int> dnums,
-				   const FlatMatrix<SCAL> & elmat,
+				   FlatMatrix<SCAL> elmat,
 				   ElementId id, 
-				   LocalHeap & lh);
+				   LocalHeap & lh) override;
 
-    virtual void Update ()
+    virtual void Update () override
     {
       if (timestamp < bfa->GetTimeStamp())
         throw Exception("A BDDC preconditioner must be defined before assembling");
     }  
 
-    virtual const BaseMatrix & GetAMatrix() const
+    virtual const BaseMatrix & GetAMatrix() const override
     {
       return bfa->GetMatrix();
     }
 
-    virtual const BaseMatrix & GetMatrix() const;
-    virtual shared_ptr<BaseMatrix> GetMatrixPtr();
+    virtual const BaseMatrix & GetMatrix() const override;
+    virtual shared_ptr<BaseMatrix> GetMatrixPtr() override;
 
-    virtual void CleanUpLevel ()
+    virtual void CleanUpLevel () override
     {
       /*
       delete pre;
@@ -290,10 +372,10 @@ namespace ngcomp
     }
 
 
-    virtual void Mult (const BaseVector & x, BaseVector & y) const;
-    virtual void MultAdd (double s, const BaseVector & x, BaseVector & y) const;
+    virtual void Mult (const BaseVector & x, BaseVector & y) const override;
+    virtual void MultAdd (double s, const BaseVector & x, BaseVector & y) const override;
 
-    virtual const char * ClassName() const
+    virtual const char * ClassName() const override
     { return "BDDC Preconditioner"; }
   };
 
@@ -414,7 +496,7 @@ namespace ngcomp
     ///
     // MGPreconditioner * low_order_preconditioner;
     ///
-    shared_ptr<Preconditioner> coarse_pre;
+    shared_ptr<BaseMatrix> coarse_pre;
     ///
     int finesmoothingsteps;
     ///
@@ -432,13 +514,20 @@ namespace ngcomp
 		      const string aname = "mgprecond");
     ///
     virtual ~MGPreconditioner() { ; }
+    
+    static DocInfo GetDocu ();
 
+    
     void FreeSmootherMem(void);
 
     virtual void FinalizeLevel (const BaseMatrix * mat) override
     {
       Update();
     }
+
+    virtual shared_ptr<Preconditioner> Create (shared_ptr<BilinearForm> bfa, const Flags & cflags) const override;  
+    
+    // void SetAdditionalDirichletConstraints (Region areg) override;
 
     ///
     virtual void Update () override;
@@ -462,7 +551,7 @@ namespace ngcomp
     void MgTest () const;
 
     void SetDirectSolverCluster(shared_ptr<Array<int>> cluster);
-    void SetCoarsePreconditioner(shared_ptr<Preconditioner> prec);
+    void SetCoarsePreconditioner(shared_ptr<BaseMatrix> prec);
   };
 
   class CommutingAMGPreconditioner : public Preconditioner

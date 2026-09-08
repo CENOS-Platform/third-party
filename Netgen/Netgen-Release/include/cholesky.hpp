@@ -254,7 +254,7 @@ namespace ngbla
             IC<128> BW;
             int nr = (c.Height()+BH-1) / BH;
             int nc = (c.Width()+BW-1) / BW;
-            task_manager -> CreateJob
+            GetTaskManager() -> CreateJob
                            ( [a,b,c,diag,nr,symmetric,BH,BW] (const TaskInfo & ti)
                            {
                              size_t br = ti.task_nr % nr;
@@ -503,7 +503,7 @@ namespace ngbla
     
     int n = mat.Height();
     STACK_ARRAY(T, mem, n);
-    FlatVector<T> dinv(n, &mem);
+    FlatVector<T> dinv(n, &mem[0]);
     
     for (size_t i = 0; i < n; i++)
       // CalcInverse (mat(i,i), dinv(i));
@@ -528,7 +528,7 @@ namespace ngbla
   {
     size_t n = mat.Height();
     STACK_ARRAY(T,mem, n);
-    FlatVector<T> dinv(n, &mem);
+    FlatVector<T> dinv(n, &mem[0]);
     
     for (size_t i = 0; i < n; i++)
       {

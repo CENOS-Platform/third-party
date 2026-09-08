@@ -158,6 +158,8 @@ namespace ngcomp
     Array<Vec<D>> points;
     Array<VTKCell> cells;
 
+    bool same_type_subdivision = false;
+
     int output_cnt = 0;
     std::vector<double> times = {0};
     shared_ptr<ofstream> fileout;
@@ -167,11 +169,12 @@ namespace ngcomp
               const Flags &, shared_ptr<MeshAccess>);
 
     VTKOutput(shared_ptr<MeshAccess>, const Array<shared_ptr<CoefficientFunction>> &,
-              const Array<string> &, string, int, int, string, bool, int);
+              const Array<string> &, string, int, int, string, bool, int, bool same_type_subdivision = false);
     virtual ~VTKOutput() { ; }
 
     void ResetArrays();
 
+    void FillReferenceSegm(Array<IntegrationPoint> &ref_coords, Array<VTKCell> &ref_elems);
     void FillReferenceTrig(Array<IntegrationPoint> &ref_coords, Array<VTKCell> &ref_elems);
     void FillReferenceQuad(Array<IntegrationPoint> &ref_coords, Array<VTKCell> &ref_elems);
     void FillReferenceTet(Array<IntegrationPoint> &ref_coords, Array<VTKCell> &ref_elems);

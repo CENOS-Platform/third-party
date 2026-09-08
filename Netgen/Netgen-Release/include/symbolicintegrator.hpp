@@ -19,8 +19,9 @@ namespace ngcomp
 
 namespace ngfem
 {
+  enum TrialOrTest : uint8_t { TRIAL, TEST };
 
-  class ProxyFunction : public CoefficientFunction
+  class NGS_DLL_HEADER ProxyFunction : public CoefficientFunction
 {
 protected:
   shared_ptr<ngcomp::FESpace> fes;
@@ -44,7 +45,7 @@ protected:
   mutable shared_ptr<ProxyFunction> anti_dt;
   // int dim;
 public:
-  NGS_DLL_HEADER ProxyFunction (shared_ptr<ngcomp::FESpace> afes,
+  ProxyFunction (shared_ptr<ngcomp::FESpace> afes,
                                 bool atestfunction, bool ais_complex,
                                 shared_ptr<DifferentialOperator> aevaluator, 
                                 shared_ptr<DifferentialOperator> aderiv_evaluator,
@@ -61,7 +62,7 @@ public:
 
   string GetDescription () const override;
 
-  NGS_DLL_HEADER virtual void GenerateCode(Code &code, FlatArray<int> inputs, int index) const override;
+  void GenerateCode(Code &code, FlatArray<int> inputs, int index) const override;
   
   const shared_ptr<DifferentialOperator> & Evaluator() const { return evaluator; }
   const shared_ptr<DifferentialOperator> & DerivEvaluator() const { return deriv_evaluator; }
@@ -70,19 +71,19 @@ public:
   const shared_ptr<DifferentialOperator> & TTraceEvaluator() const { return ttrace_evaluator; }
   const shared_ptr<DifferentialOperator> & TTraceDerivEvaluator() const { return ttrace_deriv_evaluator; }
 
-  NGS_DLL_HEADER shared_ptr<ProxyFunction> Deriv() const;
-  NGS_DLL_HEADER shared_ptr<ProxyFunction> Trace() const;
-  NGS_DLL_HEADER shared_ptr<CoefficientFunction> Primary() const override
+  shared_ptr<ProxyFunction> Deriv() const;
+  shared_ptr<ProxyFunction> Trace() const;
+  shared_ptr<CoefficientFunction> Primary() const override
   { return primaryproxy; }
   
-  NGS_DLL_HEADER shared_ptr<ProxyFunction> Dt() const;  
-  NGS_DLL_HEADER shared_ptr<ProxyFunction> AntiDt() const;
-  NGS_DLL_HEADER int OrderDt() const;    
+  shared_ptr<ProxyFunction> Dt() const;  
+  shared_ptr<ProxyFunction> AntiDt() const;
+  int OrderDt() const;    
 
   
-  NGS_DLL_HEADER shared_ptr<ProxyFunction> Other(shared_ptr<CoefficientFunction> _boundary_values) const;
+  shared_ptr<ProxyFunction> Other(shared_ptr<CoefficientFunction> _boundary_values) const;
 
-  NGS_DLL_HEADER const shared_ptr<CoefficientFunction> & BoundaryValues() const { return boundary_values; } 
+  const shared_ptr<CoefficientFunction> & BoundaryValues() const { return boundary_values; } 
 
   void SetAdditionalEvaluator (string name, shared_ptr<DifferentialOperator> diffop)
   {
@@ -101,10 +102,10 @@ public:
     return additional_diffops;
   }
 
-  NGS_DLL_HEADER virtual shared_ptr<ProxyFunction> GetAdditionalProxy (string name) const;
+  virtual shared_ptr<ProxyFunction> GetAdditionalProxy (string name) const;
   
-  NGS_DLL_HEADER shared_ptr<CoefficientFunction> Operator (const string & name) const override;
-  NGS_DLL_HEADER shared_ptr<CoefficientFunction> Operator (shared_ptr<DifferentialOperator> diffop) const override;
+  shared_ptr<CoefficientFunction> Operator (const string & name) const override;
+  shared_ptr<CoefficientFunction> Operator (shared_ptr<DifferentialOperator> diffop) const override;
     
   const shared_ptr<ngcomp::FESpace> & GetFESpace() const { return fes; }
   void SetFESpace(shared_ptr<ngcomp::FESpace> fespace) { fes = fespace; }
@@ -118,44 +119,44 @@ public:
     return tmp(0);
   }
 
-  NGS_DLL_HEADER virtual void Evaluate (const BaseMappedIntegrationPoint & ip,
+  virtual void Evaluate (const BaseMappedIntegrationPoint & ip,
                          FlatVector<> result) const override;
 
-  NGS_DLL_HEADER virtual void Evaluate (const BaseMappedIntegrationPoint & ip,
+  virtual void Evaluate (const BaseMappedIntegrationPoint & ip,
                          FlatVector<Complex> result) const override;
 
-  NGS_DLL_HEADER virtual void Evaluate (const BaseMappedIntegrationRule & ir,
+  virtual void Evaluate (const BaseMappedIntegrationRule & ir,
                                         BareSliceMatrix<> result) const override;
 
-  NGS_DLL_HEADER virtual void Evaluate (const BaseMappedIntegrationRule & ir,
+  virtual void Evaluate (const BaseMappedIntegrationRule & ir,
                                         BareSliceMatrix<Complex> result) const override;
 
   // virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir,
   // AFlatMatrix<double> values) const;
 
-  NGS_DLL_HEADER virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir,
+  virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir,
                          BareSliceMatrix<SIMD<double>> values) const override;
-  NGS_DLL_HEADER virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir,
+  virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir,
                          BareSliceMatrix<SIMD<Complex>> values) const override;
 
   /*
-  NGS_DLL_HEADER virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir,
+  virtual void Evaluate (const SIMD_BaseMappedIntegrationRule & ir,
                          FlatArray<AFlatMatrix<double>*> input,
                          AFlatMatrix<double> values) const override;
 
-  NGS_DLL_HEADER virtual void EvaluateDeriv (const BaseMappedIntegrationRule & mir,
+  virtual void EvaluateDeriv (const BaseMappedIntegrationRule & mir,
                               FlatMatrix<> result,
                               FlatMatrix<> deriv) const override;
 
-  NGS_DLL_HEADER virtual void EvaluateDDeriv (const BaseMappedIntegrationRule & mir,
+  virtual void EvaluateDDeriv (const BaseMappedIntegrationRule & mir,
                                FlatMatrix<> result,
                                FlatMatrix<> deriv,
                                FlatMatrix<> dderiv) const override;
 
-  NGS_DLL_HEADER virtual void EvaluateDeriv (const SIMD_BaseMappedIntegrationRule & ir,
+  virtual void EvaluateDeriv (const SIMD_BaseMappedIntegrationRule & ir,
                               AFlatMatrix<double> values, AFlatMatrix<double> deriv) const override;
   
-  NGS_DLL_HEADER virtual void EvaluateDDeriv (const SIMD_BaseMappedIntegrationRule & ir,
+  virtual void EvaluateDDeriv (const SIMD_BaseMappedIntegrationRule & ir,
                                AFlatMatrix<double> values, AFlatMatrix<double> deriv,
                                AFlatMatrix<double> dderiv) const override;
   */
@@ -217,7 +218,7 @@ public:
   // virtual bool ElementwiseConstant () const  override{ return true; }
 
   // the old one, to be replaced
-  NGS_DLL_HEADER void NonZeroPattern (const class ProxyUserData & ud,
+  void NonZeroPattern (const class ProxyUserData & ud,
                                       FlatVector<bool> nonzero,
                                       FlatVector<bool> nonzero_deriv,
                                       FlatVector<bool> nonzero_dderiv) const;
@@ -258,19 +259,24 @@ public:
     shared_ptr<SumOfIntegrals> operator() (shared_ptr<CoefficientFunction> u) const;
   };
 
-
   
 class ProxyUserData
 {
   FlatArray<const ProxyFunction*> remember_first;
   FlatArray<FlatMatrix<double>> remember_second;
   FlatArray<FlatMatrix<SIMD<double>>> remember_asecond;
+  FlatArray<FlatMatrix<Complex>> remember_csecond;
+  FlatArray<FlatMatrix<SIMD<Complex>>> remember_acsecond;
 
   FlatArray<const CoefficientFunction*> remember_cf_first;
   FlatArray<FlatMatrix<double>> remember_cf_second;  
   FlatArray<FlatMatrix<SIMD<double>>> remember_cf_asecond;
+  FlatArray<FlatMatrix<Complex>> remember_cf_csecond;
+  FlatArray<FlatMatrix<SIMD<Complex>>> remember_cf_acsecond;
   FlatArray<bool> remember_cf_computed;
 public:
+  xbool complex = maybe;
+
   class ProxyFunction * testfunction = nullptr;
   int test_comp;
   class ProxyFunction * trialfunction = nullptr;
@@ -285,28 +291,42 @@ public:
   
   ProxyUserData ()
     : remember_first(0,nullptr), remember_second(0,nullptr), remember_asecond(0,nullptr),
-      remember_cf_first(0, nullptr), remember_cf_second(0,nullptr),remember_cf_asecond(0,nullptr), remember_cf_computed(0, nullptr)
+      remember_csecond(0,nullptr), remember_acsecond(0,nullptr),
+      remember_cf_first(0, nullptr), remember_cf_second(0,nullptr),remember_cf_asecond(0,nullptr),
+      remember_cf_csecond(0,nullptr), remember_cf_acsecond(0,nullptr),
+      remember_cf_computed(0, nullptr)
   { ; }
   ProxyUserData (size_t ntrial, size_t ncf, LocalHeap & lh)
     : remember_first(ntrial, lh), remember_second(ntrial, lh),
-      remember_asecond(ntrial, lh),
+      remember_asecond(ntrial, lh), remember_csecond(ntrial, lh),
+      remember_acsecond(ntrial, lh),
       remember_cf_first(ncf, lh), remember_cf_second(ncf, lh),
-      remember_cf_asecond(ncf, lh),      
+      remember_cf_asecond(ncf, lh), remember_cf_csecond(ncf, lh),
+      remember_cf_acsecond(ncf, lh),
       remember_cf_computed(ncf, lh)
   { remember_first = nullptr; remember_cf_first = nullptr; }
 
   ProxyUserData (int ntrial, LocalHeap & lh)
     : ProxyUserData (ntrial, 0, lh) { ; } 
   
-  void AssignMemory (const ProxyFunction * proxy, size_t h, size_t w, LocalHeap & lh)
+  void AssignMemory (const ProxyFunction * proxy, size_t h, size_t w, LocalHeap & lh,
+                     bool complex = false)
   {
     for (size_t i = 0; i < remember_first.Size(); i++)
       {
         if (remember_first[i] == nullptr)
           {
             remember_first[i] = proxy;
-            new (&remember_second[i]) FlatMatrix<> (h, w, lh);
-            new (&remember_asecond[i]) FlatMatrix<SIMD<double>> (w, (h+SIMD<double>::Size()-1)/SIMD<double>::Size(), lh);
+            if(complex)
+              {
+                new (&remember_csecond[i]) FlatMatrix<Complex> (h, w, lh);
+                new (&remember_acsecond[i]) FlatMatrix<SIMD<Complex>> (w, (h+SIMD<Complex>::Size()-1)/SIMD<Complex>::Size(), lh);
+              }
+            else
+              {
+                new (&remember_second[i]) FlatMatrix<> (h, w, lh);
+                new (&remember_asecond[i]) FlatMatrix<SIMD<double>> (w, (h+SIMD<double>::Size()-1)/SIMD<double>::Size(), lh);
+              }
             return;
           }
       }
@@ -327,16 +347,39 @@ public:
     throw Exception ("no space for userdata - memory available");
   }
 
+  void AssignMemory (const ProxyFunction * proxy, FlatMatrix<SIMD<Complex>> mat)
+  {
+    for (size_t i = 0; i < remember_first.Size(); i++)
+      {
+        if (remember_first[i] == nullptr || remember_first[i] == proxy)
+          {
+            remember_first[i] = proxy;
+            new (&remember_acsecond[i]) FlatMatrix<SIMD<Complex>> (mat);
+            return;
+          }
+      }
+    throw Exception ("no space for userdata - memory available");
+  }
+
   
-  void AssignMemory (const CoefficientFunction * cf, size_t h, size_t w, LocalHeap & lh)
+  void AssignMemory (const CoefficientFunction * cf, size_t h, size_t w, LocalHeap & lh,
+      xbool complex=maybe)
   {
     for (size_t i = 0; i < remember_cf_first.Size(); i++)
       {
         if (remember_cf_first[i] == nullptr)
           {
             remember_cf_first[i] = cf;
-            new (&remember_cf_second[i]) FlatMatrix<double> (h, w, lh);            
-            new (&remember_cf_asecond[i]) FlatMatrix<SIMD<double>> (w, (h+SIMD<double>::Size()-1)/SIMD<double>::Size(), lh);
+            if(!complex.IsTrue())
+              {
+                new (&remember_cf_second[i]) FlatMatrix<double> (h, w, lh);
+                new (&remember_cf_asecond[i]) FlatMatrix<SIMD<double>> (w, (h+SIMD<double>::Size()-1)/SIMD<double>::Size(), lh);
+              }
+            if (!complex.IsFalse())
+              {
+                new (&remember_cf_csecond[i]) FlatMatrix<Complex> (h, w, lh);
+                new (&remember_cf_acsecond[i]) FlatMatrix<SIMD<Complex>> (w, (h+SIMD<Complex>::Size()-1)/SIMD<Complex>::Size(), lh);
+              }
             remember_cf_computed[i] = false;
             return;
           }
@@ -352,7 +395,22 @@ public:
           {
             remember_cf_first[i] = cf;
             new (&remember_cf_asecond[i]) FlatMatrix<SIMD<double>> (mat);
-            remember_cf_computed[i] = true;            
+            remember_cf_computed[i] = true;
+            return;
+          }
+      }
+    throw Exception ("no space for userdata - memory available");
+  }
+
+  void AssignMemory (const CoefficientFunction * cf, FlatMatrix<SIMD<Complex>> mat)
+  {
+    for (size_t i = 0; i < remember_cf_first.Size(); i++)
+      {
+        if (remember_cf_first[i] == nullptr || remember_cf_first[i] == cf)
+          {
+            remember_cf_first[i] = cf;
+            new (&remember_cf_acsecond[i]) FlatMatrix<SIMD<Complex>> (mat);
+            remember_cf_computed[i] = true;
             return;
           }
       }
@@ -373,17 +431,33 @@ public:
   {
     return remember_second[remember_first.PosSure(proxy)];
   }
+  FlatMatrix<Complex> GetMemoryC (const ProxyFunction * proxy) const
+  {
+    return remember_csecond[remember_first.PosSure(proxy)];
+  }
   FlatMatrix<SIMD<double>> GetAMemory (const ProxyFunction * proxy) const
   {
     return remember_asecond[remember_first.PosSure(proxy)];
+  }
+  FlatMatrix<SIMD<Complex>> GetAMemoryC (const ProxyFunction * proxy) const
+  {
+    return remember_acsecond[remember_first.PosSure(proxy)];
   }
   FlatMatrix<double> GetMemory (const CoefficientFunction * cf) const
   {
     return remember_cf_second[remember_cf_first.PosSure(cf)];
   }
+  FlatMatrix<Complex> GetMemoryC (const CoefficientFunction * cf) const
+  {
+    return remember_cf_csecond[remember_cf_first.PosSure(cf)];
+  }
   FlatMatrix<SIMD<double>> GetAMemory (const CoefficientFunction * cf) const
   {
     return remember_cf_asecond[remember_cf_first.PosSure(cf)];
+  }
+  FlatMatrix<SIMD<Complex>> GetAMemoryC (const CoefficientFunction * cf) const
+  {
+    return remember_cf_acsecond[remember_cf_first.PosSure(cf)];
   }
   bool Computed (const CoefficientFunction * cf) const
   {
@@ -569,11 +643,19 @@ public:
 			void * precomputed,
 			LocalHeap & lh) const override;
 
+    NGS_DLL_HEADER virtual void
+    ApplyElementMatrix (const FiniteElement & fel,
+			const ElementTransformation & trafo,
+			const FlatVector<Complex> elx,
+			FlatVector<Complex> ely,
+			void * precomputed,
+			LocalHeap & lh) const override;
+
     template <typename SCAL, typename SCAL_SHAPES>
     void T_ApplyElementMatrixEB (const FiniteElement & fel, 
                                  const ElementTransformation & trafo, 
-                                 const FlatVector<double> elx, 
-                                 FlatVector<double> ely,
+                                 const FlatVector<SCAL> elx,
+                                 FlatVector<SCAL> ely,
                                  void * precomputed,
                                  LocalHeap & lh) const;
 
@@ -596,7 +678,11 @@ public:
     
     const auto & GetCoefficientFunction() { return cf; }
     const auto & TrialProxies() { return trial_proxies; } 
-    const auto & TestProxies() { return test_proxies; } 
+    const auto & TestProxies() { return test_proxies; }
+    const auto & Proxies(TrialOrTest kind)
+    {
+      return (kind == TRIAL) ? trial_proxies : test_proxies;
+    }
     const auto & GridFunctionCoefficients() { return gridfunction_cfs; } 
   };
 
@@ -604,6 +690,7 @@ public:
 
   class SymbolicFacetLinearFormIntegrator : public FacetLinearFormIntegrator
   {
+  protected:
     shared_ptr<CoefficientFunction> cf;
     Array<ProxyFunction*> proxies;
     Array<CoefficientFunction*> cache_cfs;
@@ -614,7 +701,7 @@ public:
     SIMD_IntegrationRule simd_ir;   // if non-empty use this integration-rule
 
   public:
-    SymbolicFacetLinearFormIntegrator (shared_ptr<CoefficientFunction> acf, VorB avb);
+    NGS_DLL_HEADER SymbolicFacetLinearFormIntegrator (shared_ptr<CoefficientFunction> acf, VorB avb);
 
     virtual VorB VB() const override { return vb; }
     virtual bool BoundaryForm() const override { return vb == BND; }
@@ -680,7 +767,8 @@ public:
     VorB vb;
     bool element_boundary;
     bool neighbor_testfunction;
-    Array<shared_ptr<CoefficientFunction>> dcf_dtest;  // derivatives by test-functions    
+    Array<shared_ptr<CoefficientFunction>> dcf_dtest;  // derivatives by test-functions
+    Matrix<shared_ptr<CoefficientFunction>> ddcf_dtest_dtrial;  // derivatives by test- and trial-functions
   public:
     NGS_DLL_HEADER SymbolicFacetBilinearFormIntegrator (shared_ptr<CoefficientFunction> acf, VorB avb, bool aelement_boundary);
 
@@ -842,6 +930,24 @@ public:
   
 
 
+
+
+
+  class DirichletBoundary
+  {
+  public:
+    shared_ptr<ProxyFunction> proxy;
+    RegionDescriptor vbn;
+  };
+
+  class DirichletBC 
+  {
+  public:
+    DirichletBoundary dirbnd;
+    shared_ptr<CoefficientFunction> val;
+  };
+
+  
 
 }
 

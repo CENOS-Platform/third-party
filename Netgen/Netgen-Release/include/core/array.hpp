@@ -8,6 +8,7 @@
 /**************************************************************************/
 
 #include <cstring>
+#include <array>
 #include <type_traits>
 
 #include "exception.hpp"
@@ -322,6 +323,12 @@ namespace ngcore
   { return ao.Range(); }
 
   template <typename T>
+  NETGEN_INLINE auto Range (FlatArray<T> fa)
+  {
+    return fa.Range();
+  }
+  
+  template <typename T>
   NETGEN_INLINE T_Range<T> Range_impl (T n, std::true_type)
   {
     return T_Range<T> (0, n);
@@ -346,7 +353,7 @@ namespace ngcore
 
    */
   template <typename T>
-  auto Range(const T & x)
+  NETGEN_INLINE auto Range(const T & x)
     -> typename std::enable_if<std::is_integral_v<T> || !has_range<T>,
                                decltype(Range_impl(x, std::is_integral<T>()))>::type {
     return Range_impl(x, std::is_integral<T>());
@@ -454,11 +461,11 @@ namespace ngcore
     using BaseArrayObject<FlatArray>::ILLEGAL_POSITION;
 
     /// initialize array 
-    NETGEN_INLINE FlatArray () = default;
+    FlatArray () = default;
     // { ; } // size = 0; data = 0; }
 
     /// copy constructor allows size-type conversion 
-    NETGEN_INLINE FlatArray (const FlatArray & a2) = default;
+    FlatArray (const FlatArray & a2) = default;
     // : size(a2.Size()), data(a2.data) { ; } 
 
     /// provide size and memory
@@ -474,6 +481,10 @@ namespace ngcore
       : size(asize), data (lh.Alloc<T> (asize))
     { ; }
 
+    template <size_t N>
+    NETGEN_INLINE FlatArray(std::array<T,N> & a)
+      : size(N), data(&a[0]) { }
+    
     /// the size
     NETGEN_INLINE size_t Size() const { return size; }
 
@@ -987,6 +998,22 @@ namespace ngcore
       this->size--;
     }
 
+    template <typename FUNC>
+    NETGEN_INLINE void RemoveElementIf (FUNC func)
+    {
+      ptrdiff_t move_forward = 0;
+      for (size_t j = 0; j < this->size; j++)
+        {
+          if (func(this->data[j]))
+            move_forward++;
+          else
+            {
+              if (move_forward > 0)
+                this->data[j-move_forward] = this->data[j];
+            }
+        }
+      this->size -= move_forward;
+    }
 
     /// Delete last element. 
     NETGEN_INLINE void DeleteLast ()
@@ -1437,8 +1464,24 @@ namespace ngcore
   template <class T, typename TLESS>
   void QuickSort (FlatArray<T> data, TLESS less)
   {
-    if (data.Size() <= 1) return;
+    constexpr size_t INSERTION_SORT_THRESHOLD = 16;
+    
+    if (data.Size() <= INSERTION_SORT_THRESHOLD) {
+      // insertion sort
+      for (ptrdiff_t k = 1; k < data.Size(); ++k)
+        {
+          auto newval = data[k];
+          ptrdiff_t l = k;
+          for ( ; l > 0 && less(newval, data[l-1]); --l)
+            data[l] = data[l-1];
+          data[l] = newval;
+        }
+      
+      return;
+    }
 
+    // if (data.Size() <= 1) return;
+    
     ptrdiff_t i = 0;
     ptrdiff_t j = data.Size()-1;
 
@@ -1581,13 +1624,13 @@ namespace ngcore
     
     HTArray & operator= (const HTArray &) = default;
 
-    T * Ptr () { return tail.Ptr(); }
-    T & operator[] (size_t i) { return Ptr()[i]; }
+    NETGEN_INLINE T * Ptr () { return tail.Ptr(); }
+    NETGEN_INLINE T & operator[] (size_t i) { return Ptr()[i]; }
 
-    const T * Ptr () const { return tail.Ptr(); }
-    const T & operator[] (size_t i) const { return Ptr()[i]; }
+    NETGEN_INLINE const T * Ptr () const { return tail.Ptr(); }
+    NETGEN_INLINE const T & operator[] (size_t i) const { return Ptr()[i]; }
     template <int NR>
-    T & Elem() { return (NR==S-1) ? head : tail.template Elem<NR>(); }
+    NETGEN_INLINE T & Elem() { return (NR==S-1) ? head : tail.template Elem<NR>(); }
 
     auto Tail() const { return tail; }
     auto Head() const { return head; }
@@ -1610,13 +1653,13 @@ namespace ngcore
     
     HTArray & operator= (const HTArray &) = default;
 
-    T * Ptr () { return &head; }
-    T & operator[] (size_t i) { return Ptr()[i]; }
+    NETGEN_INLINE T * Ptr () { return &head; }
+    NETGEN_INLINE T & operator[] (size_t i) { return Ptr()[i]; }
 
-    const T * Ptr () const { return &head; }
-    const T & operator[] (size_t i) const { return Ptr()[i]; }
-    template <int NR>    
-    T & Elem()
+    NETGEN_INLINE const T * Ptr () const { return &head; }
+    NETGEN_INLINE const T & operator[] (size_t i) const { return Ptr()[i]; }
+    template <int NR>
+    NETGEN_INLINE T & Elem()
     {
       // assert(NR==0, "HTArray index error");
       return head;
@@ -1651,11 +1694,11 @@ namespace ngcore
     }
     */
     // T * Ptr () { return (T*)(void*)&head; }
-    T * Ptr () { return (T*)(void*)this; }
-    T & operator[] (size_t i) { return Ptr()[i]; }
+    NETGEN_INLINE T * Ptr () { return (T*)(void*)this; }
+    NETGEN_INLINE T & operator[] (size_t i) { return Ptr()[i]; }
     // const T * Ptr () const { return (const T*)(const void*)&head; }
-    const T * Ptr () const { return (const T*)(const void*)this; }
-    const T & operator[] (size_t i) const { return Ptr()[i]; }
+    NETGEN_INLINE const T * Ptr () const { return (const T*)(const void*)this; }
+    NETGEN_INLINE const T & operator[] (size_t i) const { return Ptr()[i]; }
     template <int NR>        
     T & Elem()
     {

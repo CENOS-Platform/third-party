@@ -78,7 +78,7 @@ namespace ngbla
   
   // template <typename T = double, ORDERING ORD = RowMajor> class FlatMatrix;
   template <typename T = double, ORDERING ORD = RowMajor> class Matrix;
-
+  template <typename T> class DoubleSliceMatrix;
   
   template <int H, int W, typename T> class Mat;
   template <int H, typename T> class DiagMat;
@@ -94,7 +94,8 @@ namespace ngbla
     return is_scalar_type<T>::value;
   }
 
-
+  template <typename T>
+  concept ScalarType = is_scalar_type<T>::value;
 
 
   
@@ -103,13 +104,15 @@ namespace ngbla
   */
 
   
-  template <typename TM, enable_if_t<!IsScalar<TM>(),bool> = true> 
+  // template <typename TM, enable_if_t<!IsScalar<TM>(),bool> = true>
+  template <typename TM> requires(!IsScalar<TM>())
   inline auto Access (const TM & mat, int i, int j)
   {
     return mat(i,j);
   }
 
-  template <typename TM, enable_if_t<IsScalar<TM>(),bool> = true>  
+  // template <typename TM, enable_if_t<IsScalar<TM>(),bool> = true>
+  template <typename TM> requires(IsScalar<TM>())  
   inline auto Access (const TM & mat, int i, int j)
   {
     return mat;
@@ -122,6 +125,7 @@ namespace ngbla
     
   template<> struct is_scalar_type<int> { static constexpr bool value = true; };  
   template<> struct is_scalar_type<double> { static constexpr bool value = true; };
+  template<> struct is_scalar_type<float> { static constexpr bool value = true; };
   template<> struct is_scalar_type<Complex> { static constexpr bool value = true; };
   
 
@@ -193,7 +197,30 @@ namespace ngbla
   };
 
 
+  template <class T>
+  class scal_traits
+  {
+  public:
+    typedef T TSCAL64;
+    typedef T TSCAL_REAL;    
+  };
 
+
+  template <> class scal_traits<float>
+  {
+  public:
+    typedef double TSCAL64;
+    typedef float TSCAL_REAL;    
+  };
+  
+  template <> class scal_traits<Complex>
+  {
+  public:
+    typedef Complex TSCAL64;
+    typedef double TSCAL_REAL;    
+  };
+
+  
   /// Height of matrix
   template <class TM> 
   inline auto Height (const TM & m)
@@ -209,8 +236,10 @@ namespace ngbla
   }
 
   template <> inline constexpr auto Height<double> (const double&) { return 1; }
+  template <> inline constexpr auto Height<float> (const float&) { return 1; }  
   template <> inline constexpr auto Height<Complex> (const Complex&) { return 1; }
   template <> inline constexpr auto Width<double> (const double&) { return 1; }
+  template <> inline constexpr auto Width<float> (const float&) { return 1; }
   template <> inline constexpr auto Width<Complex> (const Complex&) { return 1; }
 
   /*
@@ -226,14 +255,17 @@ namespace ngbla
   inline constexpr auto Width () { return TM::Width(); }
 
   template <> inline constexpr auto Height<double> () { return 1; }
+  template <> inline constexpr auto Height<float> () { return 1; }  
   template <> inline constexpr auto Height<Complex> () { return 1; }
   template <> inline constexpr auto Width<double> () { return 1; }
+  template <> inline constexpr auto Width<float> () { return 1; }
   template <> inline constexpr auto Width<Complex> () { return 1; }
 
   
   template <class TM> 
   inline constexpr bool IsComplex () { return IsComplex<typename mat_traits<TM>::TSCAL>(); }
   template <> inline constexpr bool IsComplex<double> () { return false; }
+  template <> inline constexpr bool IsComplex<float> () { return false; }
   template <> inline constexpr bool IsComplex<Complex> () { return true; }  
 
   
@@ -291,15 +323,16 @@ namespace ngbla
   struct undefined_size
     {
       undefined_size() = default;
-      undefined_size(size_t s) { }
+      INLINE undefined_size(size_t s) { }
       template <int S>
-      explicit constexpr undefined_size(IC<S> s) { }
+      INLINE explicit constexpr undefined_size(IC<S> s) { }
   };
   
   inline ostream & operator<< (ostream & ost, undefined_size s) { ost << "undefined"; return ost; }
   inline auto operator/ (undefined_size ud, size_t i) { return ud; }
   inline auto operator- (undefined_size ud, size_t i) { return ud; }
   inline auto operator+ (undefined_size ud, size_t i) { return ud; }
+  inline auto operator* (size_t i, undefined_size ud) { return ud; }
 #endif
 
   
@@ -348,6 +381,10 @@ namespace ngbla
     /// cast to specific type
     INLINE const T & Spec() const { return static_cast<const T&> (*this); }
 
+    template <typename ...I>
+    INLINE auto operator() (I... i) const { return static_cast<const T&>(*this)(i...); }
+
+    
     INLINE auto View() const { return static_cast<const T&> (*this).View(); }
     INLINE decltype(auto) ViewRW() { return static_cast<T&>(*this).ViewRW(); }
     INLINE auto Shape() const { return Spec().T::Shape(); }
@@ -356,7 +393,7 @@ namespace ngbla
     INLINE auto Height() const { return Spec().T::Height(); }
     INLINE auto Width() const { return Spec().T::Width(); }
     
-
+    
     void Dump (ostream & ost) const { Spec().T::Dump(ost); }
 
 
@@ -463,20 +500,22 @@ namespace ngbla
   template <typename TA>
   class LocalHeapExpr : public Expr<LocalHeapExpr<TA> >
   {
-    const TA & a;
+    TA a;
     LocalHeap * lh;
   public:
-    INLINE LocalHeapExpr (const TA & aa, LocalHeap & alh) : a(aa), lh(&alh) { ; }
+    INLINE LocalHeapExpr (TA aa, LocalHeap & alh) : a(aa), lh(&alh) { ; }
     INLINE const TA & A() const { return a; }
     INLINE auto Height() const { return a.Height(); }
     INLINE auto Width() const { return a.Width(); }
+    INLINE auto View() const { return *this; }
+
     INLINE LocalHeap & GetLocalHeap() const { return *lh; }
   };
   
   template <typename TA>
   INLINE LocalHeapExpr<TA> operator| (const Expr<TA> & a, LocalHeap & lh)
   {
-    return LocalHeapExpr<TA> (a.Spec(), lh);
+    return LocalHeapExpr(a.View(), lh);
   }
 
 
@@ -484,7 +523,7 @@ namespace ngbla
   template <class TA, class TB> class MultExpr;
   template <class TA> class MinusExpr;
   template <class TA> class TransExpr;
-  template <class TA, class TS> class ScaleExpr;
+  template <class TA, ScalarType TS> class ScaleExpr;
 
 
   
@@ -515,7 +554,7 @@ namespace ngbla
         }
 
 
-      if (TB::IsLinear())
+      if constexpr (TB::IsLinear())
 	{
 	  if (T::IsLinear())
 	    {
@@ -572,9 +611,6 @@ namespace ngbla
     using Expr<T>::Width;
 
     enum { COL_MAJOR = 0 };  // matrix is stored col-major
-
-    void Dump (ostream & ost) const { ost << "Matrix"; }
-
 
 
     template<typename TOP, typename TB>
@@ -735,6 +771,11 @@ namespace ngbla
     {
       return (*this) *= (1./s);
     }
+
+
+    void Dump (ostream & ost) const
+    { ost << "Matexpr (h=" << Height() << ", w=" << Width() << ")"; }
+    
   };
 
 
@@ -838,6 +879,7 @@ namespace ngbla
   {
     TA a;
   public:
+    MinusExpr (const MinusExpr&) = default;
     MinusExpr (TA aa) : a(aa) { ; }
 
     template <typename ...I>
@@ -850,7 +892,10 @@ namespace ngbla
     INLINE auto Width() const { return a.Width(); }
     INLINE TA A() const { return a; }
 
-    static constexpr bool IsLinear() { return TA::IsLinear(); } 
+    static constexpr bool IsLinear() { return TA::IsLinear(); }
+    void Dump (ostream & ost) const
+    { ost << "-("; a.Dump(ost); ost << ")"; }
+    
   };
 
   template <typename TA>
@@ -926,7 +971,7 @@ namespace ngbla
   /**
      Scalar times Matrix-expr
   */
-  template <class TA, class TS> 
+  template <class TA, ScalarType TS> 
   class ScaleExpr : public Expr<ScaleExpr<TA,TS> >
   {
     TA a;
@@ -934,6 +979,7 @@ namespace ngbla
   public:
     static constexpr bool IsLinear() { return TA::IsLinear(); }
 
+    ScaleExpr (const ScaleExpr&) = default;
     INLINE ScaleExpr (TA aa, TS as) : a(aa), s(as) { ; }
     
     // INLINE auto operator() (size_t i) const { return s * a(i); }
@@ -956,13 +1002,27 @@ namespace ngbla
   };
 
 
-  template <typename TS, typename TA,
-            typename enable_if<IsScalar<TS>(),int>::type = 0>
+  // template <typename TS, typename TA,
+  // typename enable_if<IsScalar<TS>(),int>::type = 0>
+  /*
+  template <typename TS, typename TA> requires(IsScalar<TS>())  
   INLINE auto operator* (TS s, const Expr<TA> & a)
   {
     return ScaleExpr (a.View(), s);
   }
-
+  */
+  /*
+  template <ScalarType TS, typename TA> 
+  INLINE auto operator* (TS s, const Expr<TA> & a)
+  {
+    return ScaleExpr (a.View(), s);
+  }
+  */
+  template <typename TA> 
+  INLINE auto operator* (ScalarType auto s, const Expr<TA> & a)
+  {
+    return ScaleExpr (a.View(), s);
+  }
 
 
   /* ************************* MultExpr ************************* */
@@ -1002,7 +1062,8 @@ namespace ngbla
     template <typename ...J>
     INLINE auto operator() (size_t i, J... j) const
     { 
-      size_t wa = a.Width();
+      // size_t wa = a.Width();
+      auto wa = CombinedSize(a.Width(), get<0>(b.Shape()));   
 
       if (wa >= 1)
 	{
@@ -1078,8 +1139,9 @@ namespace ngbla
 
   /* ************************** Trans *************************** */
 
-  template <typename TA,
-            typename enable_if<IsScalar<TA>(),int>::type = 0>
+  // template <typename TA,
+  // typename enable_if<IsScalar<TA>(),int>::type = 0>
+  template <typename TA> requires(IsScalar<TA>())
   INLINE auto Trans (TA a) { return a; } 
   
 
@@ -1464,12 +1526,17 @@ namespace ngbla
 
   /* ************************* InnerProduct ********************** */
 
-  template <typename TA, typename TB,
-            typename enable_if<IsScalar<TA>(),int>::type = 0,
-            typename enable_if<IsScalar<TB>(),int>::type = 0>
+  // template <typename TA, typename TB,
+  //          typename enable_if<IsScalar<TA>(),int>::type = 0,
+  //          typename enable_if<IsScalar<TB>(),int>::type = 0>
+  // template <typename TA, typename TB> requires(IsScalar<TA>() && IsScalar<TB>())
+  // INLINE auto InnerProduct (TA a, TB b) { return a*b; } 
+
+  /*
+  template <ScalarType TA, ScalarType TB> 
   INLINE auto InnerProduct (TA a, TB b) { return a*b; } 
-
-
+  */
+  INLINE auto InnerProduct (ScalarType auto a, ScalarType auto b) { return a*b; } 
 
   
   /**
@@ -1492,8 +1559,38 @@ namespace ngbla
   }
 
 
+  /* ************************* OuterProduct ********************** */
+  
+  template <class TA, class TB>
+  class OuterProductExpr : public Expr<OuterProductExpr<TA,TB>>
+  {
+    TA a;
+    TB b;
+  public:
+    OuterProductExpr (TA aa, TB ab) : a(aa), b(ab) { ; }
+
+    INLINE auto operator() (size_t i, size_t j) const { return a[i] * b[j]; }
+
+    INLINE auto View() const { return *this; }
+    INLINE auto Shape() const
+    {
+      return tuple<size_t,size_t> (a.Size(), b.Size());
+    }
+    
+    INLINE const auto A() const { return a; }
+    INLINE const auto B() const { return b; }
+    INLINE auto Height() const { return a.Size(); }
+    INLINE auto Width() const { return b.Size(); }
+
+    static constexpr bool IsLinear() { return false; }         
+  };
 
 
+  template <typename TA, typename TB>
+  INLINE auto OuterProduct (const Expr<TA> & a, const Expr<TB> & b)
+  {
+    return OuterProductExpr (a.View(), b.View());
+  }
 
 
 
@@ -1607,8 +1704,9 @@ namespace ngbla
 
 
   
-  template <typename TA,
-            enable_if_t<IsScalar<TA>(),bool> = true>
+  // template <typename TA,
+  // enable_if_t<IsScalar<TA>(),bool> = true>
+  template <typename TA> requires(IsScalar<TA>())
   INLINE auto Inv (TA val) { return 1.0/val; } 
   
 

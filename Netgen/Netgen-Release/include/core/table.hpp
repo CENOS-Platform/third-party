@@ -262,14 +262,14 @@ namespace ngcore
     const MemoryTracer& GetMemoryTracer() const { return mt; }
 
   private:
-    size_t GetMemUsage() const { return size == 0 ? 0 : sizeof(T)*index[size] + sizeof(IndexType) * size+1; }
+    NETGEN_INLINE size_t GetMemUsage() const { return size == 0 ? 0 : sizeof(T)*index[size] + sizeof(IndexType) * size+1; }
     MemoryTracer mt;
   };
 
 
   /// Print table
   template <class T, typename IndexType>
-  inline ostream & operator<< (ostream & s, const Table<T,IndexType> & table)
+  inline ostream & operator<< (ostream & s, FlatTable<T,IndexType> table)
   {
     for (auto i : table.Range())
       {
@@ -462,6 +462,7 @@ namespace ngcore
       : TableCreator<int>(), takedofs(atakedofs) { };
     FilteredTableCreator(int acnt, const BitArray* atakedofs)
       : TableCreator<int>(acnt),takedofs(atakedofs) { };
+    void SetFilter (const BitArray * atakedofs) { takedofs = atakedofs; } 
     void Add (size_t blocknr, int data);
     void Add (size_t blocknr, IntRange range);
     void Add (size_t blocknr, FlatArray<int> dofs);

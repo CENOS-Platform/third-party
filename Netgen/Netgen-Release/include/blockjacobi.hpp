@@ -9,6 +9,7 @@
 
 
 #include "sparsematrix.hpp"
+#include "jacobi.hpp"
 
 namespace ngla
 {
@@ -16,7 +17,7 @@ namespace ngla
   /**
      Base class for Block - Jacobi and Block Gauss Seidel smoother.
   */
-  class NGS_DLL_HEADER BaseBlockJacobiPrecond : virtual public BaseMatrix
+  class NGS_DLL_HEADER BaseBlockJacobiPrecond : public BaseMSMPrecond
   {
   protected:
     /// the table defining the blocks
@@ -38,6 +39,17 @@ namespace ngla
     /// deletes the table
     virtual ~BaseBlockJacobiPrecond ();
 
+    virtual void Smooth (BaseVector & x, const BaseVector & b, int steps = 1) const override
+    {
+      GSSmooth (x, b, steps);
+    }
+    virtual void SmoothBack (BaseVector & x, const BaseVector & b, int steps = 1) const override
+    {
+      GSSmoothBack (x, b, steps);
+    }
+
+
+    
     /// performs steps Gauss-Seidel steps for the equation A x = b
     virtual void GSSmooth (BaseVector & x, const BaseVector & b,
 			   int steps = 1) const = 0;
@@ -101,8 +113,8 @@ namespace ngla
      The blocks are specified by a table container
   */
   template <class TM, class TV_ROW, class TV_COL>
-  class  NGS_DLL_HEADER BlockJacobiPrecond : virtual public BaseBlockJacobiPrecond,
-                                         virtual public S_BaseMatrix<typename mat_traits<TM>::TSCAL>
+  class  NGS_DLL_HEADER BlockJacobiPrecond : public BaseBlockJacobiPrecond,
+                                             public S_BaseMatrix<typename mat_traits<TM>::TSCAL>
   {
   protected:
     /// a reference to the matrix
@@ -117,6 +129,7 @@ namespace ngla
     // typedef typename mat_traits<TM>::TV_ROW TVX;
     typedef TV_ROW TVX;
     typedef typename mat_traits<TM>::TSCAL TSCAL;
+    typedef typename scal_traits<TSCAL>::TSCAL64 TSCAL64;    
 
     ///
     BlockJacobiPrecond (shared_ptr<const SparseMatrix<TM,TV_ROW,TV_COL>> amat, 
@@ -136,10 +149,10 @@ namespace ngla
     { return { string("BlockJacobi-")+typeid(TM).name(), this->Height(), this->Width() }; }
     
     ///
-    void MultAdd (TSCAL s, const BaseVector & x, BaseVector & y) const override;
+    void MultAdd (TSCAL64 s, const BaseVector & x, BaseVector & y) const override;
 
     ///
-    void MultTransAdd (TSCAL s, const BaseVector & x, BaseVector & y) const override;
+    void MultTransAdd (TSCAL64 s, const BaseVector & x, BaseVector & y) const override;
 
 
     ///
@@ -190,8 +203,8 @@ namespace ngla
   ///
   template <class TM, class TV>
   class BlockJacobiPrecondSymmetric : 
-    virtual public BaseBlockJacobiPrecond,
-    virtual public S_BaseMatrix<typename mat_traits<TM>::TSCAL>
+    public BaseBlockJacobiPrecond,
+    public S_BaseMatrix<typename mat_traits<TM>::TSCAL>
   {
   protected:
     shared_ptr<const SparseMatrixSymmetric<TM,TV>> mat;
@@ -210,7 +223,8 @@ namespace ngla
   
     typedef TV TVX;
     typedef typename mat_traits<TM>::TSCAL TSCAL;
-  
+    typedef typename scal_traits<TSCAL>::TSCAL64 TSCAL64;
+    
     ///
     NGS_DLL_HEADER BlockJacobiPrecondSymmetric (shared_ptr<const SparseMatrixSymmetric<TM,TV>> amat, 
                                                 shared_ptr<Table<int>> ablocktable);
@@ -233,10 +247,10 @@ namespace ngla
     void ComputeBlockFactor (FlatArray<int> block, int bw, FlatBandCholeskyFactors<TM> & inv) const;
   
     ///
-    void MultAdd (TSCAL s, const BaseVector & x, BaseVector & y) const override;
+    void MultAdd (TSCAL64 s, const BaseVector & x, BaseVector & y) const override;
 
     ///
-    void MultTransAdd (TSCAL s, const BaseVector & x, BaseVector & y) const override;
+    void MultTransAdd (TSCAL64 s, const BaseVector & x, BaseVector & y) const override;
 
     ///
     AutoVector CreateRowVector () const override { return mat->CreateColVector(); }

@@ -292,6 +292,7 @@ namespace ngfem
   {
     DIFFOP::AddTransSIMDIR (bfel, bmir, flux, x);
   }
+#endif  
 
   template <typename DIFFOP>
   int T_DifferentialOperator<DIFFOP> :: DimRef() const
@@ -312,14 +313,22 @@ namespace ngfem
   
   template <typename DIFFOP>
   void T_DifferentialOperator<DIFFOP> ::
-  CalcTransformationMatrix (const BaseMappedIntegrationPoint & mip,
+  CalcTransformationMatrix (const BaseMappedIntegrationPoint & bmip,
                             SliceMatrix<double> trans,
                             LocalHeap & lh) const
   {
+    const MappedIntegrationPoint<DIM_ELEMENT,DIM_SPACE> & mip =
+      static_cast<const MappedIntegrationPoint<DIM_ELEMENT,DIM_SPACE>&> (bmip);
     DIFFOP::CalcTransformationMatrix(mip, trans, lh);    
   }
+
+  template <typename DIFFOP>
+  string T_DifferentialOperator<DIFFOP> ::
+  GenerateTransformationCode (string invar, string outvar, bool trans) const  
+  {
+    return DIFFOP::GenerateTransformationCode(invar, outvar, trans);
+  }
   
-#endif  
 }
 
 

@@ -9,7 +9,8 @@
 
 #include <bla.hpp>
 #include <core/mpi_wrapper.hpp>
-// #include "paralleldofs.hpp"
+#include "basescalar.hpp"
+
 
 namespace ngla
 {
@@ -110,7 +111,7 @@ namespace ngla
   protected:
     /// size of vector
     size_t size;
-    /// number of doubles per entry
+    /// number of reals per entry
     int entrysize = 1;
     ///
     BaseVector () { ; }
@@ -227,6 +228,7 @@ namespace ngla
     int EntrySize() const throw () { return entrysize; }
     // one entry has the size of that many scalars (double or complex)
     virtual int EntrySizeScal() const throw () = 0;
+    virtual Scalar GetScalarType() const = 0;
     virtual void * Memory () const = 0;
     virtual FlatVector<double> FVDouble () const = 0;
     virtual FlatVector<Complex> FVComplex () const = 0;
@@ -251,12 +253,14 @@ namespace ngla
 
     virtual double InnerProductD (const BaseVector & v2) const;
     virtual Complex InnerProductC (const BaseVector & v2, bool conjuagte = false) const;
+    virtual void InnerProduct (const BaseVector & v2, BaseScalar & scal, bool conjugate = false) const;    
     
     virtual double L2Norm () const;
     virtual bool IsComplex() const { return false; }
 
     virtual BaseVector & Scale (double scal);
     virtual BaseVector & Scale (Complex scal);
+    virtual BaseVector & Scale (BaseScalar & scal);
 
     virtual BaseVector & SetScalar (double scal);
     virtual BaseVector & SetScalar (Complex scal);
@@ -266,6 +270,7 @@ namespace ngla
 
     virtual BaseVector & Add (double scal, const BaseVector & v);
     virtual BaseVector & Add (Complex scal, const BaseVector & v);
+    virtual BaseVector & Add (BaseScalar & scal, const BaseVector & v);    
 
     virtual ostream & Print (ostream & ost) const;
     virtual void Save(ostream & ost) const;
@@ -279,7 +284,8 @@ namespace ngla
     // virtual shared_ptr<BaseVector> CreateVector () const = 0;
     virtual AutoVector CreateVector () const = 0;
     virtual unique_ptr<MultiVector> CreateMultiVector (size_t cnt) const;
-
+    virtual shared_ptr<BaseScalar> CreateScalar() const;
+    
     virtual void SetRandom ();
 
     inline AutoVector Range (size_t begin, size_t end) const;
@@ -290,13 +296,14 @@ namespace ngla
       // { return Range(T_Range<size_t>(range)); }
 
     static bool IsRegularIndex (int index) { return index >= 0; }
-    virtual void GetIndirect (FlatArray<int> ind, 
-                              FlatVector<double> v) const = 0;
-    virtual void GetIndirect (FlatArray<int> ind, 
-                              FlatVector<Complex> v) const = 0;
+    virtual void GetIndirect (FlatArray<int> ind, FlatVector<double> v) const = 0;
+    virtual void GetIndirect (FlatArray<int> ind, FlatVector<float> v) const = 0;    
+    virtual void GetIndirect (FlatArray<int> ind, FlatVector<Complex> v) const = 0;
     void SetIndirect (FlatArray<int> ind, FlatVector<double> v);
+    void SetIndirect (FlatArray<int> ind, FlatVector<float> v);    
     void SetIndirect (FlatArray<int> ind, FlatVector<Complex> v);
     void AddIndirect (FlatArray<int> ind, FlatVector<double> v, bool use_atomic = false);
+    void AddIndirect (FlatArray<int> ind, FlatVector<float> v, bool use_atomic = false);    
     void AddIndirect (FlatArray<int> ind, FlatVector<Complex> v, bool use_atomic = false);
 
     virtual shared_ptr<BaseVector> GetLocalVector () const 
@@ -543,13 +550,16 @@ namespace ngla
     }
 
 
-    void GetIndirect (FlatArray<int> ind, 
-                      FlatVector<double> v) const
+    void GetIndirect (FlatArray<int> ind, FlatVector<double> v) const
     {
       vec -> GetIndirect (ind, v);
     }
-    void GetIndirect (FlatArray<int> ind, 
-                      FlatVector<Complex> v) const
+    void GetIndirect (FlatArray<int> ind, FlatVector<float> v) const
+    {
+      vec -> GetIndirect (ind, v);
+    }
+    
+    void GetIndirect (FlatArray<int> ind, FlatVector<Complex> v) const
     {
       vec -> GetIndirect (ind, v);
     }
@@ -558,6 +568,12 @@ namespace ngla
     {
       vec->SetIndirect (ind,v);
     }
+
+    void SetIndirect (FlatArray<int> ind, FlatVector<float> v)
+    {
+      vec->SetIndirect (ind,v);
+    }
+
     void SetIndirect (FlatArray<int> ind, FlatVector<Complex> v)
     {
       vec->SetIndirect (ind,v);      
@@ -567,6 +583,12 @@ namespace ngla
     {
       vec->AddIndirect (ind, v, use_atomic);
     }
+    
+    void AddIndirect (FlatArray<int> ind, FlatVector<float> v, bool use_atomic = false)
+    {
+      vec->AddIndirect (ind, v, use_atomic);
+    }
+
     void AddIndirect (FlatArray<int> ind, FlatVector<Complex> v, bool use_atomic = false)
     {
       vec->AddIndirect (ind, v, use_atomic);
@@ -603,6 +625,13 @@ namespace ngla
     return FVDouble();
   }
 
+  template <>
+  inline FlatVector<float> BaseVector::FV<float> () const
+  {
+    return FlatVector<float>(Size(), (float*)Memory());
+  }
+
+  
   template <>
   inline FlatVector<Complex> BaseVector::FV<Complex> () const
   {
@@ -642,7 +671,8 @@ namespace ngla
     
     virtual int EntrySizeScal() const throw () override
     { return EntrySize() * sizeof(double)/sizeof(SCAL); }
-    
+
+    using BaseVector::InnerProduct;
     virtual SCAL InnerProduct (const BaseVector & v2, bool conjugate = false) const;
 
     virtual double InnerProductD (const BaseVector & v2) const override;
@@ -658,9 +688,12 @@ namespace ngla
                                (SCAL*)Memory());
     }
 
-
+    virtual Scalar GetScalarType() const override { return Scalar(SCAL(0)); }
+    
     virtual void GetIndirect (FlatArray<int> ind, 
                               FlatVector<double> v) const override;
+    virtual void GetIndirect (FlatArray<int> ind, 
+                              FlatVector<float> v) const override;
     virtual void GetIndirect (FlatArray<int> ind, 
                               FlatVector<Complex> v) const override;
 
@@ -695,13 +728,13 @@ namespace ngla
     virtual int EntrySizeScal() const throw () override { return vecs[0]->EntrySizeScal(); }
     shared_ptr<BaseVector> & operator[] (size_t i) const { return vecs[i]; }
 
+    virtual Scalar GetScalarType() const override { return vecs[0]->GetScalarType(); }
     void * Memory () const override;
     FlatVector<double> FVDouble () const override;
     FlatVector<Complex> FVComplex () const override;
-    void GetIndirect (FlatArray<int> ind,
-                      FlatVector<double> v) const override;
-    void GetIndirect (FlatArray<int> ind,
-                      FlatVector<Complex> v) const override;
+    void GetIndirect (FlatArray<int> ind, FlatVector<double> v) const override;
+    void GetIndirect (FlatArray<int> ind, FlatVector<float> v) const override;    
+    void GetIndirect (FlatArray<int> ind, FlatVector<Complex> v) const override;
 
     bool IsComplex() const override;
 
@@ -1088,6 +1121,10 @@ namespace ngla
     virtual void AddTo (double s, BaseVector & v2) const = 0;
     virtual void AssignTo (Complex s, BaseVector & v2) const = 0;
     virtual void AddTo (Complex s, BaseVector & v2) const = 0;
+    virtual void AddTo (shared_ptr<BaseScalar> s, BaseVector & v2)
+    {
+      throw Exception("AddTo BaseScalar not overloaded");
+    }
   };
 
 
@@ -1107,6 +1144,8 @@ namespace ngla
     { v2.Set (s, *a); }
     void AddTo (Complex s, BaseVector & v2) const override
     { v2.Add (s, *a); }
+    virtual void AddTo (shared_ptr<BaseScalar> s, BaseVector & v2) override
+    { v2.Add (*s, *a); }
   };
 
   class DynamicSumExpression : public DynamicBaseExpression
@@ -1205,6 +1244,41 @@ namespace ngla
   };
 
 
+  class DynamicBaseScalVecExpression : public DynamicBaseExpression
+  {
+    shared_ptr<BaseScalar> scal;
+    shared_ptr<DynamicBaseExpression> a;
+
+    AutoVector CreateVector() const override
+    { return a->CreateVector(); }    
+    
+    void AssignTo (double s, BaseVector & v2) const override
+    {
+      throw Exception("DynamicBaseScalVec AssignTo not available");
+      // a->AssignTo(s*scale, v2);
+    }
+    void AddTo (double s, BaseVector & v2) const override
+    {
+      if (s != 1.)
+        throw Exception("DynamicBaseScalVec AddTo needs s=1");
+      
+      a->AddTo(scal, v2);
+    }
+    void AssignTo (Complex s, BaseVector & v2) const override
+    {
+      throw Exception("DynamicBaseScalVec AssignTo complex not available");      
+      // a->AssignTo(s*scale, v2);
+    }
+    void AddTo (Complex s, BaseVector & v2) const override
+    {
+      throw Exception("DynamicBaseScalVec AddTo complex not available");            
+      // a->AddTo(s*scale, v2);
+    }
+  public:
+    DynamicBaseScalVecExpression (shared_ptr<BaseScalar> ascal, shared_ptr<DynamicBaseExpression> aa)
+      : scal(ascal), a(aa) { ; } 
+  };
+
 
   
   class DynamicVectorExpression 
@@ -1259,7 +1333,10 @@ namespace ngla
   }
 
 
-
+  inline auto operator* (shared_ptr<BaseScalar> scal, DynamicVectorExpression v)
+  {
+    return DynamicVectorExpression(make_shared<DynamicBaseScalVecExpression>(scal, v.Ptr()));    
+  }
 
 
   

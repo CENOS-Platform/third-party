@@ -1,4 +1,4 @@
-// Copyright (C) 2007-2021  CEA/DEN, EDF R&D, OPEN CASCADE
+// Copyright (C) 2007-2025  CEA, EDF, OPEN CASCADE
 //
 // Copyright (C) 2003-2007  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,
 // CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
@@ -125,9 +125,6 @@ protected:
     void InnerPoints(const TopoDS_Edge& aE,
                      const Standard_Integer aNbPnts,
                      GEOMAlgo_ListOfPnt& aLP) ;
-
-  Standard_EXPORT
-    Standard_Boolean BuildTriangulation(const TopoDS_Shape& aS) ;
 
 
   TopAbs_ShapeEnum myShapeType;

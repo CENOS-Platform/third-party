@@ -76,12 +76,13 @@ public:
   void SetBuildParentEdges (bool bh) { build_parent_edges = bh; }
   void SetBuildParentFaces (bool bh) { build_parent_faces = bh; }
 
-  void EnableTable (string name, bool set);
+  DLL_HEADER void EnableTable (string name, bool set);
   static void EnableTableStatic (string name, bool set);
 
   bool HasEdges () const  { return buildedges; }
   bool HasFaces () const  { return buildfaces; }
   bool HasParentEdges () const { return build_parent_edges; }
+  bool HasParentFaces () const { return build_parent_faces; }
 
   void Update(NgTaskManager tm = &DummyTaskManager, NgTracer tracer = &DummyTracer);
   bool NeedsUpdate() const;
@@ -156,8 +157,10 @@ public:
   auto GetFaceVerticesPtr (int fnr) const { return &face2vert[fnr][0]; }
   DLL_HEADER void GetFaceEdges (int fnr, NgArray<int> & edges, bool withorientation = false) const;
 
-  ELEMENT_TYPE GetFaceType (int fnr) const
-  { return (!face2vert[fnr-1][3].IsValid()) ? TRIG : QUAD; }    
+  // ELEMENT_TYPE GetFaceType (int fnr) const
+  // { return (!face2vert[fnr-1][3].IsValid()) ? TRIG : QUAD; }    
+  ELEMENT_TYPE GetFaceType0 (SurfaceElementIndex fnr) const
+  { return (!face2vert[fnr][3].IsValid()) ? TRIG : QUAD; }    
 
   [[deprecated("use GetEdges (SurfaceElementIndex) -> FlatArray")]]  
   void GetSurfaceElementEdges (int elnr, NgArray<int> & edges) const;
@@ -229,8 +232,9 @@ public:
   void GetSegmentVolumeElements ( int segnr, NgArray<ElementIndex> & els ) const;
   void GetSegmentSurfaceElements ( int segnr, NgArray<SurfaceElementIndex> & els ) const;
 
-  // Call this before Update() to discard old edges
+  // Call this before Update() to discard old edges/faces (e.g. after Compress)
   void ClearEdges() { edge2vert.SetSize0(); }
+  void ClearFaces() { face2vert.SetSize0(); }
 
 private:
   Array<std::tuple<int, std::array<int,3>>> parent_edges;
@@ -390,7 +394,7 @@ inline short int MeshTopology :: GetNEdges (ELEMENT_TYPE et)
       // default:
       // cerr << "Ng_ME_GetNEdges, illegal element type " << et << endl;
     }
-  return -99;
+  return 0;
 }
 
 
@@ -431,7 +435,7 @@ inline short int MeshTopology :: GetNFaces (ELEMENT_TYPE et)
       return 6;
 
     default:
-      return -99;
+      return 0;
       // default:
       // cerr << "Ng_ME_GetNVertices, illegal element type " << et << endl;
     }

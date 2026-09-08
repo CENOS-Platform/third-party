@@ -1,5 +1,5 @@
 
-// Copyright (C) 2007-2021  CEA/DEN, EDF R&D, OPEN CASCADE
+// Copyright (C) 2007-2025  CEA, EDF, OPEN CASCADE
 //
 // Copyright (C) 2003-2007  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,
 // CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
@@ -28,6 +28,8 @@
 //
 #ifndef _GEOMAlgo_PassKeyShape_HeaderFile
 #define _GEOMAlgo_PassKeyShape_HeaderFile
+
+#include <Basics_OCCTVersion.hxx>
 
 #include <Standard.hxx>
 #include <Standard_Macro.hxx>
@@ -90,8 +92,19 @@ class GEOMAlgo_PassKeyShape  {
   Standard_EXPORT
     Standard_Boolean IsEqual(const GEOMAlgo_PassKeyShape& aOther) const;
 
+#if OCC_VERSION_LARGE < 0x07080000
   Standard_EXPORT
     Standard_Integer HashCode(const Standard_Integer Upper) const;
+#endif
+
+  Standard_EXPORT
+  bool operator==(const GEOMAlgo_PassKeyShape& theOther) const
+  {
+    return IsEqual(theOther);
+  }
+
+  Standard_EXPORT
+    size_t GetSum() const { return (size_t)mySum; }
 
   Standard_EXPORT
     void Dump(const Standard_Integer aHex = 0) const;

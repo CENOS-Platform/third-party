@@ -52,6 +52,7 @@ endif()
 add_library(TKGeomAlgo SHARED IMPORTED)
 
 set_target_properties(TKGeomAlgo PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKernel;TKMath;TKG3d;TKG2d;TKGeomBase;TKBRep"
 )
 
@@ -59,6 +60,7 @@ set_target_properties(TKGeomAlgo PROPERTIES
 add_library(TKTopAlgo SHARED IMPORTED)
 
 set_target_properties(TKTopAlgo PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKMath;TKernel;TKG2d;TKG3d;TKGeomBase;TKBRep;TKGeomAlgo"
 )
 
@@ -66,6 +68,7 @@ set_target_properties(TKTopAlgo PROPERTIES
 add_library(TKPrim SHARED IMPORTED)
 
 set_target_properties(TKPrim PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKBRep;TKernel;TKMath;TKG2d;TKGeomBase;TKG3d;TKTopAlgo"
 )
 
@@ -73,6 +76,7 @@ set_target_properties(TKPrim PROPERTIES
 add_library(TKBO SHARED IMPORTED)
 
 set_target_properties(TKBO PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKBRep;TKTopAlgo;TKMath;TKernel;TKG2d;TKG3d;TKGeomAlgo;TKGeomBase;TKPrim;TKShHealing"
 )
 
@@ -80,6 +84,7 @@ set_target_properties(TKBO PROPERTIES
 add_library(TKShHealing SHARED IMPORTED)
 
 set_target_properties(TKShHealing PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKBRep;TKernel;TKMath;TKG2d;TKTopAlgo;TKG3d;TKGeomBase;TKGeomAlgo;wsock32.lib"
 )
 
@@ -87,6 +92,7 @@ set_target_properties(TKShHealing PROPERTIES
 add_library(TKBool SHARED IMPORTED)
 
 set_target_properties(TKBool PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKBRep;TKTopAlgo;TKMath;TKernel;TKPrim;TKG2d;TKG3d;TKShHealing;TKGeomBase;TKGeomAlgo;TKBO"
 )
 
@@ -94,6 +100,7 @@ set_target_properties(TKBool PROPERTIES
 add_library(TKHLR SHARED IMPORTED)
 
 set_target_properties(TKHLR PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKBRep;TKernel;TKMath;TKGeomBase;TKG2d;TKG3d;TKGeomAlgo;TKTopAlgo"
 )
 
@@ -101,6 +108,7 @@ set_target_properties(TKHLR PROPERTIES
 add_library(TKFillet SHARED IMPORTED)
 
 set_target_properties(TKFillet PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKBRep;TKernel;TKMath;TKGeomBase;TKGeomAlgo;TKG2d;TKTopAlgo;TKG3d;TKBool;TKShHealing;TKBO"
 )
 
@@ -108,6 +116,7 @@ set_target_properties(TKFillet PROPERTIES
 add_library(TKOffset SHARED IMPORTED)
 
 set_target_properties(TKOffset PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKFillet;TKBRep;TKTopAlgo;TKMath;TKernel;TKGeomBase;TKG2d;TKG3d;TKGeomAlgo;TKShHealing;TKBO;TKPrim;TKBool"
 )
 
@@ -115,6 +124,7 @@ set_target_properties(TKOffset PROPERTIES
 add_library(TKFeat SHARED IMPORTED)
 
 set_target_properties(TKFeat PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKBRep;TKTopAlgo;TKGeomAlgo;TKMath;TKernel;TKGeomBase;TKPrim;TKG2d;TKBO;TKG3d;TKBool;TKShHealing"
 )
 
@@ -122,6 +132,7 @@ set_target_properties(TKFeat PROPERTIES
 add_library(TKMesh SHARED IMPORTED)
 
 set_target_properties(TKMesh PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKernel;TKMath;TKBRep;TKTopAlgo;TKShHealing;TKGeomBase;TKG3d;TKG2d"
 )
 
@@ -129,6 +140,7 @@ set_target_properties(TKMesh PROPERTIES
 add_library(TKXMesh SHARED IMPORTED)
 
 set_target_properties(TKXMesh PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/inc"
   INTERFACE_LINK_LIBRARIES "TKBRep;TKMath;TKernel;TKG2d;TKG3d;TKMesh"
 )
 

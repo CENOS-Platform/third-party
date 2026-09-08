@@ -65,6 +65,7 @@ class NGGUI_API VisualSceneSolution : public VisualScene
   int surface_vector_list;
   // int cone_list;
   int isosurface_list;
+  int select_sel_list;
 
   int pointcurvelist;
 
@@ -104,7 +105,7 @@ class NGGUI_API VisualSceneSolution : public VisualScene
 
   NgLock *lock;
 
-  
+  VisualSelect select;
 #ifdef PARALLELGL
   NgArray<int> par_linelists;
   NgArray<int> par_surfellists;
@@ -201,11 +202,12 @@ public:
 
   virtual void BuildScene (int zoomall = 0);
   virtual void DrawScene ();
+  void BuildSelectionList();
   virtual void MouseDblClick (int px, int py);
 
   // void SetMesh (shared_ptr<Mesh> amesh);
   // shared_ptr<Mesh> GetMesh () { return shared_ptr<Mesh>(wp_mesh); }
-  shared_ptr<Mesh> GetMesh () const { return shared_ptr<Mesh>(global_mesh); }
+  shared_ptr<Mesh> GetMesh () const { return GetGlobalMesh(); }
 
   void BuildFieldLinesPlot ();
 
@@ -253,8 +255,8 @@ private:
   void DrawCone (const Point<3> & p1, const Point<3> & p2, double r);
   void DrawCylinder (const Point<3> & p1, const Point<3> & p2, double r);
 
-  bool SurfaceElementActive(const SolData *data, const Mesh & mesh, const Element2d & sei);
-  bool VolumeElementActive(const SolData *data, const Mesh & mesh, const Element & ei);
+  bool SurfaceElementActive(const SolData *data, const Mesh & mesh, const Element2d & sei) const;
+  bool VolumeElementActive(const SolData *data, const Mesh & mesh, const Element & ei) const;
 
   // Get Function Value, local coordinates lam1, lam2, lam3, 
   bool GetValue (const SolData * data, ElementIndex elnr, 
@@ -370,6 +372,10 @@ public:
       number_format = soldata[i]->number_format;
       unit = soldata[i]->unit;
   }
+
+  SolData* GetScalFunction() const { return scalfunction == -1 ? nullptr : soldata[scalfunction]; }
+  SolData* GetVecFunction() const { return vecfunction == -1 ? nullptr : soldata[vecfunction]; }
+  SolData* GetScalOrVecFunction() const { auto sol = GetScalFunction(); return sol ? sol : GetVecFunction(); }
 
 #ifdef PARALLELGL
   void Broadcast ();

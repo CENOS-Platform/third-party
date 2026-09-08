@@ -319,6 +319,8 @@ namespace ngfem
     ngcomp::MeshAccess* mesh;
     VorB vb;
     int nr;
+    int facetnr = -1;
+    VorB eb = VOL;
   };
 
 
@@ -931,8 +933,8 @@ namespace ngfem
         vb(_vb)
     {
       // points = ElementTopology::GetVertices (eltype);
-      edges = ElementTopology::GetEdges (eltype);
-      faces = ElementTopology::GetFaces (eltype);
+      edges = ElementTopology::GetEdges (eltype).Data();
+      faces = ElementTopology::GetFaces (eltype).Data();
     }
   
     // Facet2ElementTrafo(ELEMENT_TYPE aeltype, const FlatArray<int> & vnums)
@@ -943,8 +945,8 @@ namespace ngfem
 	points(99,(Vec<3>*)ElementTopology::GetVertices (aeltype))
     {
       // points = ElementTopology::GetVertices (eltype);
-      edges = ElementTopology::GetEdges (eltype);
-      faces = ElementTopology::GetFaces (eltype);
+      edges = ElementTopology::GetEdges (eltype).Data();
+      faces = ElementTopology::GetFaces (eltype).Data();
 
       if (eltype == ET_TRIG)
 	{
@@ -1252,8 +1254,8 @@ namespace ngfem
       points(99,(Vec<3>*)ElementTopology::GetVertices (aeltype))
     {
       // points = ElementTopology::GetVertices (eltype);
-      edges = ElementTopology::GetEdges (eltype);
-      faces = ElementTopology::GetFaces (eltype);
+      edges = ElementTopology::GetEdges (eltype).Data();
+      faces = ElementTopology::GetFaces (eltype).Data();
     }
     
     Facet2SurfaceElementTrafo(ELEMENT_TYPE aeltype, FlatArray<int> & vnums)
@@ -1261,8 +1263,8 @@ namespace ngfem
         points(99,(Vec<3>*)ElementTopology::GetVertices (aeltype))
     {
       // points = ElementTopology::GetVertices (eltype);
-      edges = ElementTopology::GetEdges (eltype);
-      faces = ElementTopology::GetFaces (eltype);
+      edges = ElementTopology::GetEdges (eltype).Data();
+      faces = ElementTopology::GetFaces (eltype).Data();
 
       if (eltype == ET_SEGM)
 	{
@@ -1525,7 +1527,8 @@ namespace ngfem
       else
         incr = 0;
     }
-    
+
+    virtual ~MappedIntegrationRule() { }
     INLINE MappedIntegrationPoint<DIM_ELEMENT, DIM_SPACE> & operator[] (size_t i) const
     { 
       // return mips[i];
@@ -1695,6 +1698,7 @@ namespace ngcore
       for (int j = 0; j < 3; j++)
         x[j] = [&ip,j] (int i) { return ip[i](j); };
       weight = [&ip] (int i) { return ip[i].Weight(); };
+      facetnr = ip[0].FacetNr();
     }
 
     template <int DIM>
@@ -2397,6 +2401,9 @@ namespace ngfem
     const SIMD_IntegrationRule & GetIRX() const { return *irx; }
     const SIMD_IntegrationRule & GetIRY() const { return *iry; }
     const SIMD_IntegrationRule & GetIRZ() const { return *irz; }
+    const SIMD_IntegrationRule* GetIRXPtr() const { return irx; }
+    const SIMD_IntegrationRule* GetIRYPtr() const { return iry; }
+    const SIMD_IntegrationRule* GetIRZPtr() const { return irz; }
     void SetIRX(const SIMD_IntegrationRule * ir) { irx = ir; }
     void SetIRY(const SIMD_IntegrationRule * ir) { iry = ir; }
     void SetIRZ(const SIMD_IntegrationRule * ir) { irz = ir; }
@@ -2439,9 +2446,9 @@ namespace ngfem
                                     const ElementTransformation & aeltrans)
       : ir(air.Size(),&air[0]), eltrans(aeltrans)
     {
-      ir.SetIRX(&air.GetIRX());
-      ir.SetIRY(&air.GetIRY());
-      ir.SetIRZ(&air.GetIRZ());
+      ir.SetIRX(air.GetIRXPtr());
+      ir.SetIRY(air.GetIRYPtr());
+      ir.SetIRZ(air.GetIRZPtr());
       ir.SetNIP(air.GetNIP());
     }
     ~SIMD_BaseMappedIntegrationRule ()

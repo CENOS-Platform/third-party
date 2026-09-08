@@ -374,6 +374,7 @@ namespace ngfem
             BareSliceMatrix<SIMD<double>> values,
             SliceMatrix<> coefs) const
   {
+    if (coefs.Height() == 0) return;
     FlatArray<SIMD<IntegrationPoint>> hir = ir;    
     size_t j = 0;
     for ( ; j+4 <= coefs.Width(); j+=4)
@@ -939,7 +940,7 @@ namespace ngfem
         constexpr int DIMSPACE = int(DIM)+int(CODIM.value); 
         auto & mip = static_cast<const MappedIntegrationPoint<DIM_,DIMSPACE>&> (bmip);
         T_CalcShape (GetTIPHesse (mip),
-                     SBLambda ([ddshape,DIMSPACE] (size_t i, auto shape)
+                     SBLambda ([ddshape,DIMSPACE=DIMSPACE] (size_t i, auto shape)
                      {
                        auto row = ddshape.Row(i);
                        for (int d1 = 0; d1 < DIMSPACE; d1++)
@@ -968,11 +969,11 @@ namespace ngfem
     Switch<4-DIM>
       (bmip.DimSpace()-DIM, [&] (auto CODIM)
       {
-        constexpr int DIMSPACE = DIM+CODIM.value;         
+        static constexpr int DIMSPACE = DIM+CODIM.value;         
         
         auto & mip = static_cast<const SIMD<MappedIntegrationPoint<DIM,DIMSPACE>>&> (bmip);
         T_CalcShape (GetTIPHesse (mip),
-                     SBLambda ([ddshape,DIMSPACE] (size_t i, auto shape)
+                     SBLambda ([ddshape] (size_t i, auto shape)
                      {
                        auto row = ddshape.Row(i);
                        for (int d1 = 0; d1 < DIMSPACE; d1++)

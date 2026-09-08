@@ -12,8 +12,8 @@ set(OpenCASCADE_ALREADY_INCLUDED 1)
 
 # The OpenCASCADE version number
 set (OpenCASCADE_MAJOR_VERSION       "7")
-set (OpenCASCADE_MINOR_VERSION       "6")
-set (OpenCASCADE_MAINTENANCE_VERSION "3")
+set (OpenCASCADE_MINOR_VERSION       "9")
+set (OpenCASCADE_MAINTENANCE_VERSION "0")
 set (OpenCASCADE_DEVELOPMENT_VERSION "")
 
 # Compute the installation prefix from this OpenCASCADEConfig.cmake file 
@@ -44,21 +44,22 @@ set (OpenCASCADE_RESOURCE_DIR "${OpenCASCADE_INSTALL_PREFIX}/src")
 
 # The C and C++ flags added by OpenCASCADE to the cmake-configured flags.
 set (OpenCASCADE_C_FLAGS      "  /W3   /fp:precise")
-set (OpenCASCADE_CXX_FLAGS    "  /W4 /GR /EHa /fp:precise /MP")
+set (OpenCASCADE_CXX_FLAGS    "  /W4 /GR /EHa /fp:precise /fp:precise /wd26812 /MP")
 set (OpenCASCADE_LINKER_FLAGS   "/machine:x64")
 
 # List of available OpenCASCADE modules.
-set (OpenCASCADE_MODULES FoundationClasses;ModelingData;ModelingAlgorithms;Visualization;ApplicationFramework;DataExchange)
+set (OpenCASCADE_MODULES FoundationClasses;ModelingData;ModelingAlgorithms;Visualization;ApplicationFramework;DataExchange;DETools)
 
 # List of available OpenCASCADE libraries for each module
 set (OpenCASCADE_FoundationClasses_LIBRARIES TKernel;TKMath)
 set (OpenCASCADE_ModelingData_LIBRARIES TKG2d;TKG3d;TKGeomBase;TKBRep)
 set (OpenCASCADE_ModelingAlgorithms_LIBRARIES TKGeomAlgo;TKTopAlgo;TKPrim;TKBO;TKShHealing;TKBool;TKHLR;TKFillet;TKOffset;TKFeat;TKMesh;TKXMesh)
 set (OpenCASCADE_Visualization_LIBRARIES TKService;TKV3d;TKMeshVS;TKIVtk)
-set (OpenCASCADE_DataExchange_LIBRARIES TKXSBase;TKSTEPBase;TKSTEPAttr;TKSTEP209;TKSTEP;TKIGES;TKXCAF;TKXDEIGES;TKXDESTEP;TKSTL;TKVRML;TKXmlXCAF;TKBinXCAF;TKRWMesh)
+set (OpenCASCADE_DataExchange_LIBRARIES TKDE;TKXSBase;TKDESTEP;TKXCAF;TKDEIGES;TKDESTL;TKDEVRML;TKRWMesh;TKDECascade;TKBinXCAF;TKXmlXCAF;TKDEOBJ;TKDEGLTF;TKDEPLY)
+set (OpenCASCADE_DETools_LIBRARIES TKExpress)
 
 # List of available OpenCASCADE libraries.
-set (OpenCASCADE_LIBRARIES TKernel;TKMath;TKG2d;TKG3d;TKGeomBase;TKBRep;TKGeomAlgo;TKTopAlgo;TKPrim;TKBO;TKShHealing;TKBool;TKHLR;TKFillet;TKOffset;TKFeat;TKMesh;TKXMesh;TKService;TKV3d;TKMeshVS;TKIVtk;TKXSBase;TKSTEPBase;TKSTEPAttr;TKSTEP209;TKSTEP;TKIGES;TKXCAF;TKCDF;TKLCAF;TKCAF;TKVCAF;TKXDEIGES;TKXDESTEP;TKSTL;TKVRML;TKXmlXCAF;TKXmlL;TKXml;TKBinXCAF;TKBinL;TKBin;TKRWMesh)
+set (OpenCASCADE_LIBRARIES TKernel;TKMath;TKG2d;TKG3d;TKGeomBase;TKBRep;TKGeomAlgo;TKTopAlgo;TKPrim;TKBO;TKShHealing;TKBool;TKHLR;TKFillet;TKOffset;TKFeat;TKMesh;TKXMesh;TKService;TKV3d;TKMeshVS;TKIVtk;TKDE;TKXSBase;TKDESTEP;TKCAF;TKCDF;TKLCAF;TKXCAF;TKVCAF;TKDEIGES;TKDESTL;TKDEVRML;TKRWMesh;TKDECascade;TKBin;TKBinL;TKBinTObj;TKBinXCAF;TKStd;TKXml;TKXmlL;TKXmlTObj;TKXmlXCAF;TKStdL;TKTObj;TKDEOBJ;TKDEGLTF;TKDEPLY;TKExpress)
 
 # OpenCASCADE global configuration options.
 set (OpenCASCADE_COMPILER          "vc14")

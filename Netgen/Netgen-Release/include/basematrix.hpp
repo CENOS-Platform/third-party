@@ -17,10 +17,6 @@ namespace ngla
 {
   class ParallelDofs;
   
-  // sets the solver which is used for InverseMatrix
-  enum INVERSETYPE { PARDISO, PARDISOSPD, SPARSECHOLESKY, SUPERLU, SUPERLU_DIST, MUMPS, MASTERINVERSE, UMFPACK };
-  extern string GetInverseName (INVERSETYPE type);
-
   class BaseSparseMatrix;
   
   /**
@@ -29,9 +25,12 @@ namespace ngla
   class NGS_DLL_HEADER BaseMatrix : public enable_shared_from_this_virtual<BaseMatrix>
   {
   protected:
+    static string default_inversetype;
     shared_ptr<ParallelDofs> paralleldofs;
     mutable char safety_check = 0;
+    mutable string inversetype = default_inversetype;
     bool is_complex = false;
+    xbool symmetric = maybe;
     
   protected:
     /// 
@@ -62,7 +61,8 @@ namespace ngla
 
     virtual tuple<size_t, size_t> Shape() const { return { Height(), Width() }; }
 
-    virtual xbool IsSymmetric() const { return maybe; }
+    virtual xbool IsSymmetric() const { return symmetric; }
+    void SetSymmetric(xbool asymmetric) { symmetric = asymmetric; }
 
     /// is matrix complex ?
     virtual bool IsComplex() const { return is_complex; }
@@ -106,6 +106,12 @@ namespace ngla
       Mult (v, res);
       return res;
     }
+    virtual AutoVector EvaluateTrans(BaseVector & v) const 
+    {
+      auto res = CreateRowVector();
+      MultTrans (v, res);
+      return res;
+    }
     
     /// y = matrix * x. 
     virtual void Mult (const BaseVector & x, BaseVector & y) const;
@@ -146,9 +152,8 @@ namespace ngla
     
     virtual shared_ptr<BaseMatrix> InverseMatrix (shared_ptr<BitArray> subset = nullptr) const;
     virtual shared_ptr<BaseMatrix> InverseMatrix (shared_ptr<const Array<int>> clusters) const;
-    virtual INVERSETYPE SetInverseType ( INVERSETYPE ainversetype ) const;
-    virtual INVERSETYPE SetInverseType ( string ainversetype ) const;
-    virtual INVERSETYPE  GetInverseType () const;
+    virtual string GetInverseType () const { return inversetype; }
+    virtual string SetInverseType ( string ainversetype ) const;
 
     typedef  std::function<shared_ptr<BaseMatrix>(shared_ptr<BaseMatrix>,
                                                   shared_ptr<BitArray>,
@@ -158,6 +163,8 @@ namespace ngla
 
     static SymbolTable<T_INVCREATOR> invcreators;
     static void RegisterInverseCreator(string name, T_INVCREATOR creator);
+    static void SetDefaultInverseType(string definvtype);
+    static string GetDefaultInverseType() { return default_inversetype; }
     
     virtual void SetInverseFlags (const Flags & flags) { ; }
     virtual shared_ptr<BaseMatrix> DeleteZeroElements(double tol) const
@@ -182,6 +189,8 @@ namespace ngla
     public:
       string name = "undef";
       size_t height = 0, width = 0;
+      size_t loads = 0, stores = 0;  // loads/stores in bytes
+      size_t flops = 0;             // real-valued add/mult/fma operations
       Array<const BaseMatrix*> childs;
       OperatorInfo() = default;
       OperatorInfo(string aname, size_t ah, size_t aw)
@@ -190,7 +199,8 @@ namespace ngla
     
     virtual BaseMatrix::OperatorInfo GetOperatorInfo () const;
     void PrintOperatorInfo (ostream & ost, int level = 0) const;
-
+    tuple<size_t,size_t,size_t> GetStats (bool total = true) const;
+                                          
     // base class checks for sizes, derived BlockMatrix and ParallelMatrix check more 
     virtual xbool SameShape (BaseMatrix & other) const;
     // *this * other

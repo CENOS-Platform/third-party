@@ -1,14 +1,15 @@
-set(NETGEN_VERSION "6.2.2406-122-gcf6c702d")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+set(NETGEN_VERSION "6.2.2606-17-g7a994ac7")
 set(NETGEN_VERSION_MAJOR "6")
 set(NETGEN_VERSION_MINOR "2")
-set(NETGEN_VERSION_PATCH "2406")
-set(NETGEN_VERSION_TWEAK "122")
+set(NETGEN_VERSION_PATCH "2606")
+set(NETGEN_VERSION_TWEAK "17")
 
 get_filename_component(NETGEN_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
 get_filename_component(NETGEN_DIR "${NETGEN_CMAKE_DIR}/../" ABSOLUTE)
 
-set(NETGEN_COMPILE_DEFINITIONS "$<$<CONFIG:Release>:UNICODE>;$<$<CONFIG:Release>:_UNICODE>;$<$<CONFIG:Release>:_CRT_SECURE_NO_WARNINGS>;$<$<CONFIG:Release>:_CRT_NONSTDC_NO_DEPRECATE>;$<$<CONFIG:Release>:HAVE_VTK>;$<$<CONFIG:Release>:VTK_OPENGL2_BACKEND>;OCCGEOMETRY")
+set(NETGEN_COMPILE_DEFINITIONS "")
 
 get_filename_component(NETGEN_INCLUDE_DIR "${NETGEN_CMAKE_DIR}/../include" ABSOLUTE)
 get_filename_component(NETGEN_BINARY_DIR "${NETGEN_CMAKE_DIR}/../bin" ABSOLUTE)
@@ -35,7 +36,7 @@ set(NETGEN_NUMA_LIBRARY "")
 set(NETGEN_OCC_DIR "")
 set(NETGEN_OCC_INCLUDE_DIR "D:/source/cenos/backend/third-party/OpenCASCADE/OpenCASCADE-Release/inc")
 set(NETGEN_OCC_LIBRARIES_BIN "D:/source/cenos/backend/third-party/OpenCASCADE/OpenCASCADE-Release/win64/vc14/bin")
-set(NETGEN_OCC_LIBRARIES "TKBO;TKBRep;TKBool;TKCAF;TKCDF;TKFillet;TKG2d;TKG3d;TKGeomAlgo;TKGeomBase;TKHLR;TKLCAF;TKMath;TKMesh;TKOffset;TKPrim;TKService;TKShHealing;TKTopAlgo;TKV3d;TKVCAF;TKXCAF;TKXSBase;TKernel;TKIGES;TKSTEP;TKSTL;TKXDEIGES;TKXDESTEP;TKSTEP209;TKSTEPAttr;TKSTEPBase")
+set(NETGEN_OCC_LIBRARIES "TKBO;TKBRep;TKBool;TKCAF;TKCDF;TKFillet;TKG2d;TKG3d;TKGeomAlgo;TKGeomBase;TKHLR;TKLCAF;TKMath;TKMesh;TKOffset;TKPrim;TKService;TKShHealing;TKTopAlgo;TKV3d;TKVCAF;TKXCAF;TKXSBase;TKernel;TKDEIGES;TKDESTEP;TKDESTL")
 set(NETGEN_OCC_LIBRARY_DIR "D:/source/cenos/backend/third-party/OpenCASCADE/OpenCASCADE-Release/win64/vc14/lib")
 set(NETGEN_OPENGL_LIBRARIES "opengl32;glu32")
 set(NETGEN_PYTHON_EXECUTABLE "D:/source/cenos/backend/third-party/python/python.exe")
@@ -73,6 +74,12 @@ set(NETGEN_INSTALL_DIR_LIB lib)
 set(NETGEN_INSTALL_DIR_INCLUDE include)
 set(NETGEN_INSTALL_DIR_CMAKE cmake)
 set(NETGEN_INSTALL_DIR_RES share)
+
+if (NETGEN_USE_PYTHON)
+  # Make sure we are finding the same Python version Netgen was built with
+  set(Python3_FIND_VERSION_MAJOR 3)
+  set(Python3_FIND_VERSION_MINOR 10)
+endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/netgen-targets.cmake)
 message(STATUS "Found Netgen: ${CMAKE_CURRENT_LIST_DIR}")

@@ -12,13 +12,51 @@
 #include <specialelement.hpp>
 #include <sparsematrix.hpp>
 #include <elementbyelement.hpp>
-
+#include "specialelementgroup.hpp"
 
 namespace ngcomp
 {
   class LinearForm;
   class Preconditioner;
 
+
+
+  class MatFreeOptions
+  {
+  public:
+    bool fused = true;            // fused BTDTB into one kernel/operator
+    bool generate_code = false;   // generate code
+    bool atomic = true;           // use atomic for adding output vector
+    bool only_loadstore = false;  // for timing elvec load stores
+    bool only_loadstoreB = false; // for timing elvec load stores and mult with B and Bt
+    int BS_els = 4;         
+    int BS_ipts = 4;        
+    bool timers = false;
+
+    // additional options for GPU kernels:
+    optional<string> write_GPU_kernel;   // if set, dump the generated GPU kernel to this file
+
+    MatFreeOptions() = default;
+    MatFreeOptions(bool afused, bool agencode, bool aatomic,
+                   bool aonly_loadstore, bool aonly_loadstoreB,
+                   int aBS_els, int aBS_ipts, bool atimers,
+                   optional<string> awrite_GPU_kernel)
+      : fused(afused), generate_code(agencode), atomic(aatomic),
+        only_loadstore(aonly_loadstore), only_loadstoreB(aonly_loadstoreB),
+        BS_els(aBS_els), BS_ipts(aBS_ipts), timers(atimers),
+        write_GPU_kernel(std::move(awrite_GPU_kernel)) { }
+  };
+
+  inline ostream & operator<< (ostream &ost, const MatFreeOptions& opts) {
+    ost << "fused   = " << opts.fused << endl
+        << "gencode = " << opts.generate_code << endl
+        << "atomic  = " << opts.atomic << endl
+        << "onlye_ls = " << opts.only_loadstore << endl
+        << "onlye_lsB = " << opts.only_loadstoreB << endl;
+    return ost;
+  }
+    
+  
   
   /** 
       A bilinear-form.
@@ -45,6 +83,8 @@ namespace ngcomp
     bool matrix_free_bdb = false;
     /// stores geom-free B factors, and D factors in integration points, and compiled CF
     bool nonlinear_matrix_free_bdb = false;
+    /// options for matrix-free operator applications
+    std::optional<MatFreeOptions> matfree_opts;
     /// store matrices on mesh hierarchy
     bool multilevel;
     /// galerkin projection of coarse grid matrices
@@ -97,6 +137,8 @@ namespace ngcomp
     
     size_t specialelements_timestamp = 0;
 
+    Array<shared_ptr<SpecialElementGroup>> se_groups;
+    
     
     /*
     Array<BilinearFormIntegrator*> independent_parts;
@@ -131,6 +173,9 @@ namespace ngcomp
     optional<double> delete_zero_elements;
     
     mutable std::map<size_t, Matrix<>> precomputed;
+
+    bool fp32 = false;
+    
   public:
     /// generate a bilinear-form
     BilinearForm (shared_ptr<FESpace> afespace,
@@ -154,6 +199,14 @@ namespace ngcomp
     {
       return AddIntegrator(bfi);
     }
+
+    virtual BilinearForm & Add (shared_ptr<SpecialElementGroup> seg)
+    {
+      se_groups += seg;
+      return *this;
+    }
+
+
 
     /*
     void AddIndependentIntegrator (BilinearFormIntegrator * bfi,
@@ -340,6 +393,7 @@ namespace ngcomp
     
     shared_ptr<FESpace> GetTrialSpace() const { return fespace; }
     shared_ptr<FESpace> GetTestSpace() const { return fespace2 ? fespace2 : fespace; }
+    shared_ptr<FESpace> GetSpace(TrialOrTest kind) const { return (kind==TRIAL) ? GetTrialSpace() : GetTestSpace(); }
     ///
     int GetNLevels() const { return mats.Size(); }
 
@@ -435,6 +489,7 @@ namespace ngcomp
     virtual void DoAssemble (LocalHeap & lh) = 0;
     void AssembleGF (LocalHeap & lh);
     void AssembleBDB (LocalHeap & lh, bool linear);
+    void AssembleBDBFused (LocalHeap & lh, bool linear);    
 
     /// allocates (sparse) matrix data-structure
     virtual void AllocateMatrix () = 0;
@@ -915,17 +970,24 @@ namespace ngcomp
   };
 
 
-
+  // template <int DIM_ELEMENT, int DIM_SPACE>
   class ApplyIntegrationPoints : public BaseMatrix
   {
     Array<shared_ptr<CoefficientFunction>> coefs;
     Array<ProxyFunction*> trialproxies;
-    
+    Array<CoefficientFunction*> input_coefs;
+    Array<int> input_coef_offset;
+    int dim_coef = 0;
+    Matrix<double> coef_values;
+    bool needs_element_index = false;
+    Array<int> element_index;
+
     typedef void (*lib_function)(size_t nip, double * input, size_t dist_input,
                                  double * output, size_t dist_output,
-                                 size_t dist, double * points, double * normals);
+                                 size_t dist, double * points, double * normals,
+                                 double * coef_input, int * elidx);
 
-    unique_ptr<SharedLibrary> library;
+    shared_ptr<SharedLibrary> library;
     lib_function compiled_function = nullptr;
     
     size_t dimx, dimy;
@@ -952,11 +1014,74 @@ namespace ngcomp
     size_t GetDimX() const { return dimx; }
     size_t GetDimY() const { return dimy; }
     size_t GetNIP() const { return nip; }
-  };  
-  
 
+    FlatMatrix<double> GetPoints() const { return points; }
+    FlatMatrix<double> GetNormals() const { return normals; }
+
+    const Array<CoefficientFunction*> & GetInputCoefs() const { return input_coefs; }
+    const Array<int> & GetInputCoefOffset() const { return input_coef_offset; }
+    int GetDimCoef() const { return dim_coef; }
+    void SetCoefValues (Matrix<double> acoef_values) { coef_values = std::move(acoef_values); }
+    FlatMatrix<double> GetCoefValues() const { return coef_values; }
+
+    bool NeedsElementIndex() const { return needs_element_index; }
+    void SetElementIndex (Array<int> aelement_index) { element_index = std::move(aelement_index); }
+    FlatArray<int> GetElementIndex() const { return element_index; }
+  };
+
+
+  /*
+    forall all el:
+    
+    val(i,j) = B(k,i,j) * x[dofx[el,k]   ... j ip, i component, k locdofs
+    
+   */
   
-  
+  class MatrixFreeBTDTB : public BaseMatrix
+  {
+  public:
+    size_t height, width;
+    Array<size_t> elnums;
+    Table<DofId> dofx;
+    Table<DofId> dofy;
+    Tensor<3> Bx;  // locdofs, dim, nip
+    Tensor<3> By;  // locdofs, dim, nip
+    Vector<> weights;  // ref-element intweights
+    Array<shared_ptr<DifferentialOperator>> diffopsx, diffopsy;  // computing T
+    Tensor<4> D; // element, dimy, dimx, nip
+    Tensor<4> Jacobi; // element, dimr, dims, nip
+    MatFreeOptions opts;
+    Array<IntRange> ranges_x, ranges_xref, ranges_y, ranges_yref;
+    
+    static constexpr int SW = 4*SIMD<double>::Size();    
+    shared_ptr<SharedLibrary> library;
+    
+    typedef void (*lib_function)(double s, FlatVector<> fx, FlatVector<> fy,
+                                 FlatTable<int>, FlatTable<int>, FlatTensor<4> Jacobi,
+                                 FlatVector<double>, size_t numels);
+    
+    lib_function compiled_function = nullptr;
+    
+    // element geometry stored as VectorH1 ? 
+    MatrixFreeBTDTB (size_t h, size_t w,
+                     Array<size_t> _elnums,
+                     Table<DofId> _dofx, Table<DofId> _dofy,
+                     Tensor<3> _Bx,  // locdofs, dim, nip
+                     Tensor<3> _By,  // locdofs, dim, nip
+                     // IntegrationRule _ir,
+                     Vector<> _weights,  // ref-element intweights
+                     Array<shared_ptr<DifferentialOperator>> diffopsx,
+                     Array<shared_ptr<DifferentialOperator>> diffopsy,
+                     Tensor<4> _D, // element, nip, dimy, dimx;
+                     Tensor<4> _Jacobi,
+                     MatFreeOptions _opts);
+
+    AutoVector CreateColVector() const override;
+    AutoVector CreateRowVector() const override;
+
+    
+    virtual void MultAdd (double s, const BaseVector & x, BaseVector & y) const override;
+  };
   
 }
 

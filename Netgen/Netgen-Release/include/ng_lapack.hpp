@@ -911,6 +911,11 @@ namespace ngbla
     ArrayMem<double,1000> work(lwork);
     dgetri(&n, &a(0,0), &lda, &ipiv[0], &work[0], &lwork, &info);
   }
+  
+  inline void LapackInverse (ngbla::SliceMatrix<float> a)
+  {
+    throw Exception("LapackInverse<float> not implemented");
+  }
 
 
 
@@ -930,6 +935,11 @@ namespace ngbla
 	a(j,i) = a(i,j);
   }
 
+
+  inline void LapackInverseSPD (ngbla::SliceMatrix<float> a)
+  {
+    throw Exception("LapackInverseSPD fp32 not implemented");
+  }
 
 
 
@@ -981,7 +991,10 @@ namespace ngbla
   }
 
 
-
+  inline void LapackAInvBt (ngbla::FlatMatrix<float> a, ngbla::FlatMatrix<float> b, char trans = 'N')
+  {
+    throw Exception("LapackAInvBT fp32 not implemented");
+  }
 
   /*
   extern "C"
@@ -1081,7 +1094,7 @@ namespace ngbla
   NGS_DLL_HEADER
   void LapackEigenValuesSymmetric (ngbla::FlatMatrix<double> a,
                                    ngbla::FlatVector<double> lami,
-                                   ngbla::FlatMatrix<double> evecs = ngbla::FlatMatrix<double>(0,0));
+                                   ngbla::FlatMatrix<double> evecs = ngbla::FlatMatrix<double>(0,0,nullptr));
   /*
   {
     char jobz, uplo = 'U'; 
@@ -1115,6 +1128,13 @@ namespace ngbla
   }
   */
 
+  inline
+  void LapackEigenValuesSymmetric (ngbla::FlatMatrix<float> a,
+                                   ngbla::FlatVector<float> lami,
+                                   ngbla::FlatMatrix<float> evecs = ngbla::FlatMatrix<float>(0,0,nullptr))
+  {
+    throw Exception("LapackEigenValuesSymmetric<float> not implemented");
+  }
 
 
   inline void LapackEigenValues (ngbla::FlatMatrix<double> a,
@@ -1165,6 +1185,14 @@ namespace ngbla
     delete [] lami_im;
   }
 
+  inline void LapackEigenValues (ngbla::FlatMatrix<float> a,
+                                 ngbla::FlatVector<ngbla::Complex> lami, 
+                                 ngbla::FlatMatrix<float> eveci )
+  {
+    throw Exception ("LapackEVP for float not implemented");
+  }
+
+  
   inline void LapackEigenValues (ngbla::FlatMatrix<ngbla::Complex> a,
                                  ngbla::FlatVector<ngbla::Complex> lami, 
                                  ngbla::FlatMatrix<ngbla::Complex> eveci )
@@ -1215,7 +1243,7 @@ namespace ngbla
 
   inline void LapackEigenValuesSymmetric (ngbla::FlatMatrix<ngbla::Complex> a,
                                           ngbla::FlatVector<ngbla::Complex> lami, 
-                                          ngbla::FlatMatrix<ngbla::Complex> eveci = ngbla::FlatMatrix<ngbla::Complex> (0,0) )
+                                          ngbla::FlatMatrix<ngbla::Complex> eveci = ngbla::FlatMatrix<ngbla::Complex> (0,0,nullptr) )
   {
     //   std::cerr << "complex evp not implemented" << std::endl;
     LapackEigenValues ( a, lami, eveci );
@@ -1370,7 +1398,7 @@ namespace ngbla
   inline void LapackEigenValuesSymmetric (ngbla::FlatMatrix<double> a,
                                           ngbla::FlatMatrix<double> b,
                                           ngbla::FlatVector<double> lami,
-                                          ngbla::FlatMatrix<double> evecs = ngbla::FlatMatrix<double>(0,0))
+                                          ngbla::FlatMatrix<double> evecs = ngbla::FlatMatrix<double>(0,0,nullptr))
   {
     char jobz = 'N' , uplo = 'U'; 
     integer n = a.Height();
@@ -1558,6 +1586,11 @@ namespace ngbla
     */
   }
 
+  inline void LapackInverse (ngbla::FlatMatrix<float> a)
+  { 
+    CalcInverse (a);
+  }  
+
   inline void LapackInverse (ngbla::FlatMatrix<ngbla::Complex> a)
   { 
     CalcInverse (a);
@@ -1579,7 +1612,19 @@ namespace ngbla
       hb = b * a;
     b = hb;
   }
+  
+  inline void LapackAInvBt (ngbla::FlatMatrix<float> a, ngbla::FlatMatrix<float> b, char trans = 'N')
+  {
+    LapackInverse (a);
+    ngbla::Matrix<float> hb (b.Height(), b.Width());
+    if (trans == 'T')
+      hb = b * Trans(a);
+    else
+      hb = b * a;
+    b = hb;
+  }
 
+  
   inline void LapackAInvBt (ngbla::FlatMatrix<Complex> a, ngbla::FlatMatrix<Complex> b, char trans = 'N')
   {
     LapackInverse (a);

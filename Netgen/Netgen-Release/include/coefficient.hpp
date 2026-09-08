@@ -50,6 +50,7 @@ namespace ngfem
     bool is_complex = false;
     int spacedim = -1;  // needed for grad(x), grad(1), ...
     string description;
+    string equivalence_key; // cfa.equivalence_key == cfb.equivalence_key  =>  cfa and cfb are equivalent (will always produce same values)
     bool is_variable = false;  // variables cannot be optimized away (e.g. for differentiation)
   public:
     static std::true_type shallow_archive;
@@ -76,6 +77,8 @@ namespace ngfem
 
     virtual void DoArchive(Archive& ar) { ar & dimension & dims & is_complex; }
     virtual void GenerateCode(Code &code, FlatArray<int> inputs, int index) const;
+    virtual void CalcEquivalenceKey();
+    const string & EquivalenceKey();
     ///
     virtual int NumRegions () { return INT_MAX; }
     virtual bool DefinedOn (const ElementTransformation & trafo) { return true; }
@@ -635,6 +638,8 @@ namespace ngfem
       */
     }
 
+    void CalcEquivalenceKey() override;
+
     auto GetCArgs() const { return tuple { val }; }
     
     using BASE::Evaluate;
@@ -1163,6 +1168,11 @@ public:
   { return c1->DefinedOn(trafo); } 
 
   // virtual bool ElementwiseConstant () const override { return c1->ElementwiseConstant(); }
+
+  void CalcEquivalenceKey() override
+  {
+    this->equivalence_key = name + "(" + c1->EquivalenceKey() + ToString(this->Dimensions()) + ")";
+  }
   
   virtual void GenerateCode(Code &code, FlatArray<int> inputs, int index) const override
   {
@@ -1293,11 +1303,24 @@ public:
   
   virtual shared_ptr<CoefficientFunction>
   Diff (const CoefficientFunction * var, shared_ptr<CoefficientFunction> dir) const override
-  { throw Exception ("unarycf "+name+" does not provide a derivative"); }
+  {
+    if (this == var) return dir;
+    return CWMult (lam.Diff(c1), c1->Diff(var, dir));
+    
+    // throw Exception ("unarycf "+name+" does not provide a derivative");
+  }
 
   virtual shared_ptr<CoefficientFunction>
   DiffJacobi (const CoefficientFunction * var, T_DJC & cache) const override
-  { return BASE::DiffJacobi(var, cache); }
+  {
+    if (this == var) return make_shared<ConstantCoefficientFunction> (1);
+    if (this->Dimensions().Size() == 0)
+      return lam.Diff(c1) * c1->DiffJacobi(var, cache);
+    else
+      return MakeMultDiagMatCoefficientFunction (lam.Diff(c1), 
+                                             c1->DiffJacobi(var, cache));
+    // return BASE::DiffJacobi(var, cache);
+  }
 
   
   /*
@@ -1434,6 +1457,24 @@ public:
   {
     return string("binary operation '")+opname+"'";
   }
+
+  void CalcEquivalenceKey() override
+  {
+    string s1 = c1->EquivalenceKey();
+    string s2 = c2->EquivalenceKey();
+
+    if(opname.size()>2) // atan2, pow, etc.
+      this->equivalence_key = opname + "(" + s1 + "," + s2 + ")";
+    else
+    {
+      // sort for commutative operations
+      if ( (opname == "+" || opname == "*")  && (s1 > s2) )
+        swap (s1, s2);
+
+      this->equivalence_key = "(" + s1 + opname + s2 + ")";
+    }
+  }
+  
   virtual void GenerateCode(Code &code, FlatArray<int> inputs, int index) const override
   {
     // code.Declare (code.res_type, index, this->Dimensions());
@@ -1543,8 +1584,12 @@ public:
   {
     size_t dim = Dimension();
     size_t np = ir.Size();
-    STACK_ARRAY(double, hmem, np*dim);
-    FlatMatrix<> temp(np, dim, hmem);
+    // STACK_ARRAY(double, hmem, np*dim);
+    // FlatMatrix<> temp(np, dim, hmem);
+
+    auto & lh = TLHeap();
+    HeapReset hr(lh);
+    FlatMatrix<> temp(np, dim, lh);
 
     c1->Evaluate (ir, result);
     c2->Evaluate (ir, temp);
@@ -1563,16 +1608,24 @@ public:
     size_t dim = Dimension();    
     if (!is_complex)
       {
-        STACK_ARRAY(double, hmem, ir.Size()*dim);
-        FlatMatrix<> temp(ir.Size(), dim, &hmem[0]);
+        // STACK_ARRAY(double, hmem, ir.Size()*dim);
+        // FlatMatrix<> temp(ir.Size(), dim, &hmem[0]);
+
+        auto & lh = TLHeap();
+        HeapReset hr(lh);
+        FlatMatrix<> temp(ir.Size(), dim, lh);
         Evaluate (ir, temp);
         result.AddSize(ir.Size(), dim) = temp;
         return;
       }
 
         
-    STACK_ARRAY(double, hmem, 2*ir.Size()*dim);
-    FlatMatrix<Complex> temp(ir.Size(), dim, reinterpret_cast<Complex*> (&hmem[0]));
+    // STACK_ARRAY(double, hmem, 2*ir.Size()*dim);
+    // FlatMatrix<Complex> temp(ir.Size(), dim, reinterpret_cast<Complex*> (&hmem[0]));
+
+    auto & lh = TLHeap();
+    HeapReset hr(lh);
+    FlatMatrix<Complex> temp(ir.Size(), dim, lh);
 
     c1->Evaluate (ir, result);
     c2->Evaluate (ir, temp);
@@ -1593,8 +1646,14 @@ public:
   {
     size_t np = ir.Size();
     size_t mydim = Dimension();
-    STACK_ARRAY(T, hmem, np*mydim);
-    FlatMatrix<T,ORD> temp(mydim, np, &hmem[0]);
+
+    // STACK_ARRAY(T, hmem, np*mydim);
+    // FlatMatrix<T,ORD> temp(mydim, np, &hmem[0]);
+
+    auto &lh = TLHeap();
+    HeapReset hr(lh);
+    FlatMatrix<T,ORD> temp(mydim, np, lh);
+    
     c1->Evaluate (ir, values);
     c2->Evaluate (ir, temp);
     for (size_t i = 0; i < mydim; i++)
@@ -1775,6 +1834,16 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
                                             shared_ptr<CoefficientFunction> vec,
                                             int index);
 
+  // diag(c1) * c2
+  // general tensor (TODO)
+  // C = A*B in sense of
+  // C_ijk = A_ij B_ik
+  //  with i.. single index, and j,k multi-index
+  NGS_DLL_HEADER shared_ptr<CoefficientFunction>
+  MakeMultDiagMatCoefficientFunction (shared_ptr<CoefficientFunction> c1,
+                                  shared_ptr<CoefficientFunction> c2);
+
+
   NGS_DLL_HEADER shared_ptr<CoefficientFunction>
   MakeCoordinateCoefficientFunction (int comp);
 
@@ -1797,9 +1866,22 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> operator+ (shared_ptr<CoefficientFunction> c1, shared_ptr<CoefficientFunction> c2);
-  
+
+  INLINE shared_ptr<CoefficientFunction> operator+ (double d, shared_ptr<CoefficientFunction> c2)
+  {
+    return make_shared<ConstantCoefficientFunction>(d)+c2;
+  }
+
+
+
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> operator- (shared_ptr<CoefficientFunction> c1, shared_ptr<CoefficientFunction> c2);
+
+  INLINE shared_ptr<CoefficientFunction> operator- (double d, shared_ptr<CoefficientFunction> c2)
+  {
+    return make_shared<ConstantCoefficientFunction>(d)-c2;
+  }
+
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> operator* (shared_ptr<CoefficientFunction> c1, shared_ptr<CoefficientFunction> c2);
@@ -1811,6 +1893,21 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
   shared_ptr<CoefficientFunction> operator* (double v1, shared_ptr<CoefficientFunction> c2);
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> operator* (Complex v1, shared_ptr<CoefficientFunction> c2);
+
+  INLINE
+  shared_ptr<CoefficientFunction> operator* (std::variant<double,float, Complex> v1, shared_ptr<CoefficientFunction> c2)
+  {
+    return std::visit ([&](auto val) {
+      return val * c2; 
+    }, v1);
+                
+    /*
+    if (std::holds_alternative<double>(v1))
+      return std::get<double>(v1) * c2;
+    else
+      return std::get<Complex>(v1) * c2;
+    */
+  }
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> operator- (shared_ptr<CoefficientFunction> c1);
@@ -1847,6 +1944,10 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> UnitVectorCF (int dim, int coord);
+
+  NGS_DLL_HEADER
+  shared_ptr<CoefficientFunction> OneVectorCF (FlatArray<int> dims);
+
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> LeviCivitaCF(int dimension);
@@ -1904,6 +2005,8 @@ INLINE shared_ptr<CoefficientFunction> BinaryOpCF(shared_ptr<CoefficientFunction
   shared_ptr<CoefficientFunction> Real(shared_ptr<CoefficientFunction> cf);
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> Imag(shared_ptr<CoefficientFunction> cf);
+  NGS_DLL_HEADER
+  shared_ptr<CoefficientFunction> RealImag(shared_ptr<CoefficientFunction> cf);
 
   NGS_DLL_HEADER
   shared_ptr<CoefficientFunction> Freeze (shared_ptr<CoefficientFunction> cf);

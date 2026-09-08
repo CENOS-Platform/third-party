@@ -92,6 +92,7 @@ ANY                  1 1 1 1 | 15
 
 
   class FESpace;
+  class BilinearForm;
 
   // will be size_t some day 
   typedef int DofId;
@@ -189,6 +190,7 @@ ANY                  1 1 1 1 | 15
     /// if non-zero, pointer to low order space
     shared_ptr<FESpace> low_order_space; 
     shared_ptr<BaseMatrix> low_order_embedding;
+    shared_ptr<BaseMatrix> low_order_restriction; // used for low-order matrix for AssembleLinearization
       
     /// if directsolverclustered[i] is true, then the unknowns of domain i are clustered
     Array<bool> directsolverclustered;
@@ -255,7 +257,7 @@ ANY                  1 1 1 1 | 15
 
     virtual void UpdateDofTables() { ; } 
     virtual void UpdateCouplingDofArray() { ; } 
-
+    virtual void UpdateFreeDofs();
     /// update element coloring
     virtual void FinalizeUpdate();
 
@@ -445,9 +447,12 @@ ANY                  1 1 1 1 | 15
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const = 0;
     
     virtual void GetDofNrs (NodeId ni, Array<DofId> & dnums) const;
-    BitArray GetDofs (const Region & reg) const;
+    BitArray GetDofs (const Region & reg, const DifferentialOperator * diffop = nullptr) const;
+    virtual IntRange GetRange (const DifferentialOperator & diffop) const;
+    
     Table<int> CreateDofTable (VorB vorb) const;
-
+    virtual void SelectDofs (const string & name, BitArray & dofs) const;
+                  
     /// get coupling types of dofs
     virtual void GetDofCouplingTypes (int elnr, Array<COUPLING_TYPE> & dnums) const;
     
@@ -530,8 +535,13 @@ ANY                  1 1 1 1 | 15
     void SetDefinedOnBoundary (const BitArray & defon)
      { SetDefinedOn(BND,defon); }
 
+    const Array<bool> & GetDefinedOn (VorB vb) const { return definedon[vb]; }
+
     ///
     void SetDirichletBoundaries (const BitArray & dirbnds);
+    const BitArray & GetDirichletBoundaries (VorB vb) const { return dirichlet_constraints[vb]; }
+
+
     /// Get reference element for tet, prism, trig, etc ..
     // const FiniteElement & GetFE (ELEMENT_TYPE type) const;
 
@@ -543,6 +553,7 @@ ANY                  1 1 1 1 | 15
     const FESpace & LowOrderFESpace () const { return *low_order_space; }
     shared_ptr<FESpace> LowOrderFESpacePtr () const { return low_order_space; }
     shared_ptr<BaseMatrix> LowOrderEmbedding () const { return low_order_embedding; }
+    shared_ptr<BaseMatrix> LowOrderRestriction () const { return low_order_restriction; }    
     
     /// non Dirichlet dofs
     virtual shared_ptr<BitArray> GetFreeDofs (bool external = false) const;
@@ -599,6 +610,12 @@ ANY                  1 1 1 1 | 15
         VTransformMR (ei, mat, type);
     }
     void TransformMat (ElementId ei, 
+                       SliceMatrix<float> mat, TRANSFORM_TYPE type) const
+    {
+      if (needs_transform_vec)      
+        throw Exception("TransformMat fp32 not supported");
+    }
+    void TransformMat (ElementId ei, 
 		       SliceMatrix<Complex> mat, TRANSFORM_TYPE type) const
     {
       if (needs_transform_vec)      
@@ -609,6 +626,12 @@ ANY                  1 1 1 1 | 15
     {
       if (needs_transform_vec)
         VTransformVR (ei, vec, type);
+    }
+    void TransformVec (ElementId ei, 
+		       SliceVector<float> vec, TRANSFORM_TYPE type) const
+    {
+      if (needs_transform_vec)
+        throw Exception("TransformVec fp32 not supported");
     }
     void TransformVec (ElementId ei, 
 		       SliceVector<Complex> vec, TRANSFORM_TYPE type) const
@@ -639,7 +662,7 @@ ANY                  1 1 1 1 | 15
     /// Set multigrid prolongation
     // void SetProlongation (ngmg::Prolongation * aprol)
     // { prol = aprol; }
-
+    virtual void SetHarmonicProlongation (shared_ptr<BilinearForm> bfa, string inverse);
 
     /// returns function-evaluator
     shared_ptr<DifferentialOperator> GetEvaluator (VorB vb = VOL) const
@@ -672,7 +695,11 @@ ANY                  1 1 1 1 | 15
     auto GetTrialFunction() const { return GetProxyFunction(false); }
     auto GetTestFunction() const { return GetProxyFunction(true); }
     
-
+    
+    virtual void Interpolate (const CoefficientFunction & cf, BaseVector & vec,
+                              const Region * reg, LocalHeap & lh);
+    
+    
     virtual shared_ptr<BaseMatrix> GetMassOperator (shared_ptr<CoefficientFunction> rho,
                                                     shared_ptr<Region> defon,
                                                     LocalHeap & lh) const;
@@ -718,35 +745,12 @@ ANY                  1 1 1 1 | 15
     std::list<std::tuple<std::string,double>> Timing () const;
 
 
-
-
-      /*
-    [[deprecated("Use GetFE with element-id instead of elnr!")]]    
-    virtual const FiniteElement & GetFE (int elnr, LocalHeap & lh) const final;
-    [[deprecated("Use GetFE(ElementId(BND,elnr)) instead!")]]    
-    virtual const FiniteElement & GetSFE (int elnr, LocalHeap & lh) const final;
-    [[deprecated("Use GetFE(ElementId(BBND,elnr)) instead!")]]        
-    virtual const FiniteElement & GetCD2FE (int cd2elnr, LocalHeap & lh) const final;
-*/
-    /// get dof-nrs of the element
-    [[deprecated("Use GetDofNrs with element-id instead of elnr!")]]
-    void GetDofNrs (int elnr, Array<DofId> & dnums) const
-      { GetDofNrs(ElementId(VOL,elnr),dnums); }
-
     [[deprecated("Use GetDofNrs with element-id instead of elnr!")]]
     void GetDofNrs (int elnr, Array<DofId> & dnums, COUPLING_TYPE ctype) const;
 
     /// get dofs on nr'th node of type nt.
     [[deprecated("Use GetDofNrs with NodeId instead of nt/nr")]]    
     virtual void GetNodeDofNrs (NODE_TYPE nt, int nr, Array<int> & dnums) const final;
-    /// get number of low-order dofs for node of type nt
-    // virtual int GetNLowOrderNodeDofs ( NODE_TYPE nt ) const;
-    // { return lodofs_per_node[nt]; }
-
-    /// returns dofs of sourface element
-    [[deprecated("Use GetDofNrs(ElementId(BND,elnr)) instead!")]]
-    void GetSDofNrs (int selnr, Array<DofId> & dnums) const
-      { GetDofNrs(ElementId(BND,selnr),dnums); }
 
     /// is the FESpace defined for this sub-domain nr ?
     [[deprecated("Use Definedon(VorB,int) instead")]]
@@ -853,6 +857,12 @@ ANY                  1 1 1 1 | 15
     {
       return integrator[vb];
     }
+
+    virtual void TraverseTree (const function<void(const FESpace&)> & func) const 
+    {
+      func(*this);
+    }
+    
   };
 
 
@@ -871,7 +881,6 @@ ANY                  1 1 1 1 | 15
   class NGS_DLL_HEADER NodalFESpace : public FESpace
   {
     ///
-    // Array<int> ndlevel;
     bool hb_defined;
     Array<bool> used_vertex;
     Array<bool> used_edge;
@@ -896,10 +905,6 @@ ANY                  1 1 1 1 | 15
     virtual void DoArchive (Archive & archive) override;
 
     virtual FiniteElement & GetFE(ElementId ei, Allocator & lh) const override;
-    ///
-    // virtual size_t GetNDof () const throw() override;
-    ///
-    // virtual size_t GetNDofLevel (int level) const override;
     ///
     // using FESpace::GetDofNrs;
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const override;
@@ -936,8 +941,6 @@ ANY                  1 1 1 1 | 15
 
     virtual FiniteElement & GetFE (ElementId ei, Allocator & lh) const override;
     ///
-    // virtual size_t GetNDof () const throw() override;
-    ///
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const override;
   };
 
@@ -960,8 +963,6 @@ ANY                  1 1 1 1 | 15
     void Update() override;
 
     virtual FiniteElement & GetFE (ElementId ei, Allocator & lh) const override;
-    ///
-    // virtual size_t GetNDof () const throw() override;
     ///
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const override;
   };
@@ -997,14 +998,7 @@ ANY                  1 1 1 1 | 15
 
     virtual FiniteElement & GetFE (ElementId ei, Allocator & lh) const override;
     ///
-    // virtual size_t GetNDof () const throw() override { return ndlevel.Last(); }
-  
-    ///
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const override;
-
-    ///
-    // virtual size_t GetNDofLevel (int level) const override;
-
 
     virtual void GetVertexDofNrs (int vnr, Array<DofId> & dnums) const override
     { dnums.SetSize (0); }
@@ -1023,8 +1017,6 @@ ANY                  1 1 1 1 | 15
   /// Non-continous fe space on boundary
   class NGS_DLL_HEADER SurfaceElementFESpace : public FESpace
   {
-    ///
-    // Array<int> ndlevel;
     int n_el_dofs;
   public:
     ///
@@ -1040,19 +1032,11 @@ ANY                  1 1 1 1 | 15
 
     ///
     void Update() override;
-
-    ///
-    // virtual size_t GetNDof () const throw() { return ndlevel.Last(); }
-
     ///
     virtual FiniteElement & GetFE (ElementId ei, Allocator & lh) const override;
 
     ///
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const override;
-
-    ///
-    // virtual size_t GetNDofLevel (int level) const;
-
   };
 
 
@@ -1108,6 +1092,7 @@ ANY                  1 1 1 1 | 15
 
     /// copies dofcoupling from components
     void UpdateCouplingDofArray() override;
+    virtual void UpdateFreeDofs() override;
     
     void SetDefinedOn (VorB vb, const BitArray& defon) override;
 
@@ -1118,6 +1103,17 @@ ANY                  1 1 1 1 | 15
       
       return DofRange(IntRange(cummulative_nd[spacenr], cummulative_nd[spacenr+1]),
                       spaces[spacenr]->GetParallelDofs());
+    }
+
+    IntRange GetRange (const DifferentialOperator & diffop) const override
+    {
+      if (auto cdop = dynamic_cast<const CompoundDifferentialOperator*>(&diffop))
+        {
+          auto subrange = (*this)[cdop->Component()]->GetRange(*cdop->BaseDiffOp());
+          return subrange+cummulative_nd[cdop->Component()];
+        }
+      else
+        return FESpace::GetRange(diffop);
     }
 
     shared_ptr<BaseMatrix> EmbeddingOperator (int spacenr) const;
@@ -1139,7 +1135,8 @@ ANY                  1 1 1 1 | 15
     void GetEdgeDofNrs (int ednr, Array<DofId> & dnums) const override;
     void GetFaceDofNrs (int fanr, Array<DofId> & dnums) const override;
     void GetInnerDofNrs (int elnr, Array<DofId> & dnums) const override;
-
+    void SelectDofs (const string & name, BitArray & dofs) const override;
+    
     void SolveM(CoefficientFunction * rho, BaseVector & vec, Region * definedon,
                         LocalHeap & lh) const override;
     void ApplyM(CoefficientFunction * rho, BaseVector & vec, Region * definedon,
@@ -1167,6 +1164,14 @@ ANY                  1 1 1 1 | 15
 
     void SetDoSubspaceUpdate(bool _do_subspace_update)
     { do_subspace_update = _do_subspace_update; }
+
+    void TraverseTree (const function<void(const FESpace&)> & func) const override
+    {
+      for (auto space : spaces)
+        space->TraverseTree(func);
+      func(*this);
+    }
+    
   };
 
 

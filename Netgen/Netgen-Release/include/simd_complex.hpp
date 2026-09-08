@@ -56,6 +56,17 @@ namespace ngcore
     auto & imag() { return im; }
 
 
+    auto Lo() const
+    {
+      if constexpr (N == 2) return Complex(re.Lo(), im.Lo());
+      else return SIMD<Complex,N/2> (re.Lo(), im.Lo());
+    }
+    auto Hi() const
+    {
+      if constexpr (N == 2) return Complex(re.Hi(), im.Hi());
+      else return SIMD<Complex,N/2> (re.Hi(), im.Hi());
+    }
+    
     // Numbers in SIMD structure are not necessarily in same order as in memory
     // for instance:
     // [x0,y0,x1,y1,x2,y2,x3,y3] -> [x0,x2,x1,x3,y0,y2,y1,y3]
@@ -245,6 +256,14 @@ namespace ngcore
   { return SIMDComplexWrapper (x, [](Complex c) { return sinh(c); }); }
   
   template <int N>
+  inline SIMD<Complex, N> acosh (SIMD<Complex, N> x)
+  { return SIMDComplexWrapper (x, [](Complex c) { return acosh(c); }); }
+  
+  template <int N>
+  inline SIMD<Complex, N> asinh (SIMD<Complex, N> x)
+  { return SIMDComplexWrapper (x, [](Complex c) { return asinh(c); }); }
+  
+  template <int N>
   inline SIMD<Complex, N> exp (SIMD<Complex, N> x)
   { return SIMDComplexWrapper (x, [](Complex c) { return exp(c); }); }
 
@@ -266,15 +285,50 @@ namespace ngcore
     return SIMD<Complex, N> (IfPos (a.real(), b.real(), c.real()),
                              IfPos (a.real(), b.imag(), c.imag()));
   }
+
+
+  template <int N>
+  INLINE SIMD<Complex, N> If (SIMD<mask64, N> a, SIMD<Complex, N> b, SIMD<Complex, N> c)
+  {
+    return SIMD<Complex, N> (If (a, b.real(), c.real()),
+                             If (a, b.imag(), c.imag()));
+  }
+
+
+
+  
+  template <typename T, size_t S> class MakeSimdCl;
+  
+  template <size_t S>
+  class MakeSimdCl<Complex,S>
+  {
+    std::array<Complex,S> a;
+  public:
+    MakeSimdCl (std::array<Complex,S> aa) : a(aa)  { ; }
+    auto Get() const
+    {
+      std::array<double,S> ar, ai;
+      for (int j = 0; j < S; j++)
+        {
+          ar[j] = ngbla::Real(a[j]);
+          ai[j] = ngbla::Imag(a[j]);
+        }
+      
+      return SIMD<Complex,S> (MakeSimd(ar), MakeSimd(ai));
+    }
+  };
+  
+  
 }
 
 
 namespace ngbla
 {
+  /*
   template <typename T> struct is_scalar_type;
   template <int N>
   struct is_scalar_type<ngcore::SIMD<double,N>> { static constexpr bool value = true; };
-
+  */
   template <typename T> struct is_scalar_type;
   template <int N>
   struct is_scalar_type<ngcore::SIMD<ngcore::Complex,N>> { static constexpr bool value = true; };

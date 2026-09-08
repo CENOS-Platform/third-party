@@ -88,6 +88,8 @@ namespace ngcomp
     using FESpace::GetDofNrs;
     virtual void GetDofNrs (ElementId ei, Array<DofId> & dnums) const override;
 
+    const auto & GetFirstFacetDof() const { return first_facet_dof; }
+    
     IntRange GetFacetDofs (int nr) const
     { 
       return IntRange (first_facet_dof[nr], first_facet_dof[nr+1]); 
@@ -124,12 +126,14 @@ namespace ngcomp
     virtual void GetVertexDofNrs ( int nr, Array<DofId> & dnums ) const override
     {
       dnums.SetSize0();
+      if (ma->GetDimension() != 1) return;
+      dnums += nr;      
     }
 
     virtual void GetEdgeDofNrs ( int nr, Array<DofId> & dnums ) const override
     {
       dnums.SetSize0();
-      if (ma->GetDimension() == 3) return;
+      if (ma->GetDimension() != 2) return;
 
       if (!all_dofs_together)
         dnums += nr;
@@ -138,8 +142,8 @@ namespace ngcomp
 
     virtual void GetFaceDofNrs (int nr, Array<DofId> & dnums) const override
     {
-      dnums.SetSize(0);
-      if (ma->GetDimension() == 2) return;
+      dnums.SetSize0();
+      if (ma->GetDimension() != 3) return;
 
       if (!all_dofs_together)
         dnums += nr;
