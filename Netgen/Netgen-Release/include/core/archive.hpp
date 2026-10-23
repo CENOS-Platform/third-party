@@ -26,13 +26,6 @@
 #include "utils.hpp"            // for Demangle, unlikely
 #include "version.hpp"          // for VersionInfo
 
-#ifdef NETGEN_PYTHON
-namespace pybind11
-{
-  class object;
-}
-#endif // NETGEN_PYTHON
-
 namespace ngcore
 {
   template <typename T>
@@ -69,11 +62,6 @@ namespace ngcore
   
 
   
-#ifdef NETGEN_PYTHON
-  NGCORE_API pybind11::object CastAnyToPy(const std::any& a);
-  NGCORE_API std::any CastPyToAny(pybind11::object& h);
-#endif // NETGEN_PYTHON
-
   class NGCORE_API Archive;
   namespace detail
   {
@@ -181,12 +169,6 @@ namespace ngcore
       // Archive constructor arguments
       // std::function<void(Archive&, void*)> cargs_archiver;
       void (*cargs_archiver)(Archive&, void*);
-
-#ifdef NETGEN_PYTHON
-      // std::function<pybind11::object(const std::any&)> anyToPyCaster;
-      pybind11::object (*anyToPyCaster)(const std::any&);
-      std::any (*pyToAnyCaster)(pybind11::object&);
-#endif // NETGEN_PYTHON
     };
   } // namespace detail
 
@@ -234,28 +216,59 @@ namespace ngcore
     // once and put them together correctly afterwards. Therefore all objects that may live in
     // Python should be archived using this Shallow function. If Shallow is called from C++ code
     // it archives the object normally.
-#ifdef NETGEN_PYTHON
-    template<typename T>
-    Archive& Shallow(T& val); // implemented in register_archive.hpp
-#ifndef __CUDACC__
-    Archive& Shallow(std::any& val); // implemented in python_ngcore.cpp
-#endif // __CUDACC__
-#else // NETGEN_PYTHON
+    // The python side is reached through the type-erased hooks below,
+    // so this header does not depend on pybind11.
     template<typename T>
     Archive& Shallow(T& val)
     {
       static_assert(detail::is_any_pointer<T>, "ShallowArchive must be given pointer type!");
-        *this & val;
+      if (!shallow_to_python)
+        {
+          *this & val;
+          return *this;
+        }
+      if constexpr (detail::is_shared_ptr<T>)
+        {
+          using X = typename T::element_type;
+          if (is_output)
+            ShallowOutPtr(std::shared_ptr<void>(val, const_cast<void*>(static_cast<const void*>(val.get()))),
+                          typeid(X));
+          else
+            {
+              std::shared_ptr<void> p;
+              ShallowInPtr(p, typeid(X));
+              val = std::static_pointer_cast<X>(p);
+            }
+        }
+      else if constexpr (std::is_pointer_v<T>)
+        {
+          // raw pointer: passed as a non-owning shared_ptr (empty owner)
+          using X = std::remove_pointer_t<T>;
+          if (is_output)
+            ShallowOutPtr(std::shared_ptr<void>(std::shared_ptr<void>{}, const_cast<void*>(static_cast<const void*>(val))),
+                          typeid(X));
+          else
+            {
+              std::shared_ptr<void> p;
+              ShallowInPtr(p, typeid(X));
+              val = static_cast<T>(p.get());
+            }
+        }
+      else
+        throw Exception("Shallow archiving to python needs a shared_ptr or a raw pointer");
       return *this;
     }
-#endif // NETGEN_PYTHON
+    Archive& Shallow(std::any& val); // implemented in archive.cpp
 
-#ifdef NETGEN_PYTHON
-    virtual void ShallowOutPython(const pybind11::object& /*unused*/)
+    // hooks for archives that hand objects to python, see PyArchive
+    virtual void ShallowOutPtr(std::shared_ptr<void> /*ptr*/, const std::type_info& /*static type*/)
     { throw UnreachableCodeException{}; }
-    virtual void ShallowInPython(pybind11::object &)
+    virtual void ShallowInPtr(std::shared_ptr<void>& /*ptr*/, const std::type_info& /*static type*/)
     { throw UnreachableCodeException{}; }
-#endif // NETGEN_PYTHON
+    virtual void ShallowOutAny(const std::any& /*val*/)
+    { throw UnreachableCodeException{}; }
+    virtual void ShallowInAny(std::any& /*val*/)
+    { throw UnreachableCodeException{}; }
 
     Archive& operator=(const Archive&) = delete;
     Archive& operator=(Archive&&) = delete;
@@ -267,6 +280,15 @@ namespace ngcore
 
     // only used for PyArchive
     virtual void NeedsVersion(const std::string& /*unused*/, const std::string& /*unused*/) {}
+
+    bool HasFormat(int version)
+    {
+      auto sversion = std::to_string(version);
+      if (GetVersion("netgen_archive") < VersionInfo(sversion))
+        return false;
+      NeedsVersion("netgen_archive", sversion);
+      return true;
+    }
 
     // Pure virtual functions that have to be implemented by In-/OutArchive
     virtual Archive & operator & (std::byte & d) = 0;    
@@ -281,13 +303,11 @@ namespace ngcore
     virtual Archive & operator & (std::string & str) = 0;
     virtual Archive & operator & (char *& str) = 0;
 
-#ifdef NETGEN_PYTHON    
     Archive & operator &(std::any& a)
     {
       Shallow(a);
       return *this;
     }
-#endif
     
     Archive & operator & (VersionInfo & version)
     {
@@ -745,7 +765,7 @@ namespace ngcore
     Archive& operator&(std::tuple<T...> &t)
     {
       // call operator& for each element of the tuple
-      std::apply([this](auto&... arg) { std::make_tuple(((*this) & arg).IsParallel()...);}, t);
+      std::apply([this](auto&... arg) { (((void)((*this) & arg)), ...); }, t);
       return *this;
     }
 
@@ -774,11 +794,6 @@ namespace ngcore
   private:
   template<typename T, typename Bases>
     friend class RegisterClassForArchive;
-
-#ifdef NETGEN_PYTHON
-    friend NGCORE_API pybind11::object CastAnyToPy(const std::any&);
-    friend NGCORE_API std::any CastPyToAny(pybind11::object&);
-#endif // NETGEN_PYTHON
 
     // Returns ClassArchiveInfo of Demangled typeid
     static const detail::ClassArchiveInfo& GetArchiveRegister(const std::string& classname);
@@ -1062,6 +1077,77 @@ namespace ngcore
     template<typename T>
     inline void Read(T& val)
     { stream->read(reinterpret_cast<char*>(&val), sizeof(T)); } // NOLINT
+  };
+
+  // MemoryOutArchive / MemoryInArchive =====================================================
+  // binary archives on a byte buffer, e.g. for sending archived objects via MPI
+  namespace detail
+  {
+    class ByteVectorOStream : public std::ostream
+    {
+      class Buf : public std::streambuf
+      {
+        std::vector<std::byte> & data;
+      public:
+        Buf (std::vector<std::byte> & adata) : data(adata) { }
+        std::streamsize xsputn (const char * s, std::streamsize n) override
+        {
+          size_t old = data.size();
+          data.resize (old + n);
+          memcpy (data.data() + old, s, n);
+          return n;
+        }
+        int_type overflow (int_type c) override
+        {
+          if (c != traits_type::eof()) data.push_back (std::byte(c));
+          return c;
+        }
+      };
+      std::vector<std::byte> data;
+      Buf buf;
+    public:
+      ByteVectorOStream () : std::ostream(&buf), buf(data) { }
+      std::vector<std::byte> & Data () { return data; }
+    };
+
+    class ByteSpanIStream : public std::istream
+    {
+      class Buf : public std::streambuf
+      {
+      public:
+        Buf (const std::byte * data, size_t n)
+        {
+          char * p = const_cast<char*> (reinterpret_cast<const char*> (data));
+          setg (p, p, p + n);
+        }
+      };
+      Buf buf;
+    public:
+      ByteSpanIStream (const std::byte * data, size_t n) : std::istream(&buf), buf(data, n) { }
+    };
+  }
+
+  class MemoryOutArchive : public BinaryOutArchive
+  {
+    detail::ByteVectorOStream * bytes;  // owned by BinaryOutArchive::stream
+  public:
+    MemoryOutArchive ()
+      : BinaryOutArchive(std::make_shared<detail::ByteVectorOStream>()),
+        bytes(static_cast<detail::ByteVectorOStream*>(stream.get())) { }
+    /// the archived bytes, valid as long as the archive lives
+    std::vector<std::byte> & Data ()
+    {
+      FlushBuffer();
+      return bytes->Data();
+    }
+  };
+
+  class MemoryInArchive : public BinaryInArchive
+  {
+  public:
+    /// data must outlive the archive
+    MemoryInArchive (const std::byte * data, size_t n)
+      : BinaryInArchive(std::make_shared<detail::ByteSpanIStream>(data, n)) { }
   };
 
   // TextOutArchive ======================================================================

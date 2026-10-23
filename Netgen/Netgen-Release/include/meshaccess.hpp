@@ -185,6 +185,8 @@ namespace ngcomp
     // these are NC, NF, NE, NV  in 3D,
     // and NF, NE, NV, undef, in 2D
     size_t nnodes_cd[4];
+    /// other ranks sharing the global node, i.e. holding a part of the mesh
+    Array<int> global_node_procs;
 
 
     /// number of elements of dimension i
@@ -583,14 +585,6 @@ namespace ngcomp
     auto GetElEdges (ElementId ei) const { return GetElement(ei).Edges(); }
 
 
-    // returns edge numbers and edge orientation of an element. (old style function)
-    // [[deprecated("Use GetElEdges(ElementId) instead!")]]                
-    void GetElEdges (int elnr, Array<int> & ednums, Array<int> & orient) const;
-
-    // returns edge numbers and edge orientation of an element. (old style function)
-    // [[deprecated("Use GetElEdges(ElementId) instead, orient is deprecated!")]]
-    void GetSElEdges (int selnr, Array<int> & ednums, Array<int> & orient) const;
-
     /// returns the faces of an element
     // [[deprecated("Use fanums = GetElFaces(ElementId) instead!")]]        
     void GetElFaces (ElementId ei, Array<int> & fnums) const
@@ -604,16 +598,8 @@ namespace ngcomp
     void GetElFaces (int elnr, Array<int> & fnums) const
     { fnums = GetElement(ElementId(VOL,elnr)).Faces(); }
 
-    // returns face numbers and face orientation of an element. (old style function)
-    // [[deprecated("Use GetElFaces(ElementId) instead!")]]                        
-    void GetElFaces (int elnr, Array<int> & fnums, Array<int> & orient) const;
-
     /// returns face number of surface element
     int GetSElFace (int selnr) const;
-
-    // returns face number and orientation of surface element
-    // [[deprecated("orientation is deprecated! use GetSElFace(nr) instead")]]
-    void GetSElFace (int selnr, int & fnum, int & orient) const;
 
     /// returns vertex numbers of face
     [[deprecated("Use GetFacePNums(fnr) instead!")]]                        
@@ -987,6 +973,7 @@ namespace ngcomp
     
     FlatArray<int> GetDistantProcs (NodeId node) const
     {
+      if (node.GetType() == NT_GLOBAL) return global_node_procs;
       return mesh.GetDistantProcs(StdNodeType(node.GetType(), GetDimension()), node.GetNr());
     }
 

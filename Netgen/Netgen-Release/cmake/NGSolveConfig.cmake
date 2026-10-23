@@ -1,4 +1,4 @@
-set(PACKAGE_VERSION "6.2.2606-79-ga9d6ea867")
+set(PACKAGE_VERSION "6.2.2608-124-g4b33a584d")
 find_package(Netgen CONFIG REQUIRED HINTS
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/..
@@ -14,13 +14,13 @@ get_filename_component(NGSOLVE_LIBRARY_DIR  "${NETGEN_LIBRARY_DIR}"  ABSOLUTE)
 get_filename_component(NGSOLVE_PYTHON_DIR   "${NETGEN_PYTHON_DIR}"   ABSOLUTE)
 get_filename_component(NGSOLVE_RESOURCE_DIR "${NETGEN_RESOURCE_DIR}" ABSOLUTE)
 
-set(NGSOLVE_CXX_COMPILER "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.41.34120/bin/Hostx64/x64/cl.exe")
+set(NGSOLVE_CXX_COMPILER "D:/msvc1444/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe")
 set(NGSOLVE_CMAKE_BUILD_TYPE "Release")
 
 set(NGSOLVE_CMAKE_THREAD_LIBS_INIT "")
 set(NGSOLVE_MKL_LIBRARIES "D:/source/cenos/backend/third-party/python/Library/lib/mkl_rt.lib")
 set(NGSOLVE_PYBIND_INCLUDE_DIR "")
-set(NGSOLVE_PYTHON_INCLUDE_DIRS "D:/source/cenos/backend/third-party/python/include")
+set(NGSOLVE_PYTHON_INCLUDE_DIRS "D:/source/cenos/backend/third-party/python/Include")
 set(NGSOLVE_PYTHON_LIBRARIES "D:/source/cenos/backend/third-party/python/libs/python310.lib")
 set(NGSOLVE_PYTHON_PACKAGES_INSTALL_DIR  "")
 set(NGSOLVE_TCL_INCLUDE_PATH "D:/source/cenos/backend/temp/netgen/include")
@@ -45,13 +45,14 @@ set(NGSOLVE_USE_NUMA        )
 set(NGSOLVE_USE_PARDISO     OFF)
 set(NGSOLVE_USE_PYTHON ON)
 set(NGSOLVE_USE_UMFPACK     OFF)
+set(NGSOLVE_USE_ACCELERATE_SPARSE OFF)
 set(NGSOLVE_USE_VT          )
 set(NGSOLVE_USE_VTUNE       OFF)
 set(NGSOLVE_MAX_SYS_DIM       3)
 
 set(NGSOLVE_COMPILE_FLAGS " /DHAVE_NETGEN_SOURCES /DUSE_TIMEOFDAY /DTCL /DLAPACK /DUSE_PARDISO /DNGS_PYTHON /DNETGEN_PYTHON /DNG_PYTHON /DPYBIND11_SIMPLE_GIL_MANAGEMENT /D_WIN32_WINNT=0x1000 /DWNT /DWNT_WINDOW /DNOMINMAX /DMSVC_EXPRESS /D_CRT_SECURE_NO_WARNINGS /DHAVE_STRUCT_TIMESPEC /DWIN32 /DNETGEN_ENABLE_CHECK_RANGE" CACHE STRING "Preprocessor definitions of ngscxx")
 set(NGSOLVE_LINK_FLAGS " -LD:/source/cenos/backend/third-party/python/Library/lib -l_rt /LIBPATH:\"%NGSCXX_DIR%/../lib\" nglib.lib ngcore.lib libngsolve.lib /LIBPATH:\"%PYTHON_LIBDIR%\"" CACHE STRING "Link flags set in ngsld")
-set(NGSOLVE_INCLUDE_DIRS D:/source/cenos/backend/third-party/python/Library/include;D:/source/cenos/backend/third-party/python/include CACHE STRING "Include dirs set in ngscxx")
+set(NGSOLVE_INCLUDE_DIRS D:/source/cenos/backend/third-party/python/Library/include;D:/source/cenos/backend/third-party/python/Include CACHE STRING "Include dirs set in ngscxx")
 
 set(NGSOLVE_INSTALL_DIR_PYTHON  Lib/site-packages)
 set(NGSOLVE_INSTALL_DIR_BIN     bin)

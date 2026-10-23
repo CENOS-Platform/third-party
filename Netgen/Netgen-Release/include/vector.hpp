@@ -758,8 +758,8 @@ namespace ngbla
     /** allocate vector. 
 	If the dynamic size fits into the static size, use static memory. Otherwise use dynamic alloation
     */
-    explicit INLINE VectorMem (size_t as) : FlatVector<T> (as, (as <= S) ? 
-                                                           &mem[0] : new T[as]) { ; }
+    explicit INLINE VectorMem (size_t as) : FlatVector<T> (as, nullptr)
+    { this->AssignMemory (as, (as <= S) ? &mem[0] : new T[as]); }
 
     /// deallocates dynamic memory
     INLINE ~VectorMem() { if (this->Size() > S) delete [] this->Data(); }
@@ -1134,6 +1134,11 @@ namespace ngbla
     ///
     // enum { IS_COMPLEX = mat_traits<TSCAL>::IS_COMPLEX };
   };
+
+  // the entry shape of TV (a scalar or a Vec), with scalar type TS
+  template <typename TV, typename TS>
+  using WithScalar = std::conditional_t<IsScalar<TV>(), TS,
+                                        Vec<int(sizeof(TV)/sizeof(typename mat_traits<TV>::TSCAL)), TS>>;
 
 
   

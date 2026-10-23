@@ -179,44 +179,59 @@ namespace ngbla
   {
     c = a * b;
   }
-  extern NGS_DLL_HEADER void REGCALL MultMatMat_intern (size_t ha, size_t wa, size_t wb,
-                                                        BareSliceMatrix<> a, BareSliceMatrix<> b, BareSliceMatrix<> c);
+  // double GEMM, C row-major. Table entry d < size-1 is a kernel for small dimension d
+  // (inner dimension aw, for AtB the height of C), the last entry the general kernel
+  template <typename T, ORDERING OA, ORDERING OB>
+  using pgemm = void REGCALL (*)(size_t ah, size_t aw, size_t bw, BareSliceMatrix<T,OA>,
+                                 BareSliceMatrix<T,OB>, BareSliceMatrix<T,RowMajor>);
 
-  typedef void REGCALL (*pmultABW)(size_t, size_t, size_t, BareSliceMatrix<>, BareSliceMatrix<>, BareSliceMatrix<>);
-  
-  extern NGS_DLL_HEADER pmultABW dispatch_multAB[14];
+  template <ORDERING OA, ORDERING OB> inline constexpr size_t gemm_dispatch_size = 14;
+  template <> inline constexpr size_t gemm_dispatch_size<RowMajor,ColMajor> = 26;
+  template <> inline constexpr size_t gemm_dispatch_size<ColMajor,ColMajor> = 1;
+
+  template <ORDERING OA, ORDERING OB>
+  inline constexpr bool gemm_dispatch_on_height = OA == ColMajor && OB == RowMajor;
+
+  template <bool ADD, bool POS, ORDERING OA, ORDERING OB>
+  extern NGS_DLL_HEADER pgemm<double,OA,OB> dispatch_gemm[gemm_dispatch_size<OA,OB>];
+
+  // ADD/POS 
+  // f   f    C = -A*B
+  // f   t    C = A*B
+  // t   f    C -= A*B
+  // t   t    C += A*B
+  template <bool ADD, bool POS, ORDERING OA, ORDERING OB>
+  INLINE void NgGEMM (SliceMatrix<double,OA> a, SliceMatrix<double,OB> b, SliceMatrix<double,RowMajor> c)
+  {
+    size_t ah = a.Height(), aw = a.Width(), bw = b.Width();
+    if (ah == 0 || bw == 0) return;
+    // AB, ABt: table entry 0 handles aw == 0
+    if constexpr (OA == ColMajor)
+      if (aw == 0) [[unlikely]]
+        {
+          if constexpr (!ADD) c = 0.0;
+          return;
+        }
+    constexpr size_t N = gemm_dispatch_size<OA,OB>;
+    size_t d = std::min(gemm_dispatch_on_height<OA,OB> ? ah : aw, N-1);
+    (*dispatch_gemm<ADD,POS,OA,OB>[d]) (ah, aw, bw, a, b, c);
+  }
+
+  template <bool ADD, bool POS, ORDERING OA, ORDERING OB>
+  INLINE void NgGEMM (SliceMatrix<double,OA> a, SliceMatrix<double,OB> b, SliceMatrix<double,ColMajor> c)
+  {
+    NgGEMM<ADD,POS> (Trans(b), Trans(a), Trans(c));
+  }
+
   inline void MultMatMat (SliceMatrix<> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    if (a.Height() == 0 || b.Width() == 0) return;
-    size_t wa = std::min(a.Width(), std::size(dispatch_multAB)-1);
-    (*dispatch_multAB[wa])  (a.Height(), a.Width(), b.Width(), a, b, c);
-  }
-  
-  extern NGS_DLL_HEADER pmultABW dispatch_minusmultAB[14];
+  { NgGEMM<false,true> (a, b, c); }
   inline void MinusMultAB (SliceMatrix<> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    if (a.Height() == 0 || b.Width() == 0) return;
-    size_t wa = std::min(a.Width(), std::size(dispatch_minusmultAB)-1);    
-    (*dispatch_minusmultAB[wa])  (a.Height(), a.Width(), b.Width(), a, b, c);
-  }
-  
-  extern NGS_DLL_HEADER pmultABW dispatch_addAB[14];
+  { NgGEMM<false,false> (a, b, c); }
   inline void AddAB (SliceMatrix<> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    if (a.Height() == 0 || b.Width() == 0) return;
-    size_t wa = std::min(a.Width(), std::size(dispatch_addAB)-1);    
-    (*dispatch_addAB[wa])  (a.Height(), a.Width(), b.Width(), a, b, c);
-  }
-
-  extern NGS_DLL_HEADER pmultABW dispatch_subAB[14];
+  { NgGEMM<true,true> (a, b, c); }
   inline void SubAB (SliceMatrix<> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    if (a.Height() == 0 || b.Width() == 0) return;
-    size_t wa = std::min(a.Width(), std::size(dispatch_subAB)-1);        
-    (*dispatch_subAB[wa])  (a.Height(), a.Width(), b.Width(), a, b, c);
-  }
+  { NgGEMM<true,false> (a, b, c); }
 
-  
   extern NGS_DLL_HEADER void MultMatMat_intern (size_t ha, size_t wa, size_t wb,
                                  BareSliceMatrix<> a, BareSliceMatrix<SIMD<double>> b, BareSliceMatrix<SIMD<double>> c);
   
@@ -225,58 +240,22 @@ namespace ngbla
     MultMatMat_intern (a.Height(), a.Width(), b.Width(), a, b, c);
   }
 
-
-
-  
-
-  template <bool ADD, bool POS>
-  struct NGS_DLL_HEADER dispatch_atb { static pmultABW ptrs[14]; };
-  
+  // c = Trans(a) * b
   template <bool ADD, bool POS>
   inline void MatMat_AtB (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c)
-  {
-    if (a.Height() == 0 || b.Width() == 0) return;
-    size_t wa = std::min(a.Width(), std::size(dispatch_atb<ADD,POS>::ptrs)-1);            
-    (*dispatch_atb<ADD,POS>::ptrs[wa])  (a.Height(), a.Width(), b.Width(), a, b, c);
-  }
-  
+  { NgGEMM<ADD,POS> (Trans(a), b, c.AddSize(a.Width(), b.Width())); }
   inline void MultAtB (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c)
   { MatMat_AtB<false,true> (a, b, c); }
-  
 
-
-  
-  
-  //extern NGS_DLL_HEADER void MultABt (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c);
-
-  typedef void REGCALL (*pfunc_abt)(size_t, size_t, BareSliceMatrix<>, BareSliceMatrix<>, BareSliceMatrix<>);
-  extern NGS_DLL_HEADER pfunc_abt dispatch_abt[25];
-  extern NGS_DLL_HEADER pfunc_abt dispatch_addabt[25];
-  
-  extern NGS_DLL_HEADER void MultABt_intern (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c);
-  extern NGS_DLL_HEADER void AddABt_intern (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c);  
-
+  // c = a * Trans(b)
   inline void MultABt (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c)
-  {
-    size_t wa = a.Width();
-    if (wa <= 24)
-      (*dispatch_abt[wa])  (a.Height(), b.Height(), a, b, c);
-    else
-      MultABt_intern (a,b,c);
-  }
-
+  { NgGEMM<false,true> (a, Trans(b), c.AddSize(a.Height(), b.Height())); }
+  inline void MinusMultABt (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c)
+  { NgGEMM<false,false> (a, Trans(b), c.AddSize(a.Height(), b.Height())); }
   inline void AddABt (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c)
-  {
-    size_t wa = a.Width();
-    if (wa <= 24)
-      (*dispatch_addabt[wa])  (a.Height(), b.Height(), a, b, c);
-    else
-      AddABt_intern (a,b,c);
-  }
-
-  
-  extern NGS_DLL_HEADER void MinusMultABt (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c);  
-  extern NGS_DLL_HEADER void SubABt (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c);
+  { NgGEMM<true,true> (a, Trans(b), c.AddSize(a.Height(), b.Height())); }
+  inline void SubABt (SliceMatrix<double> a, SliceMatrix<double> b, BareSliceMatrix<double> c)
+  { NgGEMM<true,false> (a, Trans(b), c.AddSize(a.Height(), b.Height())); }
   inline void SubABt (SliceMatrix<float> a, SliceMatrix<float> b, BareSliceMatrix<float> c) { c -= a*b; }
   
   extern NGS_DLL_HEADER void AddABt (SliceMatrix<SIMD<double>> a, SliceMatrix<SIMD<double>> b, BareSliceMatrix<double> c);  
@@ -381,158 +360,81 @@ namespace ngbla
 
 
 
-  template <bool ADD, bool POS>
-  INLINE void NgGEMM (const SliceMatrixLike auto& a, const SliceMatrixLike auto& b, const SliceMatrixLike auto& c)
+  template <bool ADD, bool POS, typename T, ORDERING OA, ORDERING OB>
+    requires (std::is_same_v<T,float> || std::is_same_v<T,Complex32>)
+  INLINE void NgGEMM (SliceMatrix<T,OA> a, SliceMatrix<T,OB> b,
+                      SliceMatrix<T,RowMajor> c);
+
+  template <bool ADD, bool POS, typename T, ORDERING OA, ORDERING OB>
+    requires (std::is_same_v<T,float> || std::is_same_v<T,Complex32>)
+  INLINE void NgGEMM (SliceMatrix<T,OA> a, SliceMatrix<T,OB> b,
+                      SliceMatrix<T,ColMajor> c);
+
+  template <typename T>
+  using mat_elem_t = std::remove_cv_t<typename std::remove_reference_t<T>::TELEM>;
+
+  // element types with an NgGEMM kernel
+  template <typename T>
+  concept NgGEMMScalar = std::is_same_v<T,double> || std::is_same_v<T,float> ||
+    std::is_same_v<T,Complex> || std::is_same_v<T,Complex32>;
+
+  template <typename TA, typename TB, typename TC>
+  concept NgGEMMCompatible =
+    SliceMatrixLike<TA> && SliceMatrixLike<TB> && SliceMatrixLike<TC> &&
+    NgGEMMScalar<mat_elem_t<TC>> &&
+    std::is_same_v<mat_elem_t<TA>, mat_elem_t<TC>> &&
+    std::is_same_v<mat_elem_t<TB>, mat_elem_t<TC>>;
+
+  template <bool ADD, bool POS, typename TA, typename TB, typename TC>
+    requires NgGEMMCompatible<TA,TB,TC>
+  INLINE void NgGEMM (const TA& a, const TB& b, const TC& c)
   {
     NgGEMM<ADD,POS> (AsSliceMatrix(a), AsSliceMatrix(b), AsSliceMatrix(c));
   }
   
-  template <bool ADD, bool POS, ORDERING orda, ORDERING ordb>
-  INLINE void NgGEMM (SliceMatrix<double,orda> a, SliceMatrix<double, ordb> b, SliceMatrix<double> c);
+  template <typename T, ORDERING OA, ORDERING OB>
+  using pmatmat = void (*)
+    (size_t, size_t, BareSliceMatrix<T,OA>, BareSliceMatrix<T,OB>,
+     BareSliceMatrix<T,RowMajor>);
 
-  template <bool ADD, bool POS, ORDERING orda, ORDERING ordb>
-  INLINE void NgGEMM (SliceMatrix<double,orda> a, SliceMatrix<double, ordb> b, SliceMatrix<double,ColMajor> c);
-  
-  
+  template <typename T, bool ADD, bool POS, ORDERING OA, ORDERING OB>
+  extern NGS_DLL_HEADER pmatmat<T,OA,OB> dispatch_matmat[9];
 
-  
+  template <typename T, bool ADD, bool POS, ORDERING OA, ORDERING OB>
+  extern NGS_DLL_HEADER void NgGEMM32Intern
+    (size_t ah, size_t aw, size_t bw,
+     BareSliceMatrix<T,OA> a,
+     BareSliceMatrix<T,OB> b,
+     BareSliceMatrix<T,RowMajor> c);
 
-  // ADD/POS 
-  // f   f    C = -A*B
-  // f   t    C = A*B
-  // t   f    C -= A*B
-  // t   t    C += A*B
-  
-  template <bool ADD, bool POS, ORDERING orda, ORDERING ordb>
-  INLINE void NgGEMM (SliceMatrix<double,orda> a, SliceMatrix<double, ordb> b, SliceMatrix<double> c)
+  template <bool ADD, bool POS, typename T, ORDERING OA, ORDERING OB>
+    requires (std::is_same_v<T,float> || std::is_same_v<T,Complex32>)
+  INLINE void NgGEMM (SliceMatrix<T,OA> a, SliceMatrix<T,OB> b,
+                      SliceMatrix<T,RowMajor> c)
   {
-    // static Timer t("generic MM, add/pos/ord="+ToString(ADD)+ToString(POS)+ToString(orda)+ToString(ordb));
-    // RegionTimer r(t);
-    
-    // static Timer t("NgGEMM unresolved" + ToString(ADD) + ToString(POS) + ToString(orda) + ToString(ordb));
-    // RegionTimer reg(t);
-    // NgProfiler::AddThreadFlops (t, TaskManager::GetThreadId(), a.Height()*a.Width()*b.Height());
-    
-    if (!ADD)
+    size_t ah = a.Height();
+    size_t aw = a.Width();
+    size_t bw = b.Width();
+    if (aw < std::size(dispatch_matmat<T,ADD,POS,OA,OB>))
       {
-        if (!POS)
-          c = -1*a*b;
-        else
-          c = 1*a*b;
+        (*dispatch_matmat<T,ADD,POS,OA,OB>[aw])(ah,bw,a,b,c);
+        return;
       }
-    else
-      {
-        if (!POS)
-          c -= 1*a*b;
-        else
-          c += 1*a*b;
-      }
+
+    NgGEMM32Intern<T,ADD,POS,OA,OB>
+      (ah,aw,bw,AsBareSliceMatrix(a),AsBareSliceMatrix(b),
+       AsBareSliceMatrix(c));
   }
-  
-  template <> INLINE void NgGEMM<false,true> (SliceMatrix<> a, SliceMatrix<> b, SliceMatrix<> c)
+
+  template <bool ADD, bool POS, typename T, ORDERING OA, ORDERING OB>
+    requires (std::is_same_v<T,float> || std::is_same_v<T,Complex32>)
+  INLINE void NgGEMM (SliceMatrix<T,OA> a, SliceMatrix<T,OB> b,
+                      SliceMatrix<T,ColMajor> c)
   {
-    // static Timer t("NgGEMM  MultMatMat");
-    // RegionTimer reg(t);
-    // NgProfiler::AddThreadFlops (t, TaskManager::GetThreadId(), a.Height()*a.Width()*b.Width());
-
-    MultMatMat (a,b,c);
+    NgGEMM<ADD,POS> (Trans(b),Trans(a),Trans(c));
   }
 
 
-  //  C  ???  A * B
-  
-  template <> INLINE void NgGEMM<true,true> (SliceMatrix<> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    // nstatic Timer t("NgGEMM  AddAB");
-    // RegionTimer reg(t);
-    // NgProfiler::AddThreadFlops (t, TaskManager::GetThreadId(), a.Height()*a.Width()*b.Width());
-
-    AddAB (a,b,c);
-  }
-
-  template <> INLINE void NgGEMM<true,false> (SliceMatrix<> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    // static Timer t("NgGEMM  SubAB");
-    // RegionTimer reg(t);
-    // NgProfiler::AddThreadFlops (t, TaskManager::GetThreadId(), a.Height()*a.Width()*b.Width());
-
-    SubAB (a,b,c);
-  }
-
-  template <> INLINE void NgGEMM<false,false> (SliceMatrix<> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    // static Timer t("NgGEMM  MinusAB");
-    // RegionTimer reg(t);
-    // NgProfiler::AddThreadFlops (t, TaskManager::GetThreadId(), a.Height()*a.Width()*b.Width());
-
-    MinusMultAB (a, b, c);
-  }
-
-  //  C  ???  A * Bt
-  
-  template <> INLINE void NgGEMM<false,false> (SliceMatrix<> a, SliceMatrix<double,ColMajor> b, SliceMatrix<> c)
-  {
-    // static Timer t("NgGEMM  MinusABt");
-    // RegionTimer reg(t);
-    // NgProfiler::AddThreadFlops (t, TaskManager::GetThreadId(), a.Height()*a.Width()*b.Height());
-
-    MinusMultABt (a, Trans(b), c);
-  }
-
-  template <> INLINE void NgGEMM<false,true> (SliceMatrix<> a, SliceMatrix<double,ColMajor> b, SliceMatrix<> c)
-  {
-    // static Timer t("NgGEMM  MultABt");
-    // RegionTimer reg(t);
-    // NgProfiler::AddThreadFlops (t, TaskManager::GetThreadId(), a.Height()*a.Width()*b.Height());
-
-    MultABt (a, Trans(b), c);
-  }
-  
-  template <> INLINE void NgGEMM<true,false> (SliceMatrix<> a, SliceMatrix<double,ColMajor> b, SliceMatrix<> c)
-  {
-    // static Timer t("NgGEMM  SubABt");
-    // RegionTimer reg(t);
-    // NgProfiler::AddThreadFlops (t, TaskManager::GetThreadId(), a.Height()*a.Width()*b.Height());
-
-    SubABt (a, Trans(b), BareSliceMatrix<>(c));
-  }
-  
-  template <> INLINE void NgGEMM<true,true> (SliceMatrix<> a, SliceMatrix<double,ColMajor> b, SliceMatrix<> c)
-  {
-    // static Timer t("NgGEMM  AddABt");
-    // RegionTimer reg(t);
-    // NgProfiler::AddThreadFlops (t, TaskManager::GetThreadId(), a.Height()*a.Width()*b.Height());
-
-    AddABt (a, Trans(b), c);
-  }
-  
-  
-  //  C  ???  At * B
-  
-  template <> INLINE void NgGEMM<false,true> (SliceMatrix<double,ColMajor> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    // MultAtB (Trans(a), b, c);
-    MatMat_AtB<false, true> (Trans(a), b, c);
-  }
-  template <> INLINE void NgGEMM<true,true> (SliceMatrix<double,ColMajor> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    MatMat_AtB<true, true> (Trans(a), b, c);
-  }
-  template <> INLINE void NgGEMM<true,false> (SliceMatrix<double,ColMajor> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    MatMat_AtB<true, false> (Trans(a), b, c);
-  }
-  template <> INLINE void NgGEMM<false,false> (SliceMatrix<double,ColMajor> a, SliceMatrix<> b, SliceMatrix<> c)
-  {
-    MatMat_AtB<false, false> (Trans(a), b, c);
-  }
-
-  
-  template <bool ADD, bool POS, ORDERING orda, ORDERING ordb>
-  INLINE void NgGEMM (SliceMatrix<double,orda> a, SliceMatrix<double, ordb> b, SliceMatrix<double,ColMajor> c)
-  {
-    NgGEMM<ADD,POS> (Trans(b), Trans(a), Trans(c));
-  }
 
 
   template <typename TM, typename FUNC, typename TX, typename TY>
@@ -581,6 +483,20 @@ namespace ngbla
       {
         FlatMatrix<Complex> mx(x.Size(), sizeof(TX)/sizeof(Complex), &const_cast<Complex&>(*(x.Data()->Data())));
         FlatMatrix<Complex> my(y.Size(), sizeof(TX)/sizeof(Complex), y.Data()->Data());
+        NgGEMM<ADD,POS> (a.AddSize(y.Size(), x.Size()),AsSliceMatrix(mx), AsSliceMatrix(my));
+        return;
+      }
+    if constexpr (std::is_same<TM,float>() && std::is_same<TX,TY>() && IsVec<Complex32,TX>)
+      {
+        FlatMatrix<float> mx(x.Size(), sizeof(TX)/sizeof(float), (float*)(void*)x.Addr(0));
+        FlatMatrix<float> my(y.Size(), sizeof(TX)/sizeof(float), (float*)(void*)y.Addr(0));
+        NgGEMM<ADD,POS> (a.AddSize(y.Size(), x.Size()),AsSliceMatrix(mx), AsSliceMatrix(my));
+        return;
+      }
+    if constexpr (std::is_same<TM,Complex32>() && std::is_same<TX,TY>() && IsVec<Complex32,TX>)
+      {
+        FlatMatrix<Complex32> mx(x.Size(), sizeof(TX)/sizeof(Complex32), &const_cast<Complex32&>(*(x.Data()->Data())));
+        FlatMatrix<Complex32> my(y.Size(), sizeof(TX)/sizeof(Complex32), y.Data()->Data());
         NgGEMM<ADD,POS> (a.AddSize(y.Size(), x.Size()),AsSliceMatrix(mx), AsSliceMatrix(my));
         return;
       }
@@ -737,6 +653,22 @@ namespace ngbla
         constexpr int VS = sizeof(TX)/sizeof(Complex);
         SliceMatrix<Complex> mx(x.Size(), VS, x.Dist()*VS, &const_cast<Complex&>(*(x.Data()->Data())));
         SliceMatrix<Complex> my(y.Size(), VS, y.Dist()*VS, y.Data()->Data());
+        NgGEMM<ADD,POS> (a.AddSize(y.Size(), x.Size()),AsSliceMatrix(mx), AsSliceMatrix(my));
+        return;
+      }
+    else if constexpr (std::is_same<TM,float>() && std::is_same<TX,TY>() && IsVec<Complex32,TX>)
+      {
+        constexpr int VS = sizeof(TX)/sizeof(float);
+        SliceMatrix<float> mx(x.Size(), VS, x.Dist()*VS, (float*)(void*)x.Addr(0));
+        SliceMatrix<float> my(y.Size(), VS, y.Dist()*VS, (float*)(void*)y.Addr(0));
+        NgGEMM<ADD,POS> (a.AddSize(y.Size(), x.Size()),AsSliceMatrix(mx), AsSliceMatrix(my));
+        return;
+      }
+    else if constexpr (std::is_same<TM,Complex32>() && std::is_same<TX,TY>() && IsVec<Complex32,TX>)
+      {
+        constexpr int VS = sizeof(TX)/sizeof(Complex32);
+        SliceMatrix<Complex32> mx(x.Size(), VS, x.Dist()*VS, x.Data()->Data());
+        SliceMatrix<Complex32> my(y.Size(), VS, y.Dist()*VS, y.Data()->Data());
         NgGEMM<ADD,POS> (a.AddSize(y.Size(), x.Size()),AsSliceMatrix(mx), AsSliceMatrix(my));
         return;
       }
@@ -1008,21 +940,6 @@ namespace ngbla
   };
   */
 
-  template <typename OP, SliceMatrixLike<double> T, SliceMatrixLike TA, SliceMatrixLike TB>
-  class assign_trait<OP, T, MultExpr<TA, TB>> 
-  {
-  public:
-    static inline T & Assign (MatExpr<T> & self, const Expr<MultExpr<TA, TB>> & prod) 
-    {
-      size_t n = CombinedSize(prod.View().A().Height(), self.Spec().Height());
-      size_t m = CombinedSize(prod.View().B().Width(), self.Spec().Width());
-      size_t k = CombinedSize(prod.View().A().Width(), prod.View().B().Height());
-      NgGEMM<OP::IsAdd(),OP::IsPos()> (prod.View().A().Rows(0,n).Cols(0,k).RemoveConst(),
-                                       prod.View().B().Rows(0,k).Cols(0,m).RemoveConst(),
-                                       self.Spec().Rows(0,n).Cols(0,m));
-      return self.Spec();
-    }
-  };
 
   
   
@@ -1105,24 +1022,54 @@ namespace ngbla
     NgGEMM<ADD,POS> (Trans(b), Trans(a), Trans(c));
   }
   
-  template <typename OP, SliceMatrixLike<Complex> T, SliceMatrixLike<Complex> TA, SliceMatrixLike<Complex> TB>
+  // C = A*B for same element types, dispatched to NgGEMM
+  template <typename OP, typename T, typename TA, typename TB>
+    requires NgGEMMCompatible<TA,TB,T>
   class assign_trait<OP, T, MultExpr<TA, TB>>
   {
   public:
     static inline T & Assign (MatExpr<T> & self, const Expr<MultExpr<TA, TB>> & prod) 
     {
-      size_t n = CombinedSize(prod.Height(), self.Height());
-      size_t m = CombinedSize(prod.Width(), self.Width());
+      size_t n = CombinedSize(prod.View().A().Height(), self.Spec().Height());
+      size_t m = CombinedSize(prod.View().B().Width(), self.Spec().Width());
       size_t k = CombinedSize(prod.View().A().Width(), prod.View().B().Height());
-      
-      NgGEMM<OP::IsAdd(),OP::IsPos()> (AsBareSliceMatrix(prod.View().A()).AddSize(n,k).RemoveConst(),
-                                       AsBareSliceMatrix(prod.View().B()).AddSize(k,m).RemoveConst(),
-                                       AsBareSliceMatrix(self.Spec()).AddSize(n,m));
+      NgGEMM<OP::IsAdd(),OP::IsPos()> (prod.View().A().Rows(0,n).Cols(0,k).RemoveConst(),
+                                       prod.View().B().Rows(0,k).Cols(0,m).RemoveConst(),
+                                       self.Spec().Rows(0,n).Cols(0,m));
       return self.Spec();
     }
   };
 
-  
+  template <typename T>
+  concept RowMajorSliceMatrixLike =
+    std::is_constructible_v<SliceMatrix<typename std::remove_reference_t<T>::TELEM, RowMajor>, T>;
+
+  // C(Complex) = A(double) * B(Complex): view row-major B, C as double matrices of twice the width
+  template <typename OP, typename T, typename TA, typename TB>
+    requires SliceMatrixLike<TA> && RowMajorSliceMatrixLike<TB> && RowMajorSliceMatrixLike<T> &&
+    std::is_same_v<mat_elem_t<TA>, double> &&
+    std::is_same_v<mat_elem_t<TB>, Complex> && std::is_same_v<mat_elem_t<T>, Complex>
+  class assign_trait<OP, T, MultExpr<TA, TB>>
+  {
+  public:
+    static inline T & Assign (MatExpr<T> & self, const Expr<MultExpr<TA, TB>> & prod)
+    {
+      // A(), B() return by value (e.g. Mat from Trans(Mat)): keep them alive while viewing their data
+      auto mata = prod.Spec().A();
+      auto matb = prod.Spec().B();
+      size_t n = CombinedSize(mata.Height(), self.Spec().Height());
+      size_t m = CombinedSize(matb.Width(), self.Spec().Width());
+      size_t k = CombinedSize(mata.Width(), matb.Height());
+      SliceMatrix<Complex> b = SliceMatrix<typename std::remove_reference_t<TB>::TELEM>(matb).RemoveConst();
+      SliceMatrix<Complex> c = self.Spec();
+      NgGEMM<OP::IsAdd(),OP::IsPos()> (mata.Rows(0,n).Cols(0,k).RemoveConst(),
+                                       SliceMatrix<double>(k, 2*m, 2*b.Dist(), reinterpret_cast<double*>(b.Data())),
+                                       SliceMatrix<double>(n, 2*m, 2*c.Dist(), reinterpret_cast<double*>(c.Data())));
+      return self.Spec();
+    }
+  };
+
+
 
 
 
@@ -1139,5 +1086,3 @@ namespace ngbla
 
 
 #endif
-
-

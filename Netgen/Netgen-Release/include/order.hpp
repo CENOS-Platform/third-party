@@ -37,18 +37,6 @@ namespace ngla
     int GetDegree (int nr) const { return list[nr].degree; }
     void SetDegree (int nr, int deg);
     void Invalidate (int nr);
-
-    const MemoryTracer& GetMemoryTracer() const
-    {
-      return mt;
-    }
-
-    void StartMemoryTracing() const
-    {
-      mt.Track(list, "list", first_in_class, "first_in_class");
-    }
-  private:
-    MemoryTracer mt;
   };
 
 
@@ -125,6 +113,9 @@ namespace ngla
     CliqueEl * clmaster;
     int vnr;
     bool eliminate = false;
+    // in the clique master: weighted size (vertices incl. minions), and the
+    // per-elimination counter of the approximate degree update
+    int weight = 0, w = 0, stamp = -1;
   
     CliqueEl (int avnr) : vnr(avnr) { ; }
 
@@ -157,7 +148,23 @@ namespace ngla
     ///
     MDOPriorityQueue priqueue;
     ///
-    ngstd::BlockAllocator ball;
+    ngcore::BlockAllocator ball;
+    /// approximate degrees (the AMD bound) instead of exact ones: about twice as fast, similar fill
+    bool approx = false;
+    int curstamp = 0;
+    Array<CliqueEl*> touched;   // elements met in the current elimination
+
+    /*
+      original edges: adjacency arrays (csr), built in Order() from the
+      edges collected by AddEdge; entries only get removed (absorbed into
+      an element, or stale: eliminated / minion vertices, skipped lazily)
+    */
+    Array<int> edges;           // pairs, until Order()
+    Array<size_t> adjstart;
+    Array<int> adjdata, adjlen, adjw;   // current length, weighted size outside the new clique
+    Array<int> vmark;           // per-vertex marks of the equivalence test
+    int markid = 0;
+    FlatArray<int> Adj (int v) { return adjdata.Range (adjstart[v], adjstart[v]+adjlen[v]); }
   public:
     ///
     MinimumDegreeOrdering (int an);
@@ -221,21 +228,6 @@ namespace ngla
     }
 
     void SetMaster (int master, int minion);
-
-
-    void StartMemoryTracing() const
-    {
-      mt.Track(cliques, "cliques",
-               order, "order",
-               blocknr, "blocknr",
-               vertices, "vertices",
-               priqueue, "priqueue",
-               ball, "ball");
-    }
-    const MemoryTracer& GetMemoryTracer() const { return mt; }
-
-  private:
-    MemoryTracer mt;
   };
 
 

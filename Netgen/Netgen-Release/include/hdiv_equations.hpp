@@ -86,7 +86,17 @@ public:
     auto & mip = static_cast<const MappedIntegrationPoint<D,D>&>(bmip);
     mat = 1./mip.GetJacobiDet() * mip.GetJacobian();
   }
-    
+
+
+  static string GenerateTransformationCode (string invar, string outvar, bool trans) 
+  {
+    if (!trans)
+      return outvar + " = 1/J * (F * " + invar + ");\n";
+    else
+      return outvar + " = 1/J * (Trans(F) * " + invar + ");\n";        
+  }
+
+  
   
   static void GenerateMatrixSIMDIR (const FiniteElement & fel,
                                     const SIMD_BaseMappedIntegrationRule & mir, BareSliceMatrix<SIMD<double>> mat)
@@ -142,14 +152,27 @@ public:
     y.Range(0,fel.GetNDof()) = Cast(fel).GetShape(mip.IP(),lh) * hv;
   }
 
-  using DiffOp<DiffOpIdHDiv<D,FEL>>::ApplySIMDIR;        
+  using DiffOp<DiffOpIdHDiv<D,FEL>>::ApplySIMDIR;
   static void ApplySIMDIR (const FiniteElement & fel, const SIMD_BaseMappedIntegrationRule & mir,
                            BareSliceVector<double> x, BareSliceMatrix<SIMD<double>> y)
   {
     Cast(fel).Evaluate (mir, x, y);
-  }    
+  }
 
-  using DiffOp<DiffOpIdHDiv<D,FEL>>::AddTransSIMDIR;          
+  static void ApplySIMDIR (const FiniteElement & fel, const SIMD_BaseMappedIntegrationRule & mir,
+                           BareSliceVector<Complex> x, BareSliceMatrix<SIMD<Complex>> y)
+  {
+    Matrix<SIMD<double>> yre(D, mir.Size()), yim(D, mir.Size());
+
+    Cast(fel).Evaluate (mir, Real(x), yre);
+    Cast(fel).Evaluate (mir, Imag(x), yim);
+
+    for (int j = 0; j < D; j++)
+      for (size_t i = 0; i < mir.Size(); i++)
+        y(j,i) = SIMD<Complex>(yre(j,i), yim(j,i));
+  }
+
+  using DiffOp<DiffOpIdHDiv<D,FEL>>::AddTransSIMDIR;
   static void AddTransSIMDIR (const FiniteElement & fel, const SIMD_BaseMappedIntegrationRule & mir,
                               BareSliceMatrix<SIMD<double>> y, BareSliceVector<double> x)
   {
@@ -284,6 +307,25 @@ public:
 
   static const FEL & Cast (const FiniteElement & fel) 
   { return static_cast<const FEL&> (fel); }
+
+  static int DimRef() { return 1; }
+
+  template <typename IP, typename MAT>
+  static void GenerateMatrixRef (const FiniteElement & fel, const IP & ip,
+                                 MAT && mat, LocalHeap & lh)
+  {
+    Cast(fel).CalcDivShape (ip, mat.Row(0));
+  }
+
+  template <typename MIP, typename MAT>
+  static void CalcTransformationMatrix (const MIP & mip,
+                                        MAT & mat, LocalHeap & lh)
+  {
+    mat(0,0) = 1.0/mip.GetJacobiDet();
+  }
+
+  static string GenerateTransformationCode (string invar, string outvar, bool trans)
+  { return outvar + " = 1/J * " + invar + ";\n"; }
   
   template <typename AFEL, typename MIP, typename MAT>
   static void GenerateMatrix (const AFEL & fel, const MIP & mip,
@@ -584,7 +626,26 @@ public:
     typedef DiffOpGradientTraceHDiv<D> DIFFOP_TRACE;
     ///
 
+    static string GenerateTransformationCode (string invar, string outvar, bool trans) 
+    {
+      // grad gives transpose jacobi matrix
+      if (!trans)
+        return outvar+ "= ToVec(1/J*Trans(Inv(F)) * (ToMat<3,3>("+invar+".Range<0,9>()) * Trans(F)));\n";
+      else
+        return outvar+ "= 0.0; "+outvar+".SetRange<0,9>(ToVec(1/J*Inv(F) * (ToMat<3,3>("+invar+") * F)));\n";
 
+
+      /*
+         for curved elements:  (att: row-wise gradients)
+      // H(div), u = 1/J F uhat:
+      //   (grad u)_ij = 1/J F_ig [ d^_b uhat_g + (F^{-1})_gk H_kab uhat_a
+      //                                        - uhat_g (F^{-1})_ak H_kab ] (F^{-1})_bj
+      
+      auto R     = Finv * RowContract(H, uhat) - Outer(uhat, d);
+      auto gradd = (1.0f/J) * (F * (duhat + R) * Finv);
+      */
+    }
+    
     
 #ifdef UNUSED    
     template <typename AFEL, typename SIP, typename MAT,
@@ -686,6 +747,15 @@ public:
     static void GenerateMatrix (const AFEL & fel, const MIP & mip, MAT mat, LocalHeap & lh)
     {
       CalcDShapeFE<FEL,D,D-1,D>(static_cast<const FEL&>(fel), mip, Trans(mat), lh, eps());
+    }
+
+    static void GenerateMatrixSIMDIR (const FiniteElement & bfel,
+                                      const SIMD_BaseMappedIntegrationRule & bmir,
+                                      BareSliceMatrix<SIMD<double>> mat)
+    {
+      CalcSIMDDShapeFE<FEL,D,D-1,D>
+        (static_cast<const FEL&>(bfel),
+         static_cast<const SIMD_MappedIntegrationRule<D-1,D>&>(bmir), mat, eps());
     }
   };  
 
@@ -880,6 +950,15 @@ HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffO
 HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpIdHDiv<3> >;
 HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpDivHDiv<2> >;
 HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpDivHDiv<3> >;
+HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpIdHDivSurface<3> >;
+HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpIdVecHDivBoundary<2> >;
+HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpIdVecHDivBoundary<3> >;
+HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpHDivDual<2> >;
+HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpHDivDual<3> >;
+HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradientHDiv<2> >;
+HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradientHDiv<3> >;
+HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradientTraceHDiv<2,HDivNormalFiniteElement<1>> >;
+HDIV_EQUATIONS_EXTERN template class NGS_DLL_HEADER T_DifferentialOperator<DiffOpGradientTraceHDiv<3,HDivNormalFiniteElement<2>> >;
 
 HDIV_EQUATIONS_EXTERN template class MassHDivIntegrator<2>;
 HDIV_EQUATIONS_EXTERN template class DivDivHDivIntegrator<2>;

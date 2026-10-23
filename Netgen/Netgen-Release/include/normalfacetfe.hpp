@@ -8,7 +8,6 @@
 /*********************************************************************/
 
 
-// #include <fem.hpp>
 #include "thdivfe.hpp"
 #include "recursive_pol.hpp"
 #include <cassert>
@@ -34,6 +33,8 @@ namespace ngfem
   public:
     using VertexOrientedFE<ET>::SetVertexNumber;
     using VertexOrientedFE<ET>::SetVertexNumbers;
+    NormalFacetFacetFE * SetVertexNumbers (FlatArray<int> vnums) override
+    { VertexOrientedFE<ELEMENT_TYPE(ET)>::SetVertexNumbers(vnums); return this; }
     using VertexOrientedFE<ET>::GetVertexOrientedEdge;
     using VertexOrientedFE<ET>::GetVertexOrientedFace;
 
@@ -46,7 +47,7 @@ namespace ngfem
 
     NormalFacetFacetFE () : HDivNormalFiniteElement<ET_trait<ET>::DIM>(0,0) { ; }
 
-    HD virtual ELEMENT_TYPE ElementType() const override { return ELEMENT_TYPE(ET); }
+    virtual ELEMENT_TYPE ElementType() const override { return ELEMENT_TYPE(ET); }
 
     INLINE void SetOrder (int aorder)
     {
@@ -93,10 +94,12 @@ namespace ngfem
     
   public:
     using VertexOrientedFE<ET>::SetVertexNumbers;
+    NormalFacetVolumeFE * SetVertexNumbers (FlatArray<int> vnums) override
+    { VertexOrientedFE<ELEMENT_TYPE(ET)>::SetVertexNumbers(vnums); return this; }
     
     NormalFacetVolumeFE () { highest_order_dc=false; }
     
-    HD virtual ELEMENT_TYPE ElementType() const override { return ELEMENT_TYPE(ET); }
+    virtual ELEMENT_TYPE ElementType() const override { return ELEMENT_TYPE(ET); }
 
     void SetHighestOrderDC(bool set) { highest_order_dc=set; }
 

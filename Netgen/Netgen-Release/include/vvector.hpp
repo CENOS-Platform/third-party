@@ -38,7 +38,7 @@ namespace ngla
       es = aes;
       pdata = new TSCAL[as*aes];
       ownmem = true;
-      GetMemoryTracer().Alloc(sizeof(TSCAL) * as * aes);
+      MemTraceAlloc(pdata, sizeof(TSCAL) * as * aes);
       // this->entrysize = es * sizeof(TSCAL) / sizeof(double);
       this->entrysize = es * sizeof(TSCAL) / sizeof(typename scal_traits<TSCAL>::TSCAL_REAL);
     }
@@ -47,13 +47,13 @@ namespace ngla
     {
       if (ownmem)
         {
-          GetMemoryTracer().Free(sizeof(TSCAL) * this->size * es);
+          MemTraceFree(pdata, sizeof(TSCAL) * this->size * es);
           delete [] pdata;
         }
       this->size = as;
       pdata = new TSCAL[as*es];
       ownmem = true;
-      GetMemoryTracer().Alloc(sizeof(TSCAL) * as * es);
+      MemTraceAlloc(pdata, sizeof(TSCAL) * as * es);
     }
 
     void SetParent (shared_ptr<BaseVector> aparent)
@@ -80,7 +80,7 @@ namespace ngla
     // virtual AutoVector Range (size_t begin, size_t end) const override;
     virtual AutoVector Range (T_Range<size_t> range) const override;
 
-    template<typename TIND, typename std::enable_if<ngstd::my_is_integral<TIND>::value, int>::type = 0>
+    template<typename TIND, typename std::enable_if<ngcore::my_is_integral<TIND>::value, int>::type = 0>
     FlatVector<TSCAL> operator() (TIND i) const
     {
       return FlatVector<TSCAL> (es, pdata+i*es);
@@ -90,11 +90,11 @@ namespace ngla
     virtual unique_ptr<MultiVector> CreateMultiVector (size_t cnt) const override;
     
     virtual ostream & Print (ostream & ost) const override;
-    using BaseVector::GetMemoryTracer;
   };
 
 
   extern template class S_BaseVectorPtr<double>;
+  extern template class S_BaseVectorPtr<float>;
   extern template class S_BaseVectorPtr<Complex>;
 
 
@@ -207,6 +207,7 @@ namespace ngla
   };
 
   extern template class VVector<double>;
+  extern template class VVector<float>;
   extern template class VVector<Complex>;
 }
 

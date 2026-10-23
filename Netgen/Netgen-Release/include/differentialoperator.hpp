@@ -149,6 +149,21 @@ namespace ngfem
                     BareSliceVector<> elvecu,
                     SliceMatrix<> hessian,   
                     LocalHeap & lh) const { ; } 
+
+    // simd versions, nonlinear diffops throw NOSIMD if not overloaded
+    NGS_DLL_HEADER virtual void
+    CalcLinearizedMatrix (const FiniteElement & fel,
+                          const SIMD_BaseMappedIntegrationRule & mir,
+                          BareSliceVector<double> x,
+                          BareSliceMatrix<SIMD<double>> mat) const;
+
+    NGS_DLL_HEADER virtual void
+    CalcHessianAdd (const FiniteElement & fel,
+                    const SIMD_BaseMappedIntegrationRule & mir,
+                    BareSliceMatrix<SIMD<double>> wprime,
+                    BareSliceVector<> elvecu,
+                    SliceMatrix<> hessian,   
+                    LocalHeap & lh) const;
     
     NGS_DLL_HEADER virtual void
     Apply (const FiniteElement & fel,
@@ -268,7 +283,8 @@ namespace ngfem
                               LocalHeap & lh) const;
 
     NGS_DLL_HEADER
-    virtual string GenerateTransformationCode (string invar, string outvar, bool trans) const;
+    virtual string GenerateTransformationCode (string invar, string outvar, bool trans,
+                                               bool curved = false) const;
     
     NGS_DLL_HEADER virtual shared_ptr<CoefficientFunction> DiffShape (shared_ptr<CoefficientFunction> proxy,
                                                        shared_ptr<CoefficientFunction> dir,

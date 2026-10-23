@@ -1,6 +1,7 @@
 #ifndef FILE_NGLA
 #define FILE_NGLA
 
+#include <ngstd.hpp>
 #include <bla.hpp>
 
 /** namespace for linear algebra.
@@ -34,5 +35,14 @@ namespace ngla
 #include "chebyshev.hpp"
 #include "eigen.hpp"
 #include "arnoldi.hpp"
+#include "devicevector.hpp"
+#include "device_sparsematrix.hpp"
+#include "device_blockgemv.hpp"
+#include "device_blockjacobi.hpp"
+#include "device_blockgs.hpp"
+#include "device_ebeconst.hpp"
+#include "device_ebe.hpp"
+#include "device_diagonalmatrix.hpp"
+#include "device_sparsecholesky.hpp"
 
 #endif

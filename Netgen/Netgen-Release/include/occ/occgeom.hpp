@@ -9,7 +9,9 @@
 
 #ifdef OCCGEOMETRY
 
+#include <mutex>
 #include <set>
+#include <unordered_map>
 
 #include <meshing.hpp>
 #include "occ_utils.hpp"
@@ -52,7 +54,7 @@ namespace netgen
 #define OCCGEOMETRYVISUALIZATIONFULLCHANGE 1  // Compute transformation matrices and redraw
 #define OCCGEOMETRYVISUALIZATIONHALFCHANGE 2  // Redraw
 
-  bool IsMappedShape(const Transformation<3> & trafo, const TopoDS_Shape & me, const TopoDS_Shape & you);
+  DLL_HEADER bool IsMappedShape(const Transformation<3> & trafo, const TopoDS_Shape & me, const TopoDS_Shape & you);
 
   class EntityVisualizationCode
   {
@@ -136,15 +138,22 @@ namespace netgen
   };
 
 
+  struct OCCAssemblyNode
+  {
+    std::string name;
+    TopoDS_Shape shape;          // null on internal (assembly) nodes
+    bool is_assembly = false;
+    std::vector<std::shared_ptr<OCCAssemblyNode>> children;
+  };
+
   class DLL_HEADER OCCGeometry : public NetgenGeometry
   {
     Point<3> center;
     OCCParameters occparam;
   public:
-    static TopTools_IndexedMapOfShape global_shape_property_indices;
-    static std::vector<ShapeProperties> global_shape_properties;
-    static TopTools_IndexedMapOfShape global_identification_indices;
-    static std::vector<std::vector<OCCIdentification>> global_identifications;
+    static std::unordered_map<TopoDS_Shape, ShapeProperties, ShapeHasher, ShapeHasher> global_shape_properties;
+    static std::unordered_map<TopoDS_Shape, std::vector<OCCIdentification>, ShapeHasher, ShapeHasher> global_identifications;
+    static std::mutex global_shape_mutex;
 
     static ShapeProperties& GetProperties(const TopoDS_Shape& shape)
     {
@@ -156,57 +165,63 @@ namespace netgen
         {
           cerr << "WARNING: " << e.what() << endl;
         }
-      auto index = OCCGeometry::global_shape_property_indices.FindIndex(shape);
-      if(index > 0)
-        return OCCGeometry::global_shape_properties
-          [index-1];
-      OCCGeometry::global_shape_property_indices.Add(shape);
-      OCCGeometry::global_shape_properties.push_back({});
-      return OCCGeometry::global_shape_properties.back();
+      std::lock_guard<std::mutex> guard(global_shape_mutex);
+      return global_shape_properties[shape];
+    }
+    // does not create an entry, nullptr if shape has no properties
+    static const ShapeProperties* FindProperties(const TopoDS_Shape& shape)
+    {
+      std::lock_guard<std::mutex> guard(global_shape_mutex);
+      auto it = global_shape_properties.find(shape);
+      return it == global_shape_properties.end() ? nullptr : &it->second;
     }
     static bool HaveProperties(const TopoDS_Shape& shape)
     {
-      return OCCGeometry::global_shape_property_indices.FindIndex(shape) > 0;
+      std::lock_guard<std::mutex> guard(global_shape_mutex);
+      return global_shape_properties.count(shape) > 0;
     }
     static std::vector<OCCIdentification>& GetIdentifications(const TopoDS_Shape& shape)
     {
-      auto index = OCCGeometry::global_identification_indices.FindIndex(shape);
-      if(index > 0)
-        return OCCGeometry::global_identifications[index-1];
-      OCCGeometry::global_identification_indices.Add(shape);
-      OCCGeometry::global_identifications.push_back({});
-      return OCCGeometry::global_identifications.back();
+      std::lock_guard<std::mutex> guard(global_shape_mutex);
+      return global_identifications[shape];
     }
     static bool HaveIdentifications(const TopoDS_Shape& shape)
     {
-      return OCCGeometry::global_identification_indices.FindIndex(shape) > 0;
+      std::lock_guard<std::mutex> guard(global_shape_mutex);
+      return global_identifications.count(shape) > 0;
     }
+    // removes entries of shapes that are only referenced by the global maps,
+    // returns the number of removed entries
+    static size_t CleanupGlobalShapeData();
+    // cleanup only if the maps have doubled since the last cleanup
+    static void CleanupGlobalShapeDataIfGrown();
 
     TopoDS_Shape shape;
+    std::shared_ptr<OCCAssemblyNode> assembly_tree;
     TopTools_IndexedMapOfShape fmap, emap, vmap, somap, shmap, wmap;
-    NgArray<bool> fsingular, esingular, vsingular;
+    Array<bool> fsingular, esingular, vsingular;
     Box<3> boundingbox;
 
     mutable int changed;
-    mutable NgArray<int> facemeshstatus;
+    mutable Array<int> facemeshstatus;
 
     // Philippose - 15/01/2009
     // Maximum mesh size for a given face
     // (Used to explicitly define mesh size limits on individual faces)
-    NgArray<double> face_maxh;
+    Array<double> face_maxh;
      
     // Philippose - 14/01/2010
     // Boolean array to detect whether a face has been explicitly modified 
     // by the user or not
-    NgArray<bool> face_maxh_modified;
+    Array<bool> face_maxh_modified;
      
     // Philippose - 15/01/2009
     // Indicates which faces have been selected by the user in geometry mode
     // (Currently handles only selection of one face at a time, but an array would
     //  help to extend this to multiple faces)
-    NgArray<bool> face_sel_status;
+    Array<bool> face_sel_status;
      
-    NgArray<EntityVisualizationCode> fvispar, evispar, vvispar;
+    Array<EntityVisualizationCode> fvispar, evispar, vvispar;
      
     double tolerance;
     bool fixsmalledges;
@@ -279,6 +294,11 @@ namespace netgen
     bool MeshFace(Mesh& mesh, const MeshingParameters& mparam,
                      int nr, FlatArray<int, PointIndex> glob2loc) const override;
     // void OptimizeSurface(Mesh& mesh, const MeshingParameters& mparam) const override {}
+    double BentEdgeAngle(const MeshingParameters& mparam) const override
+    {
+      if (mparam.curvaturesafety <= 0) return 0;
+      return min (max (1.0 / mparam.curvaturesafety, M_PI/3), 0.5*M_PI);
+    }
  
     void Save (const filesystem::path & filename) const override;
     void SaveToMeshFile (ostream & /* ost */) const override;
@@ -312,7 +332,7 @@ namespace netgen
     }
 
     void CalcBoundingBox ();
-    void BuildVisualizationMesh (double deflection);
+    void BuildVisualizationMesh (double deflection = 0.01, double angle = 0.5);
     
     void RecursiveTopologyTree (const TopoDS_Shape & sh,
                                 stringstream & str,
@@ -419,12 +439,12 @@ namespace netgen
 
     void LowLightAll()
     {
-      for (int i = 1; i <= fmap.Extent(); i++)
-        fvispar[i-1].Lowlight();
-      for (int i = 1; i <= emap.Extent(); i++)
-        evispar[i-1].Lowlight();
-      for (int i = 1; i <= vmap.Extent(); i++)
-        vvispar[i-1].Lowlight();
+      for (int i = 0; i < fmap.Extent(); i++)
+        fvispar[i].Lowlight();
+      for (int i = 0; i < emap.Extent(); i++)
+        evispar[i].Lowlight();
+      for (int i = 0; i < vmap.Extent(); i++)
+        vvispar[i].Lowlight();
     }
 
     void GetUnmeshedFaceInfo (stringstream & str);

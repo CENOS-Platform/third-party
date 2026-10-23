@@ -97,10 +97,8 @@ namespace ngmg
     void MGM (int level, BaseVector & u, 
 	      const BaseVector & f, int incsm = 1) const;
     ///
-    AutoVector CreateRowVector () const override
-    { return biform->GetMatrix().CreateColVector(); }
-    AutoVector CreateColVector () const override
-    { return biform->GetMatrix().CreateRowVector(); }
+    VecFormat RowFormat () const override { return biform->GetMatrix().ColFormat(); }
+    VecFormat ColFormat () const override { return biform->GetMatrix().RowFormat(); }
   
     ///
     const Smoother & GetSmoother() const
@@ -124,11 +122,6 @@ namespace ngmg
     }
 
     virtual Array<MemoryUsage> GetMemoryUsage () const override;
-
-  private:
-    MemoryTracer mt = { "MultiGridPreconditioner" };
-  public:
-    const MemoryTracer& GetMemoryTracer() const { return mt; }
   };
 
 
@@ -170,8 +163,8 @@ namespace ngmg
 
     virtual void Mult (const BaseVector & x, BaseVector & y) const override;
     ///
-    AutoVector CreateRowVector () const override { return mat->CreateColVector(); }
-    AutoVector CreateColVector () const override { return mat->CreateRowVector(); }
+    VecFormat RowFormat () const override { return mat->ColFormat(); }
+    VecFormat ColFormat () const override { return mat->RowFormat(); }
     ///
     virtual ostream & Print (ostream & s) const override;
     ///

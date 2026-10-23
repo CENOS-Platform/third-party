@@ -19,10 +19,8 @@ namespace py = pybind11;
 
 namespace ngcore
 {
-#ifdef PARALLEL
   NGCORE_API extern bool (*NG_MPI_CommFromMPI4Py)(py::handle, NG_MPI_Comm &);
   NGCORE_API extern py::handle (*NG_MPI_CommToMPI4Py)(NG_MPI_Comm);
-#endif // PARALLEL
 
   namespace detail
   {
@@ -38,7 +36,54 @@ namespace ngcore
     };
   } // namespace detail
 
-#ifdef PARALLEL
+  // Conversions between C++ objects and python for pickling (PyArchive)
+  // and for std::any values in Flags. Registered per type by
+  // RegisterPyArchiveCaster<T>(), typically next to its py::class_.
+  namespace detail
+  {
+    struct PyArchiveCasters
+    {
+      py::object (*shared_to_py)(std::shared_ptr<void>) = nullptr;
+      std::shared_ptr<void> (*py_to_shared)(py::handle) = nullptr;
+      py::object (*any_to_py)(const std::any&) = nullptr;
+      std::any (*py_to_any)(py::handle) = nullptr;
+    };
+    NGCORE_API void SetPyArchiveCasters(const std::type_info& ti, const PyArchiveCasters& casters);
+    // throws if the type was not registered
+    NGCORE_API const PyArchiveCasters& GetPyArchiveCasters(const std::type_info& ti);
+    NGCORE_API const PyArchiveCasters* FindPyArchiveCasters(const std::type_info& ti);
+  } // namespace detail
+
+  NGCORE_API py::object CastAnyToPy(const std::any& a);
+  NGCORE_API std::any CastPyToAny(py::object& obj);
+
+  template<typename T>
+  void RegisterPyArchiveCaster()
+  {
+    detail::PyArchiveCasters c;
+    constexpr bool as_shared = has_shared_from_this2<T>::value || !std::is_copy_constructible_v<T>;
+    if constexpr (as_shared)
+      {
+        c.shared_to_py = [](std::shared_ptr<void> p) -> py::object
+        {
+          if (p.use_count() == 0)   // non-owning, from a raw pointer
+            return py::cast(static_cast<T*>(p.get()));
+          return py::cast(std::static_pointer_cast<T>(p));
+        };
+        c.py_to_shared = [](py::handle h) -> std::shared_ptr<void> { return h.cast<std::shared_ptr<T>>(); };
+        c.any_to_py = [](const std::any& a) { return py::cast(std::any_cast<std::shared_ptr<T>>(a)); };
+        c.py_to_any = [](py::handle h) { return std::any{ h.cast<std::shared_ptr<T>>() }; };
+        // a std::any holding a shared_ptr<T> reports that type
+        detail::SetPyArchiveCasters(typeid(std::shared_ptr<T>), c);
+      }
+    else
+      {
+        c.any_to_py = [](const std::any& a) { return py::cast(*std::any_cast<T>(&a)); };
+        c.py_to_any = [](py::handle h) { return std::any{ h.cast<T>() }; };
+      }
+    detail::SetPyArchiveCasters(typeid(T), c);
+  }
+
   struct mpi4py_comm {
     mpi4py_comm() = default;
     mpi4py_comm(NG_MPI_Comm value) : value(value) {}
@@ -46,7 +91,6 @@ namespace ngcore
 
     NG_MPI_Comm value;
   };
-#endif  // PARALLEL
 } // namespace ngcore
 
 
@@ -55,7 +99,6 @@ namespace ngcore
 namespace pybind11 {
 namespace detail {
 
-#ifdef PARALLEL
 template <> struct type_caster<ngcore::mpi4py_comm> {
   public:
   PYBIND11_TYPE_CASTER(ngcore::mpi4py_comm, _("mpi4py_comm"));
@@ -74,7 +117,6 @@ template <> struct type_caster<ngcore::mpi4py_comm> {
       return ngcore::NG_MPI_CommToMPI4Py(src.value);
     }
 };
-#endif //  PARALLEL
 
 template <typename Type, typename Value> struct ngcore_list_caster {
     using value_conv = make_caster<Value>;
@@ -240,8 +282,16 @@ namespace ngcore
     using ARCHIVE::operator&;
     using ARCHIVE::operator<<;
     using ARCHIVE::GetVersion;
-    void ShallowOutPython(const pybind11::object& val) override { lst.append(val); }
-    void ShallowInPython(pybind11::object& val) override { val = lst[index++]; }
+    void ShallowOutPtr(std::shared_ptr<void> p, const std::type_info& ti) override
+    { lst.append(detail::GetPyArchiveCasters(ti).shared_to_py(std::move(p))); }
+    void ShallowInPtr(std::shared_ptr<void>& p, const std::type_info& ti) override
+    { p = detail::GetPyArchiveCasters(ti).py_to_shared(lst[index++]); }
+    void ShallowOutAny(const std::any& a) override { lst.append(CastAnyToPy(a)); }
+    void ShallowInAny(std::any& a) override
+    {
+      pybind11::object obj = lst[index++];
+      a = CastPyToAny(obj);
+    }
 
     pybind11::list WriteOut()
     {
@@ -344,11 +394,9 @@ namespace ngcore
                 size_t start, stop, step, slicelength;
                 if (!slice.compute(self.Size(), &start, &stop, &step, &slicelength))
                   throw py::error_already_set();
-                static constexpr int base = IndexBASE<TIND>();
-                if (start < base || start+(slicelength-1)*step >= self.Size()+base)
-                  throw py::index_error();
+                // pybind slices are 0-based
                 for (size_t i = 0; i < slicelength; i++, start+=step)
-                  self[start] = val;
+                  self[IndexBASE<TIND>()+start] = val;
               })
 
         .def("__iter__", [] ( TFlat & self) {
@@ -392,8 +440,8 @@ namespace ngcore
                   {
                     size_t s = x.size();
                     TArray tmp(s);
-                    for (size_t i : Range(tmp))
-                      tmp[TIND(i)] = x[i];
+                    for (auto i : Range(tmp))
+                      tmp[i] = x[i-IndexBASE<TIND>()];
                     return tmp;
                   }), py::arg("vec"), "Makes array with given list of elements")
         ;

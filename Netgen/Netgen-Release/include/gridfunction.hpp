@@ -117,8 +117,6 @@ namespace ngcomp
     /// highest multigrid-level for which Update was called (memory allocation)
     int level_updated = -1;
 
-    /// used for many right-hand-sides
-    int cacheblocksize = 1;
     /// Component gridfunctions living somewhere - need to call update on them
     Array<weak_ptr<GridFunction>> compgfs;
     /// the actual data, array for multi-dim 
@@ -190,10 +188,6 @@ namespace ngcomp
 
     // void Visualize(const string & name);
 
-    ///
-    virtual void SetCacheBlockSize (const int size) {cacheblocksize = size;}
-    ///
-    virtual int GetCacheBlockSize (void) const { return cacheblocksize;}
     ///
     virtual bool IsUpdated () const; 
 
@@ -312,6 +306,28 @@ namespace ngcomp
 				   FlatVector<Complex> elvec) 
     { vec[comp] -> SetIndirect (dnums, elvec); }
 
+    // elvec in local element basis
+    template <typename SCAL>
+    void GetElementVector (int comp, const FESpace::Element & el,
+                           FlatVector<SCAL> elvec) const
+    {
+      auto & fes = el.GetFESpace();
+      if (auto T = fes.GetDofTransformation (el, el.GetLH()))
+        {
+          FlatVector<SCAL> gvec(T->Width(), el.GetLH());
+          GetElementVector (comp, el.GetDofs(), gvec);
+          elvec = *T * gvec;
+          return;
+        }
+      GetElementVector (comp, el.GetDofs(), elvec);
+      fes.TransformVec (el, elvec, TRANSFORM_SOL);
+    }
+
+    template <typename SCAL>
+    void GetElementVector (const FESpace::Element & el, FlatVector<SCAL> elvec) const
+    { GetElementVector (0, el, elvec); }
+
+    virtual Scalar GetScalarType() const = 0;
 
     // multidim component, if -1 then all components are loaded/saved
     virtual void Load (istream & ist, int mdcomp = -1) = 0;
@@ -338,11 +354,12 @@ namespace ngcomp
 		    const Flags & flags = Flags());
       
     // parallel Load/Save by Martin Huber and Lothar Nannen 
-    virtual void Load (istream & ist, int mdcomp);
-    virtual void Save (ostream & ost, int mdcomp) const;
+    virtual void Load (istream & ist, int mdcomp) override;
+    virtual void Save (ostream & ost, int mdcomp) const override;
 
-    virtual void Update ();
-
+    virtual void Update () override;
+    virtual Scalar GetScalarType() const override { return Scalar(SCAL(0)); }
+    
   private:
     template <int N, NODE_TYPE NT> void LoadNodeType (istream & ist, int mdcomp);
     template <int N, NODE_TYPE NT> void SaveNodeType (ostream & ost, int mdcomp) const;
@@ -403,6 +420,7 @@ namespace ngcomp
     void Save(ostream& ost, int mdcomp) const override { throw Exception("Save not implemented for ComponentGF"); }
     shared_ptr<GridFunction> GetParent() const { return gf_parent; }
     int GetComponent() const { return comp; }
+    virtual Scalar GetScalarType() const override { return gf_parent->GetScalarType(); }
   };
   
 

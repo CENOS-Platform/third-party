@@ -117,38 +117,44 @@ namespace ngla
     bool compressed;
     Array<int> compress;
     size_t memory_allocated_in_pardiso_lib = 0;
-  
+
+    void GetPardisoMatrix (const SparseMatrix<TM> & a);
+    void CallFactorization (integer phase);
+    void ReleaseFactorization (integer size, FlatArray<integer> arowstart,
+                               FlatArray<integer> aindices);
+
   public:
     typedef typename mat_traits<TM>::TSCAL TSCAL;
 
     ///
-    PardisoInverseTM (shared_ptr<const SparseMatrixTM<TM>> a,
+    PardisoInverseTM (shared_ptr<const SparseMatrix<TM>> a,
 		      shared_ptr<BitArray> ainner = nullptr,
 		      shared_ptr<const Array<int>> acluster = nullptr,
 		      int symmetric = 0);
     ///
 
     template <typename TSUBSET>
-    void GetPardisoMatrix (const SparseMatrixTM<TM> & a, TSUBSET subset);
+    void GetPardisoMatrix (const SparseMatrix<TM> & a, TSUBSET subset);
 
     virtual ~PardisoInverseTM ();
     ///
-    int VHeight() const { return height/entrysize; }
+    int VHeight() const override { return height/entrysize; }
     ///
-    int VWidth() const { return height/entrysize; }
-    ///
-    virtual ostream & Print (ostream & ost) const;
+    int VWidth() const override { return height/entrysize; }
 
-    virtual Array<MemoryUsage> GetMemoryUsage () const
+    bool SupportsUpdate() const override { return true; }
+    void Update() override;
+    ///
+    virtual ostream & Print (ostream & ost) const override;
+
+    virtual Array<MemoryUsage> GetMemoryUsage () const override
     {
       return { MemoryUsage ("Pardiso", nze*sizeof(TM), 1) };
     }
   };
 
 
-  template<class TM, 
-	   class TV_ROW = typename mat_traits<TM>::TV_ROW, 
-	   class TV_COL = typename mat_traits<TM>::TV_COL>
+  template<class TM>
   class PardisoInverse : public PardisoInverseTM<TM>
   {
     using PardisoInverseTM<TM>::height;
@@ -164,16 +170,20 @@ namespace ngla
     using PardisoInverseTM<TM>::compress;
 
   public:
-    typedef TV_COL TV;
-    typedef TV_ROW TVX;
+    typedef typename mat_traits<TM>::TV_COL TV;
+    typedef typename mat_traits<TM>::TV_ROW TVX;
     typedef typename mat_traits<TM>::TSCAL TSCAL;
+  protected:
+    // scalar of the vectors, a real matrix may solve for complex vectors
+    Scalar vecscal = TSCAL(0);
+  public:
 
     ///
-    PardisoInverse (shared_ptr<const SparseMatrix<TM,TV_ROW,TV_COL>> a,
+    PardisoInverse (shared_ptr<const SparseMatrix<TM>> a,
 		    shared_ptr<BitArray> ainner = nullptr,
 		    shared_ptr<const Array<int>> acluster = nullptr,
 		    int symmetric = 0)
-      : PardisoInverseTM<TM> (a, ainner, acluster, symmetric) { ; }
+      : PardisoInverseTM<TM> (a, ainner, acluster, symmetric), vecscal(a->GetVectorScalar()) { ; }
 
     virtual ~PardisoInverse () { ; }
     ///
@@ -181,14 +191,13 @@ namespace ngla
     void MultTrans (const BaseVector & x, BaseVector & y) const override;
     ///
 
-    AutoVector CreateRowVector() const override
-    {
-      return make_unique<VVector<TV>> (height/entrysize);
-    }
-    AutoVector CreateColVector () const override
-    {
-      return make_unique<VVector<TV>> (height/entrysize);
-    }
+    VecFormat RowFormat () const override { return VVectorFormat<TV> (height/entrysize).WithScalar(vecscal); }
+    VecFormat ColFormat () const override { return VVectorFormat<TV> (height/entrysize).WithScalar(vecscal); }
+  private:
+    // vectors with the matrix scalar
+    void MultSame (const BaseVector & x, BaseVector & y) const;
+    // real matrix, complex vectors
+    void MultRealComplex (const BaseVector & x, BaseVector & y) const;
   };
 
 

@@ -165,6 +165,14 @@ namespace ngfem
          FlatVector<Complex> flux,
          LocalHeap & lh) const
   {
+    if constexpr (DIFFOP::SUPPORT_PML)
+      if (bmip.IsComplex())
+        {
+          const MappedIntegrationPoint<DIM_ELEMENT,DIM_SPACE,Complex> & mip =
+            static_cast<const MappedIntegrationPoint<DIM_ELEMENT,DIM_SPACE,Complex>&> (bmip);
+          DIFFOP::Apply (bfel, mip, x, flux, lh);
+          return;
+        }
     const MappedIntegrationPoint<DIM_ELEMENT,DIM_SPACE> & mip =
       static_cast<const MappedIntegrationPoint<DIM_ELEMENT,DIM_SPACE>&> (bmip);
     DIFFOP::Apply (bfel, mip, x, flux, lh);
@@ -324,9 +332,12 @@ namespace ngfem
 
   template <typename DIFFOP>
   string T_DifferentialOperator<DIFFOP> ::
-  GenerateTransformationCode (string invar, string outvar, bool trans) const  
+  GenerateTransformationCode (string invar, string outvar, bool trans, bool curved) const
   {
-    return DIFFOP::GenerateTransformationCode(invar, outvar, trans);
+    if constexpr (requires { DIFFOP::GenerateTransformationCode(invar, outvar, trans, curved); })
+      return DIFFOP::GenerateTransformationCode(invar, outvar, trans, curved);
+    else
+      return DIFFOP::GenerateTransformationCode(invar, outvar, trans);
   }
   
 }

@@ -685,7 +685,7 @@ namespace ngfem
     INLINE NGS_DLL_HEADER IntegrationRule (size_t asize, double (*pts)[3], double * weights);
     
     // make it polymorphic
-    HD virtual ~IntegrationRule() { ; }
+    virtual ~IntegrationRule() { ; }
 
     IntegrationRule & operator= (IntegrationRule && ir2) = default;
     IntegrationRule & operator= (const IntegrationRule & ir2) = delete;
@@ -1014,6 +1014,31 @@ namespace ngfem
 	      hfaces[i][2] = faces[i][j2];
 	      hfaces[i][3] = faces[i][j3];
 	    }
+	  faces = &hfaces[0];
+	}
+
+      if (eltype == ET_PYRAMID)
+	{
+	  for (int i = 0; i < 4; i++)
+	    {
+	      hfaces[i][0] = faces[i][0];
+	      hfaces[i][1] = faces[i][1];
+	      hfaces[i][2] = faces[i][2];
+	      if (vnums[hfaces[i][0]] > vnums[hfaces[i][1]]) swap (hfaces[i][0], hfaces[i][1]);
+	      if (vnums[hfaces[i][1]] > vnums[hfaces[i][2]]) swap (hfaces[i][1], hfaces[i][2]);
+	      if (vnums[hfaces[i][0]] > vnums[hfaces[i][1]]) swap (hfaces[i][0], hfaces[i][1]);
+	    }
+	  int jmin = 0;
+	  for (int j = 1; j < 4; j++)
+	    if (vnums[faces[4][j]] < vnums[faces[4][jmin]]) jmin = j;
+	  int j1 = (jmin+1)%4;
+	  int j2 = (jmin+2)%4;
+	  int j3 = (jmin+3)%4;
+	  if (vnums[faces[4][j3]] < vnums[faces[4][j1]]) swap (j1, j3);
+	  hfaces[4][0] = faces[4][jmin];
+	  hfaces[4][1] = faces[4][j1];
+	  hfaces[4][2] = faces[4][j2];
+	  hfaces[4][3] = faces[4][j3];
 	  faces = &hfaces[0];
 	}
 
@@ -2542,6 +2567,40 @@ namespace ngfem
     virtual void TransformGradient (BareSliceMatrix<SIMD<double>> grad) const override;
     virtual void TransformGradientTrans (BareSliceMatrix<SIMD<double>> grad) const override;
   };
+
+  extern template class MappedIntegrationPoint<0,0>;
+  extern template class MappedIntegrationPoint<0,1>;
+  extern template class MappedIntegrationPoint<0,2>;
+  extern template class MappedIntegrationPoint<0,3>;
+  extern template class MappedIntegrationPoint<1,1>;
+  extern template class MappedIntegrationPoint<1,2>;
+  extern template class MappedIntegrationPoint<1,3>;
+  extern template class MappedIntegrationPoint<2,2>;
+  extern template class MappedIntegrationPoint<2,3>;
+  extern template class MappedIntegrationPoint<3,3>;
+
+  extern template class MappedIntegrationRule<0,0>;
+  extern template class MappedIntegrationRule<0,1>;
+  extern template class MappedIntegrationRule<0,2>;
+  extern template class MappedIntegrationRule<0,3>;
+  extern template class MappedIntegrationRule<1,1>;
+  extern template class MappedIntegrationRule<1,2>;
+  extern template class MappedIntegrationRule<1,3>;
+  extern template class MappedIntegrationRule<2,2>;
+  extern template class MappedIntegrationRule<2,3>;
+  extern template class MappedIntegrationRule<3,3>;
+
+  extern template class MappedIntegrationRule<0,0,Complex>;
+  extern template class MappedIntegrationRule<0,1,Complex>;
+  extern template class MappedIntegrationRule<0,2,Complex>;
+  extern template class MappedIntegrationRule<0,3,Complex>;
+  extern template class MappedIntegrationRule<1,1,Complex>;
+  extern template class MappedIntegrationRule<1,2,Complex>;
+  extern template class MappedIntegrationRule<1,3,Complex>;
+  extern template class MappedIntegrationRule<2,2,Complex>;
+  extern template class MappedIntegrationRule<2,3,Complex>;
+  extern template class MappedIntegrationRule<3,3,Complex>;
+
 }
 
 

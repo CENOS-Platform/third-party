@@ -28,14 +28,14 @@ namespace ngcomp
   class NGS_DLL_HEADER H1AMG_Matrix : public ngla::BaseMatrix
   {
     size_t size;
-    std::shared_ptr<ngla::SparseMatrixTM<SCAL>> mat;
+    std::shared_ptr<ngla::SparseMatrix<SCAL>> mat;
     std::shared_ptr<ngla::BaseBlockJacobiPrecond> smoother;
-    std::shared_ptr<ngla::SparseMatrixTM<double>> prolongation, restriction;
+    std::shared_ptr<ngla::SparseMatrix<double>> prolongation, restriction;
     std::shared_ptr<ngla::BaseMatrix> coarse_precond;
     int smoothing_steps = 1;
 
   public:
-    H1AMG_Matrix (std::shared_ptr<ngla::SparseMatrixTM<SCAL>> amat,
+    H1AMG_Matrix (std::shared_ptr<ngla::SparseMatrix<SCAL>> amat,
                   std::shared_ptr<ngcore::BitArray> freedofs,
                   ngcore::FlatArray<ngcore::IVec<2>> e2v,
                   ngcore::FlatArray<double> edge_weights,
@@ -47,10 +47,12 @@ namespace ngcomp
     virtual int VWidth() const override { return size; }
     virtual bool IsComplex() const override { return is_same<SCAL,Complex>(); }
     
-    virtual AutoVector CreateRowVector () const override { return mat->CreateColVector(); }
-    virtual AutoVector CreateColVector () const override { return mat->CreateRowVector(); }
+    VecFormat RowFormat () const override { return mat->ColFormat(); }
+    VecFormat ColFormat () const override { return mat->RowFormat(); }
 
     virtual void Mult (const ngla::BaseVector & b, ngla::BaseVector & x) const override;
+    std::shared_ptr<ngla::BaseMatrix> CreateDeviceMatrix () const override;
+    std::shared_ptr<ngla::BaseMatrix> CreateDeviceH1AMG (bool record) const;
   };
 
 
@@ -99,6 +101,7 @@ namespace ngcomp
     virtual void InitLevel (shared_ptr<BitArray> _freedofs) override
     {
       freedofs = _freedofs;
+      mat = nullptr;
     }
 
     virtual void FinalizeLevel (const BaseMatrix * matrix) override;
@@ -110,9 +113,15 @@ namespace ngcomp
 
     virtual void Update () override { ; }
 
+    virtual const BaseMatrix & GetAMatrix() const override { return GetBilinearForm()->GetMatrix(); }
     virtual const BaseMatrix & GetMatrix() const override 
     {
       return *mat;
+    }
+
+    shared_ptr<BaseMatrix> CreateDeviceMatrix () const override
+    {
+      return mat ? mat->CreateDeviceMatrix() : BaseMatrix::CreateDeviceMatrix();
     }
 
   };

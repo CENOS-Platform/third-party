@@ -18,6 +18,7 @@
 #include <TopoDS_Vertex.hxx>
 #include <gp_Trsf.hxx>
 #include <gp_GTrsf.hxx>
+#include <TopTools_ShapeMapHasher.hxx>
 
 #define NETGEN_OCC_VERSION_AT_LEAST(MAJOR, MINOR) \
   ((OCC_VERSION_MAJOR > MAJOR) ||                               \
@@ -85,6 +86,22 @@ namespace netgen
         }
     }
 
+    struct ShapeHasher
+    {
+      size_t operator() (const TopoDS_Shape & s) const
+      {
+#if NETGEN_OCC_VERSION_AT_LEAST(7, 8)
+        return TopTools_ShapeMapHasher{}(s);
+#else
+        return TopTools_ShapeMapHasher::HashCode(s, std::numeric_limits<int>::max());
+#endif
+      }
+      bool operator() (const TopoDS_Shape & a, const TopoDS_Shape & b) const
+      {
+        return a.IsSame(b);
+      }
+    };
+
     DLL_HEADER Box<3> GetBoundingBox( const TopoDS_Shape & shape );
 
     struct OCCIdentification
@@ -97,7 +114,8 @@ namespace netgen
       bool opposite_direction = false;
     };
 
-    Standard_Integer BuildTriangulation( const TopoDS_Shape & shape );
+    Standard_Integer BuildTriangulation( const TopoDS_Shape & shape,
+                                         double deflection = 0.01, double angle = 0.5 );
 
 
     class MyExplorer
